@@ -1,4 +1,4 @@
-﻿#region Copyright notice and license
+#region Copyright notice and license
 
 // Copyright 2019 The gRPC Authors
 //
@@ -70,7 +70,19 @@ public sealed class ServiceMappingCollection : IEnumerable<ServiceMapping>
     /// </summary>
     /// <param name="name">The service name.</param>
     /// <param name="predicate">The predicate used to filter <see cref="HealthResult"/> instances. These results determine service health.</param>
+    [Obsolete("This method is obsolete and will be removed in the future. Use Map(string name, Func<HealthCheckRegistration, bool> predicate) to map service names to .NET health checks.")]
     public void MapService(string name, Func<HealthResult, bool> predicate)
+    {
+        _mappings.Remove(name);
+        _mappings.Add(new ServiceMapping(name, predicate));
+    }
+
+    /// <summary>
+    /// Add a service mapping to the collection with the specified name and predicate.
+    /// </summary>
+    /// <param name="name">The service name.</param>
+    /// <param name="predicate">The predicate used to filter <see cref="HealthResult"/> instances. These results determine service health.</param>
+    public void Map(string name, Func<HealthCheckFilterContext, bool> predicate)
     {
         _mappings.Remove(name);
         _mappings.Add(new ServiceMapping(name, predicate));

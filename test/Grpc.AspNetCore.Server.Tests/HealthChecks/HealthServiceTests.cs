@@ -1,4 +1,4 @@
-﻿#region Copyright notice and license
+#region Copyright notice and license
 
 // Copyright 2019 The gRPC Authors
 //
@@ -16,6 +16,7 @@
 
 #endregion
 
+using System.Diagnostics;
 using Grpc.AspNetCore.HealthChecks;
 using Grpc.AspNetCore.HealthChecks.Internal;
 using Grpc.AspNetCore.Server.Tests.Infrastructure;
@@ -27,14 +28,23 @@ using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
 using NUnit.Framework;
 
 namespace Grpc.AspNetCore.Server.Tests.HealthChecks;
 
-[TestFixture]
+[TestFixture(true)]
+[TestFixture(false)]
 public class HealthServiceTests
 {
+    private readonly bool _testOldMapService;
+
+    public HealthServiceTests(bool testOldMapService)
+    {
+        _testOldMapService = testOldMapService;
+    }
+
     [Test]
     public async Task HealthService_Watch_UsePublishedChecks_WriteResults()
     {
@@ -192,24 +202,26 @@ public class HealthServiceTests
             serviceProvider.GetRequiredService<HealthServiceImpl>(),
             serviceProvider.GetRequiredService<IOptions<HealthCheckOptions>>(),
             serviceProvider.GetRequiredService<IOptions<GrpcHealthChecksOptions>>(),
-            serviceProvider.GetRequiredService<HealthCheckService>());
+            serviceProvider.GetRequiredService<HealthCheckService>(),
+            NullLoggerFactory.Instance);
     }
 
     [Test]
     public async Task HealthService_CheckWithFilter_RunChecks_FilteredResultsExcluded()
     {
         // Arrange
-        var healthCheckResult = new HealthCheckResult(HealthStatus.Healthy);
+        var healthCheckResults = new List<HealthCheckResult>();
+        var healthCheckStatus = HealthStatus.Healthy;
 
         var services = new ServiceCollection();
         services.AddLogging();
         services
             .AddGrpcHealthChecks(o =>
             {
-                o.Services.MapService("", result => !result.Tags.Contains("exclude"));
+                Map(o.Services, "", (name, tags) => !tags.Contains("exclude"));
             })
-            .AddAsyncCheck("", () => Task.FromResult(healthCheckResult))
-            .AddAsyncCheck("filtered", () => Task.FromResult(healthCheckResult), new string[] { "exclude" });
+            .AddAsyncCheck("", () => RunHealthCheck(healthCheckStatus, ""))
+            .AddAsyncCheck("filtered", () => RunHealthCheck(healthCheckStatus, "filtered"), new string[] { "exclude" });
 
         var serviceProvider = services.BuildServiceProvider();
 
@@ -227,10 +239,51 @@ public class HealthServiceTests
         // Act & Assert
         await CheckForStatusAsync(service: "", HealthCheckResponse.Types.ServingStatus.Serving);
 
-        healthCheckResult = new HealthCheckResult(HealthStatus.Unhealthy);
+        AssertHealthCheckResults(HealthStatus.Healthy);
+
+        healthCheckStatus = HealthStatus.Unhealthy;
         await CheckForStatusAsync(service: "", HealthCheckResponse.Types.ServingStatus.NotServing);
 
+        AssertHealthCheckResults(HealthStatus.Unhealthy);
+
         await ExceptionAssert.ThrowsAsync<RpcException>(() => CheckForStatusAsync(service: "filtered", HealthCheckResponse.Types.ServingStatus.ServiceUnknown));
+
+        Assert.AreEqual(0, healthCheckResults.Count);
+
+        void AssertHealthCheckResults(HealthStatus healthStatus)
+        {
+            // Health checks are run in parallel. Sort to ensure a consistent order.
+            var sortedResults = healthCheckResults.OrderBy(r => r.Data["name"]).ToList();
+            healthCheckResults.Clear();
+
+            if (!_testOldMapService)
+            {
+                Assert.AreEqual(1, sortedResults.Count);
+                Assert.AreEqual(healthStatus, sortedResults[0].Status);
+                Assert.AreEqual("", sortedResults[0].Data["name"]);
+            }
+            else
+            {
+                Assert.AreEqual(2, sortedResults.Count);
+                Assert.AreEqual(healthStatus, sortedResults[0].Status);
+                Assert.AreEqual("", sortedResults[0].Data["name"]);
+                Assert.AreEqual(healthStatus, sortedResults[1].Status);
+                Assert.AreEqual("filtered", sortedResults[1].Data["name"]);
+            }
+        }
+
+        Task<HealthCheckResult> RunHealthCheck(HealthStatus status, string name)
+        {
+            Debug.Assert(healthCheckResults != null);
+
+            var result = new HealthCheckResult(healthCheckStatus, data: new Dictionary<string, object> { ["name"] = name });
+            // Health checks are run in parallel. Lock to avoid thread safety issues.
+            lock (healthCheckResults)
+            {
+                healthCheckResults.Add(result);
+            }
+            return Task.FromResult(result);
+        }
     }
 
     [Test]
@@ -244,7 +297,7 @@ public class HealthServiceTests
         services
             .AddGrpcHealthChecks(o =>
             {
-                o.Services.MapService("", result => !result.Tags.Contains("exclude"));
+                Map(o.Services, "", (name, tags) => !tags.Contains("exclude"));
                 o.UseHealthChecksCache = true;
             })
             .AddAsyncCheck("", () => Task.FromResult(healthCheckResult))
@@ -320,7 +373,7 @@ public class HealthServiceTests
             .AddGrpcHealthChecks(o =>
             {
                 o.Services.Clear();
-                o.Services.MapService("new", result => true);
+                Map(o.Services, "new", (_, __) => true);
             })
             .AddAsyncCheck("", () => Task.FromResult(healthCheckResult));
         services.Configure<HealthCheckPublisherOptions>(o =>
@@ -370,6 +423,20 @@ public class HealthServiceTests
         finally
         {
             await hostedService.StopAsync(CancellationToken.None);
+        }
+    }
+
+    private void Map(ServiceMappingCollection mappings, string name, Func<string, IEnumerable<string>, bool> predicate)
+    {
+        if (_testOldMapService)
+        {
+#pragma warning disable CS0618 // Type or member is obsolete
+            mappings.MapService(name, r => predicate(r.Name, r.Tags));
+#pragma warning restore CS0618 // Type or member is obsolete
+        }
+        else
+        {
+            mappings.Map(name, r => predicate(r.Name, r.Tags));
         }
     }
 }

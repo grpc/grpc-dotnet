@@ -23,14 +23,23 @@ using Grpc.Health.V1;
 using Grpc.HealthCheck;
 using Grpc.Tests.Shared;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
+using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
 using NUnit.Framework;
 
 namespace Grpc.AspNetCore.Server.Tests.HealthChecks;
 
-[TestFixture]
+[TestFixture(true)]
+[TestFixture(false)]
 public class GrpcHealthChecksPublisherTests
 {
+    private readonly bool _testOldMapService;
+
+    public GrpcHealthChecksPublisherTests(bool testOldMapService)
+    {
+        _testOldMapService = testOldMapService;
+    }
+
     [Test]
     public async Task PublishAsync_Check_ChangingStatus()
     {
@@ -74,7 +83,7 @@ public class GrpcHealthChecksPublisherTests
             healthService,
             o =>
             {
-                o.Services.MapService("", result => !result.Tags.Contains("exclude"));
+                Map(o.Services, "", (name, tags) => !tags.Contains("exclude"));
             });
 
         HealthCheckResponse response;
@@ -145,9 +154,9 @@ public class GrpcHealthChecksPublisherTests
         var healthService = new HealthServiceImpl();
         var publisher = CreatePublisher(healthService, o =>
         {
-            o.Services.MapService(nameof(HealthStatus.Healthy), r => r.Name == nameof(HealthStatus.Healthy));
-            o.Services.MapService(nameof(HealthStatus.Degraded), r => r.Name == nameof(HealthStatus.Degraded));
-            o.Services.MapService(nameof(HealthStatus.Unhealthy), r => r.Name == nameof(HealthStatus.Unhealthy));
+            Map(o.Services, nameof(HealthStatus.Healthy), (name, tags) => name == nameof(HealthStatus.Healthy));
+            Map(o.Services, nameof(HealthStatus.Degraded), (name, tags) => name == nameof(HealthStatus.Degraded));
+            Map(o.Services, nameof(HealthStatus.Unhealthy), (name, tags) => name == nameof(HealthStatus.Unhealthy));
         });
 
         // Act
@@ -224,11 +233,25 @@ public class GrpcHealthChecksPublisherTests
         Assert.AreEqual(HealthCheckResponse.Types.ServingStatus.NotServing, responseStream.Responses.Last().Status);
     }
 
-    private static GrpcHealthChecksPublisher CreatePublisher(HealthServiceImpl healthService, Action<GrpcHealthChecksOptions>? configureOptions = null)
+    private GrpcHealthChecksPublisher CreatePublisher(HealthServiceImpl healthService, Action<GrpcHealthChecksOptions>? configureOptions = null)
     {
         var options = new GrpcHealthChecksOptions();
-        options.Services.MapService("", r => true);
+        Map(options.Services, "", (_, __) => true);
         configureOptions?.Invoke(options);
-        return new GrpcHealthChecksPublisher(healthService, Options.Create(options));
+        return new GrpcHealthChecksPublisher(healthService, Options.Create(options), NullLoggerFactory.Instance);
+    }
+
+    private void Map(ServiceMappingCollection mappings, string name, Func<string, IEnumerable<string>, bool> predicate)
+    {
+        if (_testOldMapService)
+        {
+#pragma warning disable CS0618 // Type or member is obsolete
+            mappings.MapService(name, r => predicate(r.Name, r.Tags));
+#pragma warning restore CS0618 // Type or member is obsolete
+        }
+        else
+        {
+            mappings.Map(name, r => predicate(r.Name, r.Tags));
+        }
     }
 }

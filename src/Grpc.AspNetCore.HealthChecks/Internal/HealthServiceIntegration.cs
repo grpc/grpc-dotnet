@@ -1,4 +1,4 @@
-﻿#region Copyright notice and license
+#region Copyright notice and license
 
 // Copyright 2019 The gRPC Authors
 //
@@ -22,6 +22,7 @@ using Grpc.Health.V1;
 using Grpc.HealthCheck;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
 namespace Grpc.AspNetCore.HealthChecks.Internal;
@@ -32,17 +33,20 @@ internal sealed class HealthServiceIntegration : Grpc.Health.V1.Health.HealthBas
     private readonly GrpcHealthChecksOptions _grpcHealthCheckOptions;
     private readonly HealthServiceImpl _healthServiceImpl;
     private readonly HealthCheckService _healthCheckService;
+    private readonly ILoggerFactory _loggerFactory;
 
     public HealthServiceIntegration(
         HealthServiceImpl healthServiceImpl,
         IOptions<HealthCheckOptions> healthCheckOptions,
         IOptions<GrpcHealthChecksOptions> grpcHealthCheckOptions,
-        HealthCheckService healthCheckService)
+        HealthCheckService healthCheckService,
+        ILoggerFactory loggerFactory)
     {
         _healthCheckOptions = healthCheckOptions.Value;
         _grpcHealthCheckOptions = grpcHealthCheckOptions.Value;
         _healthServiceImpl = healthServiceImpl;
         _healthCheckService = healthCheckService;
+        _loggerFactory = loggerFactory;
     }
 
     public override Task<HealthCheckResponse> Check(HealthCheckRequest request, ServerCallContext context)
@@ -74,8 +78,30 @@ internal sealed class HealthServiceIntegration : Grpc.Health.V1.Health.HealthBas
         HealthCheckResponse.Types.ServingStatus status;
         if (_grpcHealthCheckOptions.Services.TryGetServiceMapping(service, out var serviceMapping))
         {
-            var result = await _healthCheckService.CheckHealthAsync(_healthCheckOptions.Predicate, cancellationToken);
-            status = HealthChecksStatusHelpers.GetStatus(result, serviceMapping.Predicate);
+            var result = await _healthCheckService.CheckHealthAsync((HealthCheckRegistration registration) =>
+            {
+                if (_healthCheckOptions.Predicate != null && !_healthCheckOptions.Predicate(registration))
+                {
+                    return false;
+                }
+
+                if (serviceMapping.FilterPredicate != null && !serviceMapping.FilterPredicate(new HealthCheckFilterContext(registration.Name, registration.Tags)))
+                {
+                    return false;
+                }
+
+                return true;
+            }, cancellationToken);
+
+#pragma warning disable CS0618 // Type or member is obsolete
+            var results = result.Entries.Select(entry => new HealthResult(entry.Key, entry.Value.Tags, entry.Value.Status, entry.Value.Description, entry.Value.Duration, entry.Value.Exception, entry.Value.Data));
+            if (serviceMapping.Predicate != null)
+            {
+                results = results.Where(serviceMapping.Predicate);
+            }
+            status = HealthChecksStatusHelpers.GetStatus(results);
+#pragma warning restore CS0618 // Type or member is obsolete
+
         }
         else
         {

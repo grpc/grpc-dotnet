@@ -1,4 +1,4 @@
-﻿#region Copyright notice and license
+#region Copyright notice and license
 
 // Copyright 2019 The gRPC Authors
 //
@@ -22,14 +22,11 @@ using Microsoft.Extensions.Diagnostics.HealthChecks;
 
 internal static class HealthChecksStatusHelpers
 {
-    public static HealthCheckResponse.Types.ServingStatus GetStatus(HealthReport report, Func<HealthResult, bool> predicate)
+    [Obsolete("Remove with HealthResult.")]
+    public static HealthCheckResponse.Types.ServingStatus GetStatus(IEnumerable<HealthResult> results)
     {
-        var filteredResults = report.Entries
-            .Select(entry => new HealthResult(entry.Key, entry.Value.Tags, entry.Value.Status, entry.Value.Description, entry.Value.Duration, entry.Value.Exception, entry.Value.Data))
-            .Where(predicate);
-
         var resolvedStatus = HealthCheckResponse.Types.ServingStatus.Unknown;
-        foreach (var result in filteredResults)
+        foreach (var result in results)
         {
             if (result.Status == HealthStatus.Unhealthy)
             {

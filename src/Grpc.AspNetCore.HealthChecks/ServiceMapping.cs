@@ -1,4 +1,4 @@
-﻿#region Copyright notice and license
+#region Copyright notice and license
 
 // Copyright 2019 The gRPC Authors
 //
@@ -28,10 +28,22 @@ public sealed class ServiceMapping
     /// </summary>
     /// <param name="name">The service name.</param>
     /// <param name="predicate">The predicate used to filter <see cref="HealthResult"/> instances. These results determine service health.</param>
+    [Obsolete("This constructor is obsolete and will be removed in the future. Use ServiceMapping(string name, Func<HealthCheckRegistration, bool> predicate) to map service names to .NET health checks.")]
     public ServiceMapping(string name, Func<HealthResult, bool> predicate)
     {
         Name = name;
         Predicate = predicate;
+    }
+
+    /// <summary>
+    /// Creates a new instance of <see cref="ServiceMapping"/>.
+    /// </summary>
+    /// <param name="name">The service name.</param>
+    /// <param name="predicate">The predicate used to filter <see cref="HealthResult"/> instances. These results determine service health.</param>
+    public ServiceMapping(string name, Func<HealthCheckFilterContext, bool> predicate)
+    {
+        Name = name;
+        FilterPredicate = predicate;
     }
 
     /// <summary>
@@ -40,7 +52,31 @@ public sealed class ServiceMapping
     public string Name { get; }
 
     /// <summary>
+    /// Gets the predicate used to filter registered health check instances. These results determine service health.
+    /// <para>
+    /// 
+    /// </para>
+    /// </summary>
+    public Func<HealthCheckFilterContext, bool>? FilterPredicate { get; }
+
+    /// <summary>
     /// Gets the predicate used to filter <see cref="HealthResult"/> instances. These results determine service health.
     /// </summary>
-    public Func<HealthResult, bool> Predicate { get; }
+    [Obsolete($"This member is obsolete and will be removed in the future. Use {nameof(FilterPredicate)} to map service names to .NET health checks.")]
+    public Func<HealthResult, bool>? Predicate { get; }
+}
+
+/// <summary>
+/// 
+/// </summary>
+public readonly struct HealthCheckFilterContext
+{
+    public HealthCheckFilterContext(string name, IEnumerable<string> tags)
+    {
+        Name = name;
+        Tags = tags;
+    }
+
+    public string Name { get; }
+    public IEnumerable<string> Tags { get; }
 }
