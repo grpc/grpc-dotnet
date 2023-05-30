@@ -39,11 +39,23 @@ public sealed class ServiceMapping
     /// Creates a new instance of <see cref="ServiceMapping"/>.
     /// </summary>
     /// <param name="name">The service name.</param>
-    /// <param name="predicate">The predicate used to filter <see cref="HealthResult"/> instances. These results determine service health.</param>
+    /// <param name="predicate">
+    /// The predicate used to filter health checks when the <c>Health</c> service <c>Check</c> and <c>Watch</c> methods are called.
+    /// <para>
+    /// The <c>Health</c> service methods have different behavior:
+    /// </para>
+    /// <list type="bullet">
+    /// <item><description><c>Check</c> uses the predicate to determine which health checks are run for a service.</description></item>
+    /// <item><description><c>Watch</c> periodically runs all health checks. The predicate filters the health results for a service.</description></item>
+    /// </list>
+    /// <para>
+    /// The health result for the service is based on the health check results.
+    /// </para>
+    /// </param>
     public ServiceMapping(string name, Func<HealthCheckFilterContext, bool> predicate)
     {
         Name = name;
-        FilterPredicate = predicate;
+        HealthCheckPredicate = predicate;
     }
 
     /// <summary>
@@ -52,16 +64,23 @@ public sealed class ServiceMapping
     public string Name { get; }
 
     /// <summary>
-    /// Gets the predicate used to filter registered health check instances. These results determine service health.
+    /// Gets the predicate used to filter health checks when the <c>Health</c> service <c>Check</c> and <c>Watch</c> methods are called.
     /// <para>
-    /// 
+    /// The <c>Health</c> service methods have different behavior:
+    /// </para>
+    /// <list type="bullet">
+    /// <item><description><c>Check</c> uses the predicate to determine which health checks are run for a service.</description></item>
+    /// <item><description><c>Watch</c> periodically runs all health checks. The predicate filters the health results for a service.</description></item>
+    /// </list>
+    /// <para>
+    /// The health result for the service is based on the health check results.
     /// </para>
     /// </summary>
-    public Func<HealthCheckFilterContext, bool>? FilterPredicate { get; }
+    public Func<HealthCheckFilterContext, bool>? HealthCheckPredicate { get; }
 
     /// <summary>
     /// Gets the predicate used to filter <see cref="HealthResult"/> instances. These results determine service health.
     /// </summary>
-    [Obsolete($"This member is obsolete and will be removed in the future. Use {nameof(FilterPredicate)} to map service names to .NET health checks.")]
+    [Obsolete($"This member is obsolete and will be removed in the future. Use {nameof(HealthCheckPredicate)} to map service names to .NET health checks.")]
     public Func<HealthResult, bool>? Predicate { get; }
 }

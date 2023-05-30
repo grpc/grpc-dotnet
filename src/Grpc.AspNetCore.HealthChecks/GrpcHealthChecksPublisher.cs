@@ -47,14 +47,14 @@ internal sealed class GrpcHealthChecksPublisher : IHealthCheckPublisher
             serviceEntries ??= new();
             serviceEntries.AddRange(report.Entries);
 
-            if (serviceMapping.FilterPredicate != null)
+            if (serviceMapping.HealthCheckPredicate != null)
             {
                 for (var i = serviceEntries.Count - 1; i >= 0; i--)
                 {
                     var entry = serviceEntries[i];
                     var registration = new HealthCheckFilterContext(entry.Key, entry.Value.Tags);
 
-                    if (!serviceMapping.FilterPredicate(registration))
+                    if (!serviceMapping.HealthCheckPredicate(registration))
                     {
                         serviceEntries.RemoveAt(i);
                     }

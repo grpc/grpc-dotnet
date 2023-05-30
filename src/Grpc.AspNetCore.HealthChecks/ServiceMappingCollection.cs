@@ -88,7 +88,19 @@ public sealed class ServiceMappingCollection : ICollection<ServiceMapping>
     /// Add a service mapping to the collection with the specified name and predicate.
     /// </summary>
     /// <param name="name">The service name.</param>
-    /// <param name="predicate">The predicate used to filter <see cref="HealthResult"/> instances. These results determine service health.</param>
+    /// <param name="predicate">
+    /// The predicate used to filter health checks when the <c>Health</c> service <c>Check</c> and <c>Watch</c> methods are called.
+    /// <para>
+    /// The <c>Health</c> service methods have different behavior:
+    /// </para>
+    /// <list type="bullet">
+    /// <item><description><c>Check</c> uses the predicate to determine which health checks are run for a service.</description></item>
+    /// <item><description><c>Watch</c> periodically runs all health checks. The predicate filters the health results for a service.</description></item>
+    /// </list>
+    /// <para>
+    /// The health result for the service is based on the health check results.
+    /// </para>
+    /// </param>
     public void Map(string name, Func<HealthCheckFilterContext, bool> predicate)
     {
         _mappings.Remove(name);
