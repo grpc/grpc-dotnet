@@ -28,7 +28,9 @@ using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
+using Microsoft.Extensions.Logging.Testing;
 using Microsoft.Extensions.Options;
 using NUnit.Framework;
 
@@ -122,6 +124,7 @@ public class HealthServiceTests
 
         var services = new ServiceCollection();
         services.AddLogging();
+        services.AddNUnitLogger();
         services.AddGrpcHealthChecks().AddAsyncCheck(
             "",
             () => Task.FromResult(healthCheckResult), new string[] { "sample" });
@@ -183,6 +186,80 @@ public class HealthServiceTests
         }
     }
 
+    [Test]
+    public async Task HealthService_Watch_RunChecks_Log()
+    {
+        // Arrange
+        var testSink = new TestSink();
+        var testProvider = new TestLoggerProvider(testSink);
+
+        var healthCheckResult = new HealthCheckResult(HealthStatus.Healthy);
+
+        var services = new ServiceCollection();
+        services.AddLogging(o => o.AddProvider(testProvider).SetMinimumLevel(LogLevel.Debug));
+        services.AddNUnitLogger();
+        services.AddGrpcHealthChecks().AddAsyncCheck(
+            "",
+            () => Task.FromResult(healthCheckResult), new string[] { "sample" });
+        services.Configure<HealthCheckPublisherOptions>(o =>
+        {
+            o.Delay = TimeSpan.FromSeconds(1);
+            o.Period = TimeSpan.FromSeconds(1);
+        });
+
+        var serviceProvider = services.BuildServiceProvider();
+
+        var healthService = CreateService(serviceProvider);
+        var hostedService = serviceProvider.GetServices<IHostedService>().Single();
+
+        HealthCheckResponse? response = null;
+        var syncPoint = new SyncPoint(runContinuationsAsynchronously: true);
+        var testServerStreamWriter = new TestServerStreamWriter<HealthCheckResponse>();
+        testServerStreamWriter.OnWriteAsync = async message =>
+        {
+            response = message;
+            await syncPoint.WaitToContinue();
+        };
+
+        var cts = new CancellationTokenSource();
+        var callTask = healthService.Watch(
+            new HealthCheckRequest(),
+            testServerStreamWriter,
+            new TestServerCallContext(DateTime.MaxValue, cts.Token));
+
+        // Act
+        await hostedService.StartAsync(CancellationToken.None);
+
+        // Assert
+        try
+        {
+            await syncPoint.WaitForSyncPoint().DefaultTimeout();
+            Assert.AreEqual(HealthCheckResponse.Types.ServingStatus.Serving, response!.Status);
+            syncPoint.Continue();
+
+            healthCheckResult = new HealthCheckResult(HealthStatus.Unhealthy);
+            syncPoint = new SyncPoint(runContinuationsAsynchronously: true);
+            await syncPoint.WaitForSyncPoint().DefaultTimeout();
+            Assert.AreEqual(HealthCheckResponse.Types.ServingStatus.NotServing, response!.Status);
+            syncPoint.Continue();
+
+            cts.Cancel();
+
+            await callTask.DefaultTimeout();
+        }
+        finally
+        {
+            await hostedService.StopAsync(CancellationToken.None);
+        }
+
+        var writes = testSink.Writes.ToList();
+        var evaluatingPublishedHealthReport = writes.Single(w => w.EventId.Name == "EvaluatingPublishedHealthReport");
+        var serviceMappingStatusUpdated = writes.Single(w => w.EventId.Name == "ServiceMappingStatusUpdated");
+
+        Assert.AreEqual("Evaluating 1 published health report entries against 1 service mappings.", evaluatingPublishedHealthReport.Message);
+        Assert.AreEqual("Service '' status updated to NotServing. 1 health report entries evaluated.", serviceMappingStatusUpdated.Message);
+    }
+
     private class TestHealthCheckPublisher : IHealthCheckPublisher
     {
         public Func<HealthReport, Task>? OnHealthReport { get; set; }
@@ -202,8 +279,7 @@ public class HealthServiceTests
             serviceProvider.GetRequiredService<HealthServiceImpl>(),
             serviceProvider.GetRequiredService<IOptions<HealthCheckOptions>>(),
             serviceProvider.GetRequiredService<IOptions<GrpcHealthChecksOptions>>(),
-            serviceProvider.GetRequiredService<HealthCheckService>(),
-            NullLoggerFactory.Instance);
+            serviceProvider.GetRequiredService<HealthCheckService>());
     }
 
     [Test]
@@ -214,13 +290,14 @@ public class HealthServiceTests
         var healthCheckStatus = HealthStatus.Healthy;
 
         var services = new ServiceCollection();
-        services.AddLogging();
+        services.AddLogging(b => b.SetMinimumLevel(LogLevel.Trace));
+        services.AddNUnitLogger();
         services
             .AddGrpcHealthChecks(o =>
             {
                 Map(o.Services, "", (name, tags) => !tags.Contains("exclude"));
             })
-            .AddAsyncCheck("", () => RunHealthCheck(healthCheckStatus, ""))
+            .AddAsyncCheck("default", () => RunHealthCheck(healthCheckStatus, ""))
             .AddAsyncCheck("filtered", () => RunHealthCheck(healthCheckStatus, "filtered"), new string[] { "exclude" });
 
         var serviceProvider = services.BuildServiceProvider();
@@ -276,7 +353,7 @@ public class HealthServiceTests
         {
             Debug.Assert(healthCheckResults != null);
 
-            var result = new HealthCheckResult(healthCheckStatus, data: new Dictionary<string, object> { ["name"] = name });
+            var result = new HealthCheckResult(healthCheckStatus, $"Description: {name}", data: new Dictionary<string, object> { ["name"] = name });
             // Health checks are run in parallel. Lock to avoid thread safety issues.
             lock (healthCheckResults)
             {

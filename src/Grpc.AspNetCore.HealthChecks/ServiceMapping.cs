@@ -65,18 +65,3 @@ public sealed class ServiceMapping
     [Obsolete($"This member is obsolete and will be removed in the future. Use {nameof(FilterPredicate)} to map service names to .NET health checks.")]
     public Func<HealthResult, bool>? Predicate { get; }
 }
-
-/// <summary>
-/// 
-/// </summary>
-public readonly struct HealthCheckFilterContext
-{
-    public HealthCheckFilterContext(string name, IEnumerable<string> tags)
-    {
-        Name = name;
-        Tags = tags;
-    }
-
-    public string Name { get; }
-    public IEnumerable<string> Tags { get; }
-}

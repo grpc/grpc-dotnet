@@ -23,22 +23,30 @@ using Microsoft.Extensions.Diagnostics.HealthChecks;
 internal static class HealthChecksStatusHelpers
 {
     [Obsolete("Remove with HealthResult.")]
-    public static HealthCheckResponse.Types.ServingStatus GetStatus(IEnumerable<HealthResult> results)
+    public static (HealthCheckResponse.Types.ServingStatus status, int resultCount) GetStatus(IEnumerable<HealthResult> results)
     {
+        var resultCount = 0;
         var resolvedStatus = HealthCheckResponse.Types.ServingStatus.Unknown;
         foreach (var result in results)
         {
+            resultCount++;
+
+            // NotServing is a final status but keep iterating to discover how many results are being evaluated.
+            if (resolvedStatus == HealthCheckResponse.Types.ServingStatus.NotServing)
+            {
+                continue;
+            }
+
             if (result.Status == HealthStatus.Unhealthy)
             {
                 resolvedStatus = HealthCheckResponse.Types.ServingStatus.NotServing;
-
-                // No point continuing to check statuses.
-                break;
             }
-
-            resolvedStatus = HealthCheckResponse.Types.ServingStatus.Serving;
+            else
+            {
+                resolvedStatus = HealthCheckResponse.Types.ServingStatus.Serving;
+            }
         }
 
-        return resolvedStatus;
+        return (resolvedStatus, resultCount);
     }
 }

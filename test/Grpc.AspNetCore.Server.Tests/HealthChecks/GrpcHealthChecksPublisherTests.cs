@@ -22,7 +22,9 @@ using Grpc.Core;
 using Grpc.Health.V1;
 using Grpc.HealthCheck;
 using Grpc.Tests.Shared;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
 using NUnit.Framework;
@@ -235,10 +237,16 @@ public class GrpcHealthChecksPublisherTests
 
     private GrpcHealthChecksPublisher CreatePublisher(HealthServiceImpl healthService, Action<GrpcHealthChecksOptions>? configureOptions = null)
     {
+        var services = new ServiceCollection();
+        services.AddLogging(b => b.SetMinimumLevel(LogLevel.Trace));
+        services.AddNUnitLogger();
+        var serviceProvider = services.BuildServiceProvider();
+        var loggerFactory = serviceProvider.GetRequiredService<ILoggerFactory>();
+
         var options = new GrpcHealthChecksOptions();
         Map(options.Services, "", (_, __) => true);
         configureOptions?.Invoke(options);
-        return new GrpcHealthChecksPublisher(healthService, Options.Create(options), NullLoggerFactory.Instance);
+        return new GrpcHealthChecksPublisher(healthService, Options.Create(options), loggerFactory);
     }
 
     private void Map(ServiceMappingCollection mappings, string name, Func<string, IEnumerable<string>, bool> predicate)

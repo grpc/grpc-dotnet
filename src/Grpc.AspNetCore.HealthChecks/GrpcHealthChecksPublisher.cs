@@ -16,6 +16,7 @@
 
 #endregion
 
+using Grpc.Health.V1;
 using Grpc.HealthCheck;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.Extensions.Logging;
@@ -32,42 +33,69 @@ internal sealed class GrpcHealthChecksPublisher : IHealthCheckPublisher
     public GrpcHealthChecksPublisher(HealthServiceImpl healthService, IOptions<GrpcHealthChecksOptions> options, ILoggerFactory loggerFactory)
     {
         _healthService = healthService;
-        _logger = loggerFactory.CreateLogger<GrpcHealthChecksPublisher>();
         _options = options.Value;
+        _logger = loggerFactory.CreateLogger<GrpcHealthChecksPublisher>();
     }
 
     public Task PublishAsync(HealthReport report, CancellationToken cancellationToken)
     {
+        Log.EvaluatingPublishedHealthReport(_logger, report.Entries.Count, _options.Services.Count);
+
+        List<KeyValuePair<string, HealthReportEntry>>? serviceEntries = null;
         foreach (var serviceMapping in _options.Services)
         {
-            var entries = report.Entries.ToList();
+            serviceEntries ??= new();
+            serviceEntries.AddRange(report.Entries);
 
             if (serviceMapping.FilterPredicate != null)
             {
-                for (var i = entries.Count - 1; i >= 0; i--)
+                for (var i = serviceEntries.Count - 1; i >= 0; i--)
                 {
-                    var entry = entries[i];
+                    var entry = serviceEntries[i];
                     var registration = new HealthCheckFilterContext(entry.Key, entry.Value.Tags);
 
                     if (!serviceMapping.FilterPredicate(registration))
                     {
-                        entries.RemoveAt(i);
+                        serviceEntries.RemoveAt(i);
                     }
                 }
             }
 
 #pragma warning disable CS0618 // Type or member is obsolete
-            var results = entries.Select(entry => new HealthResult(entry.Key, entry.Value.Tags, entry.Value.Status, entry.Value.Description, entry.Value.Duration, entry.Value.Exception, entry.Value.Data));
+            var results = serviceEntries.Select(entry => new HealthResult(entry.Key, entry.Value.Tags, entry.Value.Status, entry.Value.Description, entry.Value.Duration, entry.Value.Exception, entry.Value.Data));
             if (serviceMapping.Predicate != null)
             {
                 results = results.Where(serviceMapping.Predicate);
             }
-            var resolvedStatus = HealthChecksStatusHelpers.GetStatus(results);
+            var (resolvedStatus, resultCount) = HealthChecksStatusHelpers.GetStatus(results);
+
 #pragma warning restore CS0618 // Type or member is obsolete
 
+            Log.ServiceMappingStatusUpdated(_logger, serviceMapping.Name, resolvedStatus, resultCount);
             _healthService.SetStatus(serviceMapping.Name, resolvedStatus);
+
+            serviceEntries.Clear();
         }
 
         return Task.CompletedTask;
+    }
+
+    private static class Log
+    {
+        private static readonly Action<ILogger, int, int, Exception?> _evaluatingPublishedHealthReport =
+            LoggerMessage.Define<int, int>(LogLevel.Trace, new EventId(1, "EvaluatingPublishedHealthReport"), "Evaluating {HealthReportEntryCount} published health report entries against {ServiceMappingCount} service mappings.");
+
+        private static readonly Action<ILogger, string, HealthCheckResponse.Types.ServingStatus, int, Exception?> _serviceMappingStatusUpdated =
+            LoggerMessage.Define<string, HealthCheckResponse.Types.ServingStatus, int>(LogLevel.Debug, new EventId(2, "ServiceMappingStatusUpdated"), "Service '{ServiceName}' status updated to {Status}. {EntriesCount} health report entries evaluated.");
+
+        public static void EvaluatingPublishedHealthReport(ILogger logger, int healthReportEntryCount, int serviceMappingCount)
+        {
+            _evaluatingPublishedHealthReport(logger, healthReportEntryCount, serviceMappingCount, null);
+        }
+
+        public static void ServiceMappingStatusUpdated(ILogger logger, string serviceName, HealthCheckResponse.Types.ServingStatus status, int entriesCount)
+        {
+            _serviceMappingStatusUpdated(logger, serviceName, status, entriesCount, null);
+        }
     }
 }

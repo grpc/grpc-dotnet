@@ -25,7 +25,7 @@ namespace Grpc.AspNetCore.HealthChecks;
 /// <summary>
 /// A collection of <see cref="ServiceMapping"/> used to map health results to gRPC health checks services.
 /// </summary>
-public sealed class ServiceMappingCollection : IEnumerable<ServiceMapping>
+public sealed class ServiceMappingCollection : ICollection<ServiceMapping>
 {
     private sealed class ServiceMappingKeyedCollection : KeyedCollection<string, ServiceMapping>
     {
@@ -36,6 +36,13 @@ public sealed class ServiceMappingCollection : IEnumerable<ServiceMapping>
     }
 
     private readonly ServiceMappingKeyedCollection _mappings = new ServiceMappingKeyedCollection();
+
+    /// <summary>
+    /// Gets the number of service mappings.
+    /// </summary>
+    public int Count => _mappings.Count;
+
+    bool ICollection<ServiceMapping>.IsReadOnly => false;
 
     internal bool TryGetServiceMapping(string name, [NotNullWhen(true)] out ServiceMapping? serviceMapping)
     {
@@ -97,5 +104,20 @@ public sealed class ServiceMappingCollection : IEnumerable<ServiceMapping>
     IEnumerator IEnumerable.GetEnumerator()
     {
         return _mappings.GetEnumerator();
+    }
+
+    bool ICollection<ServiceMapping>.Contains(ServiceMapping item)
+    {
+        return _mappings.Contains(item);
+    }
+
+    void ICollection<ServiceMapping>.CopyTo(ServiceMapping[] array, int arrayIndex)
+    {
+        _mappings.CopyTo(array, arrayIndex);
+    }
+
+    bool ICollection<ServiceMapping>.Remove(ServiceMapping item)
+    {
+        return _mappings.Remove(item);
     }
 }

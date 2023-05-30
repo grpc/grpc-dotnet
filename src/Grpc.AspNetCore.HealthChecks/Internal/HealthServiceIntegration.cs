@@ -22,7 +22,6 @@ using Grpc.Health.V1;
 using Grpc.HealthCheck;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
-using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
 namespace Grpc.AspNetCore.HealthChecks.Internal;
@@ -33,20 +32,17 @@ internal sealed class HealthServiceIntegration : Grpc.Health.V1.Health.HealthBas
     private readonly GrpcHealthChecksOptions _grpcHealthCheckOptions;
     private readonly HealthServiceImpl _healthServiceImpl;
     private readonly HealthCheckService _healthCheckService;
-    private readonly ILoggerFactory _loggerFactory;
 
     public HealthServiceIntegration(
         HealthServiceImpl healthServiceImpl,
         IOptions<HealthCheckOptions> healthCheckOptions,
         IOptions<GrpcHealthChecksOptions> grpcHealthCheckOptions,
-        HealthCheckService healthCheckService,
-        ILoggerFactory loggerFactory)
+        HealthCheckService healthCheckService)
     {
         _healthCheckOptions = healthCheckOptions.Value;
         _grpcHealthCheckOptions = grpcHealthCheckOptions.Value;
         _healthServiceImpl = healthServiceImpl;
         _healthCheckService = healthCheckService;
-        _loggerFactory = loggerFactory;
     }
 
     public override Task<HealthCheckResponse> Check(HealthCheckRequest request, ServerCallContext context)
@@ -99,9 +95,8 @@ internal sealed class HealthServiceIntegration : Grpc.Health.V1.Health.HealthBas
             {
                 results = results.Where(serviceMapping.Predicate);
             }
-            status = HealthChecksStatusHelpers.GetStatus(results);
+            (status, _) = HealthChecksStatusHelpers.GetStatus(results);
 #pragma warning restore CS0618 // Type or member is obsolete
-
         }
         else
         {
@@ -154,7 +149,7 @@ internal sealed class HealthServiceIntegration : Grpc.Health.V1.Health.HealthBas
                 _receivedFirstWrite = true;
                 message = await _service.GetHealthCheckResponseAsync(_request.Service, throwOnNotFound: false, _cancellationToken);
             }
-            
+
             await _innerResponseStream.WriteAsync(message);
         }
     }
