@@ -16,14 +16,12 @@
 
 #endregion
 
-using Grpc.AspNetCore.HealthChecks;
 using Grpc.Health.V1;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 
 internal static class HealthChecksStatusHelpers
 {
-    [Obsolete("Remove with HealthResult.")]
-    public static (HealthCheckResponse.Types.ServingStatus status, int resultCount) GetStatus(IEnumerable<HealthResult> results)
+    public static (HealthCheckResponse.Types.ServingStatus status, int resultCount) GetStatus(IEnumerable<KeyValuePair<string, HealthReportEntry>> results)
     {
         var resultCount = 0;
         var resolvedStatus = HealthCheckResponse.Types.ServingStatus.Unknown;
@@ -37,7 +35,7 @@ internal static class HealthChecksStatusHelpers
                 continue;
             }
 
-            if (result.Status == HealthStatus.Unhealthy)
+            if (result.Value.Status == HealthStatus.Unhealthy)
             {
                 resolvedStatus = HealthCheckResponse.Types.ServingStatus.NotServing;
             }

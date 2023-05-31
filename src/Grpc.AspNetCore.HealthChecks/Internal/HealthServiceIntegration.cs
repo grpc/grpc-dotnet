@@ -89,14 +89,20 @@ internal sealed class HealthServiceIntegration : Grpc.Health.V1.Health.HealthBas
                 return true;
             }, cancellationToken);
 
+            IEnumerable<KeyValuePair<string, HealthReportEntry>> serviceEntries = result.Entries;
+
 #pragma warning disable CS0618 // Type or member is obsolete
-            var results = result.Entries.Select(entry => new HealthResult(entry.Key, entry.Value.Tags, entry.Value.Status, entry.Value.Description, entry.Value.Duration, entry.Value.Exception, entry.Value.Data));
             if (serviceMapping.Predicate != null)
             {
-                results = results.Where(serviceMapping.Predicate);
+                serviceEntries = serviceEntries.Where(entry =>
+                {
+                    var result = new HealthResult(entry.Key, entry.Value.Tags, entry.Value.Status, entry.Value.Description, entry.Value.Duration, entry.Value.Exception, entry.Value.Data);
+                    return serviceMapping.Predicate(result);
+                });
             }
-            (status, _) = HealthChecksStatusHelpers.GetStatus(results);
 #pragma warning restore CS0618 // Type or member is obsolete
+
+            (status, _) = HealthChecksStatusHelpers.GetStatus(serviceEntries);
         }
         else
         {

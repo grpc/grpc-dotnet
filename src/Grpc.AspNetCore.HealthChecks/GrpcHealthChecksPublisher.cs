@@ -16,6 +16,7 @@
 
 #endregion
 
+using System.Linq;
 using Grpc.Health.V1;
 using Grpc.HealthCheck;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
@@ -41,40 +42,34 @@ internal sealed class GrpcHealthChecksPublisher : IHealthCheckPublisher
     {
         Log.EvaluatingPublishedHealthReport(_logger, report.Entries.Count, _options.Services.Count);
 
-        List<KeyValuePair<string, HealthReportEntry>>? serviceEntries = null;
         foreach (var serviceMapping in _options.Services)
         {
-            serviceEntries ??= new();
-            serviceEntries.AddRange(report.Entries);
+            IEnumerable<KeyValuePair<string, HealthReportEntry>> serviceEntries = report.Entries;
 
             if (serviceMapping.HealthCheckPredicate != null)
             {
-                for (var i = serviceEntries.Count - 1; i >= 0; i--)
+                serviceEntries = serviceEntries.Where(entry =>
                 {
-                    var entry = serviceEntries[i];
-                    var registration = new HealthCheckFilterContext(entry.Key, entry.Value.Tags);
-
-                    if (!serviceMapping.HealthCheckPredicate(registration))
-                    {
-                        serviceEntries.RemoveAt(i);
-                    }
-                }
+                    var context = new HealthCheckFilterContext(entry.Key, entry.Value.Tags);
+                    return serviceMapping.HealthCheckPredicate(context);
+                });
             }
 
 #pragma warning disable CS0618 // Type or member is obsolete
-            var results = serviceEntries.Select(entry => new HealthResult(entry.Key, entry.Value.Tags, entry.Value.Status, entry.Value.Description, entry.Value.Duration, entry.Value.Exception, entry.Value.Data));
             if (serviceMapping.Predicate != null)
             {
-                results = results.Where(serviceMapping.Predicate);
+                serviceEntries = serviceEntries.Where(entry =>
+                {
+                    var result = new HealthResult(entry.Key, entry.Value.Tags, entry.Value.Status, entry.Value.Description, entry.Value.Duration, entry.Value.Exception, entry.Value.Data);
+                    return serviceMapping.Predicate(result);
+                });
             }
-            var (resolvedStatus, resultCount) = HealthChecksStatusHelpers.GetStatus(results);
-
 #pragma warning restore CS0618 // Type or member is obsolete
+
+            var (resolvedStatus, resultCount) = HealthChecksStatusHelpers.GetStatus(serviceEntries);
 
             Log.ServiceMappingStatusUpdated(_logger, serviceMapping.Name, resolvedStatus, resultCount);
             _healthService.SetStatus(serviceMapping.Name, resolvedStatus);
-
-            serviceEntries.Clear();
         }
 
         return Task.CompletedTask;
