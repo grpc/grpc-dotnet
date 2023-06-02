@@ -555,6 +555,10 @@ internal sealed partial class GrpcCall<TRequest, TResponse> : GrpcCall, IGrpcCal
                 }
                 else
                 {
+                    // Always start reading the content as a stream.
+                    // Unary and client streaming calls immediately use the stream to read the response message.
+                    // Server streaming and bidirectional streaming calls don't immediately use the stream but it should be accessed
+                    // so that there is a way for the client to receive a notification of a possible server abort.
                     var responseStream = await HttpResponse.Content.ReadAsStreamAsync().ConfigureAwait(false);
 
                     if (_responseTcs != null)

@@ -135,7 +135,7 @@ internal class HttpContentClientStreamReader<TRequest, TResponse> : IAsyncStream
             }
 
             CompatibilityHelpers.Assert(_grpcEncoding != null, "Encoding should have been calculated the from response.");
-            CompatibilityHelpers.Assert(_responseStream != null, "Response stream should have created the from response.");
+            CompatibilityHelpers.Assert(_responseStream != null, "Response stream should have been created the from response.");
 
             var readMessage = await _call.ReadMessageAsync(
                 _responseStream,
