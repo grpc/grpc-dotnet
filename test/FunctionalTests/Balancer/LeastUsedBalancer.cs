@@ -1,4 +1,4 @@
-﻿#region Copyright notice and license
+#region Copyright notice and license
 
 // Copyright 2019 The gRPC Authors
 //
@@ -43,7 +43,7 @@ public class LeastUsedBalancer : SubchannelsLoadBalancer
 
 internal class LeastUsedPicker : SubchannelPicker
 {
-    private static readonly BalancerAttributesKey<AtomicCounter> CounterKey = new BalancerAttributesKey<AtomicCounter>("ActiveRequestsCount");
+    internal static readonly BalancerAttributesKey<AtomicCounter> CounterKey = new BalancerAttributesKey<AtomicCounter>("ActiveRequestsCount");
 
     // Internal for testing
     internal readonly List<Subchannel> _subchannels;
@@ -115,43 +115,43 @@ internal class LeastUsedPicker : SubchannelPicker
             _counter.Increment();
         }
     }
+}
 
-    private sealed class AtomicCounter
+internal sealed class AtomicCounter
+{
+    private int _value;
+
+    /// <summary>
+    /// Gets the current value of the counter.
+    /// </summary>
+    public int Value
     {
-        private int _value;
+        get => Volatile.Read(ref _value);
+        set => Volatile.Write(ref _value, value);
+    }
 
-        /// <summary>
-        /// Gets the current value of the counter.
-        /// </summary>
-        public int Value
-        {
-            get => Volatile.Read(ref _value);
-            set => Volatile.Write(ref _value, value);
-        }
+    /// <summary>
+    /// Atomically increments the counter value by 1.
+    /// </summary>
+    public int Increment()
+    {
+        return Interlocked.Increment(ref _value);
+    }
 
-        /// <summary>
-        /// Atomically increments the counter value by 1.
-        /// </summary>
-        public int Increment()
-        {
-            return Interlocked.Increment(ref _value);
-        }
+    /// <summary>
+    /// Atomically decrements the counter value by 1.
+    /// </summary>
+    public int Decrement()
+    {
+        return Interlocked.Decrement(ref _value);
+    }
 
-        /// <summary>
-        /// Atomically decrements the counter value by 1.
-        /// </summary>
-        public int Decrement()
-        {
-            return Interlocked.Decrement(ref _value);
-        }
-
-        /// <summary>
-        /// Atomically resets the counter value to 0.
-        /// </summary>
-        public void Reset()
-        {
-            Interlocked.Exchange(ref _value, 0);
-        }
+    /// <summary>
+    /// Atomically resets the counter value to 0.
+    /// </summary>
+    public void Reset()
+    {
+        Interlocked.Exchange(ref _value, 0);
     }
 }
 

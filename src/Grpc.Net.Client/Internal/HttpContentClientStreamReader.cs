@@ -1,4 +1,4 @@
-﻿#region Copyright notice and license
+#region Copyright notice and license
 
 // Copyright 2019 The gRPC Authors
 //
@@ -35,7 +35,7 @@ internal class HttpContentClientStreamReader<TRequest, TResponse> : IAsyncStream
     private readonly ILogger _logger;
     private readonly object _moveNextLock;
 
-    public TaskCompletionSource<(HttpResponseMessage, Status?)> HttpResponseTcs { get; }
+    public TaskCompletionSource<(HttpResponseMessage, Stream, Status?)> HttpResponseTcs { get; }
 
     private HttpResponseMessage? _httpResponse;
     private string? _grpcEncoding;
@@ -48,7 +48,7 @@ internal class HttpContentClientStreamReader<TRequest, TResponse> : IAsyncStream
         _logger = call.Channel.LoggerFactory.CreateLogger(LoggerName);
         _moveNextLock = new object();
 
-        HttpResponseTcs = new TaskCompletionSource<(HttpResponseMessage, Status?)>(TaskCreationOptions.RunContinuationsAsynchronously);
+        HttpResponseTcs = new TaskCompletionSource<(HttpResponseMessage, Stream, Status?)>(TaskCreationOptions.RunContinuationsAsynchronously);
     }
 
     public TResponse Current { get; private set; } = default!;
@@ -123,7 +123,7 @@ internal class HttpContentClientStreamReader<TRequest, TResponse> : IAsyncStream
 
             if (_httpResponse == null)
             {
-                var (httpResponse, status) = await HttpResponseTcs.Task.ConfigureAwait(false);
+                var (httpResponse, stream, status) = await HttpResponseTcs.Task.ConfigureAwait(false);
                 if (status != null && status.Value.StatusCode != StatusCode.OK)
                 {
                     throw _call.CreateFailureStatusException(status.Value);
@@ -131,27 +131,11 @@ internal class HttpContentClientStreamReader<TRequest, TResponse> : IAsyncStream
 
                 _httpResponse = httpResponse;
                 _grpcEncoding = GrpcProtocolHelpers.GetGrpcEncoding(_httpResponse);
-            }
-            if (_responseStream == null)
-            {
-                try
-                {
-#if NET5_0_OR_GREATER
-                    _responseStream = await _httpResponse.Content.ReadAsStreamAsync(cancellationToken).ConfigureAwait(false);
-#else
-                    _responseStream = await _httpResponse.Content.ReadAsStreamAsync().ConfigureAwait(false);
-#endif
-                }
-                catch (ObjectDisposedException)
-                {
-                    // The response was disposed while waiting for the content stream to start.
-                    // This will happen if there is no content stream (e.g. a streaming call finishes with no messages).
-                    // Treat this like a cancellation.
-                    throw new OperationCanceledException();
-                }
+                _responseStream = stream;
             }
 
-            CompatibilityHelpers.Assert(_grpcEncoding != null, "Encoding should have been calculated from response.");
+            CompatibilityHelpers.Assert(_grpcEncoding != null, "Encoding should have been calculated the from response.");
+            CompatibilityHelpers.Assert(_responseStream != null, "Response stream should have created the from response.");
 
             var readMessage = await _call.ReadMessageAsync(
                 _responseStream,

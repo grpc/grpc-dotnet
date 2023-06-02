@@ -57,8 +57,43 @@ internal static class BalancerHelpers
         where TRequest : class, IMessage, new()
         where TResponse : class, IMessage, new()
     {
+        return CreateGrpcEndpointCore(
+            port,
+            registry => registry.AddUnaryMethod(callHandler, methodName),
+            protocols,
+            isHttps,
+            certificate);
+    }
+
+    public static EndpointContext<TRequest, TResponse> CreateGrpcEndpoint<TRequest, TResponse>(
+        int port,
+        ServerStreamingServerMethod<TRequest, TResponse> callHandler,
+        string methodName,
+        HttpProtocols? protocols = null,
+        bool? isHttps = null,
+        X509Certificate2? certificate = null)
+        where TRequest : class, IMessage, new()
+        where TResponse : class, IMessage, new()
+    {
+        return CreateGrpcEndpointCore(
+            port,
+            registry => registry.AddServerStreamingMethod(callHandler, methodName),
+            protocols,
+            isHttps,
+            certificate);
+    }
+
+    private static EndpointContext<TRequest, TResponse> CreateGrpcEndpointCore<TRequest, TResponse>(
+        int port,
+        Func<DynamicGrpcServiceRegistry, Method<TRequest, TResponse>> configureMethod,
+        HttpProtocols? protocols = null,
+        bool? isHttps = null,
+        X509Certificate2? certificate = null)
+        where TRequest : class, IMessage, new()
+        where TResponse : class, IMessage, new()
+    {
         var server = CreateServer(port, protocols, isHttps, certificate);
-        var method = server.DynamicGrpc.AddUnaryMethod(callHandler, methodName);
+        var method = configureMethod(server.DynamicGrpc);
         var url = server.GetUrl(isHttps.GetValueOrDefault(false) ? TestServerEndpointName.Http2WithTls : TestServerEndpointName.Http2);
 
         return new EndpointContext<TRequest, TResponse>(server, method, url);

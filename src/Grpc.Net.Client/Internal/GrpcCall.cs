@@ -555,11 +555,12 @@ internal sealed partial class GrpcCall<TRequest, TResponse> : GrpcCall, IGrpcCal
                 }
                 else
                 {
+                    var responseStream = await HttpResponse.Content.ReadAsStreamAsync().ConfigureAwait(false);
+
                     if (_responseTcs != null)
                     {
                         // Read entire response body immediately and read status from trailers
                         // Trailers are only available once the response body had been read
-                        var responseStream = await HttpResponse.Content.ReadAsStreamAsync().ConfigureAwait(false);
                         var message = await ReadMessageAsync(
                             responseStream,
                             GrpcProtocolHelpers.GetGrpcEncoding(HttpResponse),
@@ -614,7 +615,7 @@ internal sealed partial class GrpcCall<TRequest, TResponse> : GrpcCall, IGrpcCal
                     {
                         // Duplex or server streaming call
                         CompatibilityHelpers.Assert(ClientStreamReader != null);
-                        ClientStreamReader.HttpResponseTcs.TrySetResult((HttpResponse, status));
+                        ClientStreamReader.HttpResponseTcs.TrySetResult((HttpResponse, responseStream, status));
 
                         // Wait until the response has been read and status read from trailers.
                         // TCS will also be set in Dispose.

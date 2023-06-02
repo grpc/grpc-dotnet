@@ -29,10 +29,17 @@ internal sealed class HttpContentWrapper : HttpContent
 
     protected override async Task SerializeToStreamAsync(Stream stream, TransportContext? context, CancellationToken cancellationToken)
     {
-        var content = await _inner.ReadAsStreamAsync(cancellationToken).ConfigureAwait(false);
-        await using (content.ConfigureAwait(false))
+        try
         {
-            await content.CopyToAsync(stream, cancellationToken).ConfigureAwait(false);
+            var content = await _inner.ReadAsStreamAsync(cancellationToken).ConfigureAwait(false);
+            await using (content.ConfigureAwait(false))
+            {
+                await content.CopyToAsync(stream, cancellationToken).ConfigureAwait(false);
+            }
+        }
+        catch (Exception ex)
+        {
+            throw new Exception("", ex);
         }
     }
 
@@ -40,14 +47,21 @@ internal sealed class HttpContentWrapper : HttpContent
 
     protected override async Task SerializeToStreamAsync(Stream stream, TransportContext? context)
     {
-        var content = await _inner.ReadAsStreamAsync().ConfigureAwait(false);
-#if NET5_0_OR_GREATER
-        await using (content.ConfigureAwait(false))
-#else
-        using (content)
-#endif
+        try
         {
-            await content.CopyToAsync(stream).ConfigureAwait(false);
+            var content = await _inner.ReadAsStreamAsync().ConfigureAwait(false);
+#if NET5_0_OR_GREATER
+            await using (content.ConfigureAwait(false))
+#else
+            using (content)
+#endif
+            {
+                await content.CopyToAsync(stream).ConfigureAwait(false);
+            }
+        }
+        catch (Exception ex)
+        {
+            throw new Exception("", ex);
         }
     }
 
