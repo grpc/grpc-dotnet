@@ -81,7 +81,7 @@ internal sealed class HealthServiceIntegration : Grpc.Health.V1.Health.HealthBas
                     return false;
                 }
 
-                if (serviceMapping.HealthCheckPredicate != null && !serviceMapping.HealthCheckPredicate(new HealthCheckFilterContext(registration.Name, registration.Tags)))
+                if (serviceMapping.HealthCheckPredicate != null && !serviceMapping.HealthCheckPredicate(new HealthCheckMapContext(registration.Name, registration.Tags)))
                 {
                     return false;
                 }

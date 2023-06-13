@@ -19,16 +19,16 @@
 namespace Grpc.AspNetCore.HealthChecks;
 
 /// <summary>
-/// Context used to filter health check registrations.
+/// Context used to map health check registrations to a service.
 /// </summary>
-public sealed class HealthCheckFilterContext
+public sealed class HealthCheckMapContext
 {
     /// <summary>
-    /// Creates a new instance of <see cref="HealthCheckFilterContext"/>.
+    /// Creates a new instance of <see cref="HealthCheckMapContext"/>.
     /// </summary>
     /// <param name="name">The health check name.</param>
     /// <param name="tags">Tags associated with the health check.</param>
-    public HealthCheckFilterContext(string name, IEnumerable<string> tags)
+    public HealthCheckMapContext(string name, IEnumerable<string> tags)
     {
         Name = name;
         Tags = tags;

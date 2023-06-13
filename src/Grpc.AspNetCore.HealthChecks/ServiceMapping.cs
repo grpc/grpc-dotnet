@@ -52,7 +52,7 @@ public sealed class ServiceMapping
     /// The health result for the service is based on the health check results.
     /// </para>
     /// </param>
-    public ServiceMapping(string name, Func<HealthCheckFilterContext, bool> predicate)
+    public ServiceMapping(string name, Func<HealthCheckMapContext, bool> predicate)
     {
         Name = name;
         HealthCheckPredicate = predicate;
@@ -76,7 +76,7 @@ public sealed class ServiceMapping
     /// The health result for the service is based on the health check results.
     /// </para>
     /// </summary>
-    public Func<HealthCheckFilterContext, bool>? HealthCheckPredicate { get; }
+    public Func<HealthCheckMapContext, bool>? HealthCheckPredicate { get; }
 
     /// <summary>
     /// Gets the predicate used to filter <see cref="HealthResult"/> instances. These results determine service health.

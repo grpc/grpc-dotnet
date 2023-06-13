@@ -50,7 +50,7 @@ internal sealed class GrpcHealthChecksPublisher : IHealthCheckPublisher
             {
                 serviceEntries = serviceEntries.Where(entry =>
                 {
-                    var context = new HealthCheckFilterContext(entry.Key, entry.Value.Tags);
+                    var context = new HealthCheckMapContext(entry.Key, entry.Value.Tags);
                     return serviceMapping.HealthCheckPredicate(context);
                 });
             }

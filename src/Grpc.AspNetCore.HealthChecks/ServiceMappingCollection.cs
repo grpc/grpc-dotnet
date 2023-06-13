@@ -101,7 +101,7 @@ public sealed class ServiceMappingCollection : ICollection<ServiceMapping>
     /// The health result for the service is based on the health check results.
     /// </para>
     /// </param>
-    public void Map(string name, Func<HealthCheckFilterContext, bool> predicate)
+    public void Map(string name, Func<HealthCheckMapContext, bool> predicate)
     {
         _mappings.Remove(name);
         _mappings.Add(new ServiceMapping(name, predicate));
