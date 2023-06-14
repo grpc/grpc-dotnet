@@ -1,4 +1,4 @@
-﻿#region Copyright notice and license
+#region Copyright notice and license
 
 // Copyright 2019 The gRPC Authors
 //
@@ -15,6 +15,8 @@
 // limitations under the License.
 
 #endregion
+
+using System.Net.Http;
 
 namespace Grpc.Net.Client.Tests.Infrastructure;
 

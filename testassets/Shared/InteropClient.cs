@@ -16,6 +16,7 @@
 
 #endregion
 
+using System.Net.Http;
 using System.Security.Cryptography.X509Certificates;
 using Google.Protobuf;
 using Grpc.Core;

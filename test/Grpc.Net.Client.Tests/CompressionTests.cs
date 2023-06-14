@@ -1,4 +1,4 @@
-﻿#region Copyright notice and license
+#region Copyright notice and license
 
 // Copyright 2019 The gRPC Authors
 //
@@ -18,6 +18,7 @@
 
 using System.IO.Compression;
 using System.Net;
+using System.Net.Http;
 using Greet;
 using Grpc.Core;
 using Grpc.Net.Client.Internal;

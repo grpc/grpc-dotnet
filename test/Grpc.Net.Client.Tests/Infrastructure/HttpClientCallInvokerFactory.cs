@@ -1,4 +1,4 @@
-﻿#region Copyright notice and license
+#region Copyright notice and license
 
 // Copyright 2019 The gRPC Authors
 //
@@ -16,6 +16,7 @@
 
 #endregion
 
+using System.Net.Http;
 using Grpc.Net.Client.Configuration;
 using Grpc.Net.Client.Internal;
 using Microsoft.Extensions.Logging;
