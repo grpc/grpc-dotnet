@@ -1,4 +1,4 @@
-﻿#region Copyright notice and license
+#region Copyright notice and license
 
 // Copyright 2019 The gRPC Authors
 //
@@ -47,7 +47,7 @@ public static class GrpcHttpClientBuilderExtensions
             throw new ArgumentNullException(nameof(configureChannel));
         }
 
-        ValidateGrpcClient(builder);
+        ValidateGrpcClient(builder, nameof(ConfigureChannel));
 
         builder.Services.AddTransient<IConfigureOptions<GrpcClientFactoryOptions>>(services =>
         {
@@ -78,7 +78,7 @@ public static class GrpcHttpClientBuilderExtensions
             throw new ArgumentNullException(nameof(configureChannel));
         }
 
-        ValidateGrpcClient(builder);
+        ValidateGrpcClient(builder, nameof(ConfigureChannel));
 
         builder.Services.Configure<GrpcClientFactoryOptions>(builder.Name, options =>
         {
@@ -119,7 +119,7 @@ public static class GrpcHttpClientBuilderExtensions
             throw new ArgumentNullException(nameof(configureInvoker));
         }
 
-        ValidateGrpcClient(builder);
+        ValidateGrpcClient(builder, nameof(AddInterceptor));
 
         builder.Services.Configure<GrpcClientFactoryOptions>(builder.Name, options =>
         {
@@ -147,7 +147,7 @@ public static class GrpcHttpClientBuilderExtensions
             throw new ArgumentNullException(nameof(authInterceptor));
         }
 
-        ValidateGrpcClient(builder);
+        ValidateGrpcClient(builder, nameof(AddCallCredentials));
 
         builder.Services.Configure<GrpcClientFactoryOptions>(builder.Name, options =>
         {
@@ -181,7 +181,7 @@ public static class GrpcHttpClientBuilderExtensions
             throw new ArgumentNullException(nameof(authInterceptor));
         }
 
-        ValidateGrpcClient(builder);
+        ValidateGrpcClient(builder, nameof(AddCallCredentials));
 
         builder.Services.Configure<GrpcClientFactoryOptions>(builder.Name, options =>
         {
@@ -215,7 +215,7 @@ public static class GrpcHttpClientBuilderExtensions
             throw new ArgumentNullException(nameof(credentials));
         }
 
-        ValidateGrpcClient(builder);
+        ValidateGrpcClient(builder, nameof(AddCallCredentials));
 
         builder.Services.Configure<GrpcClientFactoryOptions>(builder.Name, options =>
         {
@@ -270,7 +270,7 @@ public static class GrpcHttpClientBuilderExtensions
             throw new ArgumentNullException(nameof(configureInvoker));
         }
 
-        ValidateGrpcClient(builder);
+        ValidateGrpcClient(builder, nameof(AddInterceptor));
 
         builder.Services.Configure<GrpcClientFactoryOptions>(builder.Name, options =>
         {
@@ -308,7 +308,7 @@ public static class GrpcHttpClientBuilderExtensions
             throw new ArgumentNullException(nameof(builder));
         }
 
-        ValidateGrpcClient(builder);
+        ValidateGrpcClient(builder, nameof(AddInterceptor));
 
         builder.AddInterceptor(scope, serviceProvider =>
         {
@@ -337,7 +337,7 @@ public static class GrpcHttpClientBuilderExtensions
             throw new ArgumentNullException(nameof(configureCreator));
         }
 
-        ValidateGrpcClient(builder);
+        ValidateGrpcClient(builder, nameof(ConfigureGrpcClientCreator));
 
         builder.Services.AddTransient<IConfigureOptions<GrpcClientFactoryOptions>>(services =>
         {
@@ -369,7 +369,7 @@ public static class GrpcHttpClientBuilderExtensions
             throw new ArgumentNullException(nameof(configureCreator));
         }
 
-        ValidateGrpcClient(builder);
+        ValidateGrpcClient(builder, nameof(ConfigureGrpcClientCreator));
 
         builder.Services.Configure<GrpcClientFactoryOptions>(builder.Name, options =>
         {
@@ -379,7 +379,7 @@ public static class GrpcHttpClientBuilderExtensions
         return builder;
     }
 
-    private static void ValidateGrpcClient(IHttpClientBuilder builder)
+    private static void ValidateGrpcClient(IHttpClientBuilder builder, string caller)
     {
         // Validate the builder is for a gRPC client
         foreach (var service in builder.Services)
@@ -395,6 +395,6 @@ public static class GrpcHttpClientBuilderExtensions
             }
         }
 
-        throw new InvalidOperationException($"{nameof(AddInterceptor)} must be used with a gRPC client.");
+        throw new InvalidOperationException($"{caller} must be used with a gRPC client.");
     }
 }

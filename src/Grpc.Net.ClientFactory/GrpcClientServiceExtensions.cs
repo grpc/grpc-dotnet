@@ -1,4 +1,4 @@
-﻿#region Copyright notice and license
+#region Copyright notice and license
 
 // Copyright 2019 The gRPC Authors
 //
@@ -65,9 +65,7 @@ public static class GrpcClientServiceExtensions
             throw new ArgumentNullException(nameof(services));
         }
 
-        var name = TypeNameHelper.GetTypeDisplayName(typeof(TClient), fullName: false);
-
-        return services.AddGrpcClientCore<TClient>(name);
+        return services.AddGrpcClient<TClient>(o => { });
     }
 
     /// <summary>
@@ -183,7 +181,7 @@ public static class GrpcClientServiceExtensions
             throw new ArgumentNullException(nameof(name));
         }
 
-        return services.AddGrpcClientCore<TClient>(name);
+        return services.AddGrpcClient<TClient>(name, o => { });
     }
 
     /// <summary>
