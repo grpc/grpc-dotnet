@@ -16,27 +16,31 @@
 
 #endregion
 
-using Microsoft.Extensions.Diagnostics.HealthChecks;
-
 namespace Grpc.AspNetCore.HealthChecks;
 
 /// <summary>
-/// Contains options for the gRPC health checks service.
+/// Context used to map health check registrations to a service.
 /// </summary>
-public sealed class GrpcHealthChecksOptions
+public sealed class HealthCheckMapContext
 {
     /// <summary>
-    /// Gets a collection of service mappings used to map health results to gRPC health checks services.
+    /// Creates a new instance of <see cref="HealthCheckMapContext"/>.
     /// </summary>
-    public ServiceMappingCollection Services { get; } = new ServiceMappingCollection();
+    /// <param name="name">The health check name.</param>
+    /// <param name="tags">Tags associated with the health check.</param>
+    public HealthCheckMapContext(string name, IEnumerable<string> tags)
+    {
+        Name = name;
+        Tags = tags;
+    }
 
     /// <summary>
-    /// Gets or sets a value indicating whether methods use cached health checks results. 
-    /// The default value is <c>false</c>.
+    /// Gets the health check name.
     /// </summary>
-    /// <remarks>
-    /// When <c>false</c>, health checks are recalculated and returned. When <c>true</c>, cached health check results previously
-    /// published by <see cref="IHealthCheckPublisher"/> are returned.
-    /// </remarks>
-    public bool UseHealthChecksCache { get; set; }
+    public string Name { get; }
+
+    /// <summary>
+    /// Gets the tags associated with the health check.
+    /// </summary>
+    public IEnumerable<string> Tags { get; }
 }

@@ -1,4 +1,4 @@
-﻿#region Copyright notice and license
+#region Copyright notice and license
 
 // Copyright 2019 The gRPC Authors
 //
@@ -16,32 +16,35 @@
 
 #endregion
 
-using Grpc.AspNetCore.HealthChecks;
 using Grpc.Health.V1;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 
 internal static class HealthChecksStatusHelpers
 {
-    public static HealthCheckResponse.Types.ServingStatus GetStatus(HealthReport report, Func<HealthResult, bool> predicate)
+    public static (HealthCheckResponse.Types.ServingStatus status, int resultCount) GetStatus(IEnumerable<KeyValuePair<string, HealthReportEntry>> results)
     {
-        var filteredResults = report.Entries
-            .Select(entry => new HealthResult(entry.Key, entry.Value.Tags, entry.Value.Status, entry.Value.Description, entry.Value.Duration, entry.Value.Exception, entry.Value.Data))
-            .Where(predicate);
-
+        var resultCount = 0;
         var resolvedStatus = HealthCheckResponse.Types.ServingStatus.Unknown;
-        foreach (var result in filteredResults)
+        foreach (var result in results)
         {
-            if (result.Status == HealthStatus.Unhealthy)
-            {
-                resolvedStatus = HealthCheckResponse.Types.ServingStatus.NotServing;
+            resultCount++;
 
-                // No point continuing to check statuses.
-                break;
+            // NotServing is a final status but keep iterating to discover how many results are being evaluated.
+            if (resolvedStatus == HealthCheckResponse.Types.ServingStatus.NotServing)
+            {
+                continue;
             }
 
-            resolvedStatus = HealthCheckResponse.Types.ServingStatus.Serving;
+            if (result.Value.Status == HealthStatus.Unhealthy)
+            {
+                resolvedStatus = HealthCheckResponse.Types.ServingStatus.NotServing;
+            }
+            else
+            {
+                resolvedStatus = HealthCheckResponse.Types.ServingStatus.Serving;
+            }
         }
 
-        return resolvedStatus;
+        return (resolvedStatus, resultCount);
     }
 }
