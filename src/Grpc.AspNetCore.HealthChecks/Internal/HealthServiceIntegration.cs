@@ -1,4 +1,4 @@
-﻿#region Copyright notice and license
+#region Copyright notice and license
 
 // Copyright 2019 The gRPC Authors
 //
@@ -74,8 +74,35 @@ internal sealed class HealthServiceIntegration : Grpc.Health.V1.Health.HealthBas
         HealthCheckResponse.Types.ServingStatus status;
         if (_grpcHealthCheckOptions.Services.TryGetServiceMapping(service, out var serviceMapping))
         {
-            var result = await _healthCheckService.CheckHealthAsync(_healthCheckOptions.Predicate, cancellationToken);
-            status = HealthChecksStatusHelpers.GetStatus(result, serviceMapping.Predicate);
+            var result = await _healthCheckService.CheckHealthAsync((HealthCheckRegistration registration) =>
+            {
+                if (_healthCheckOptions.Predicate != null && !_healthCheckOptions.Predicate(registration))
+                {
+                    return false;
+                }
+
+                if (serviceMapping.HealthCheckPredicate != null && !serviceMapping.HealthCheckPredicate(new HealthCheckMapContext(registration.Name, registration.Tags)))
+                {
+                    return false;
+                }
+
+                return true;
+            }, cancellationToken);
+
+            IEnumerable<KeyValuePair<string, HealthReportEntry>> serviceEntries = result.Entries;
+
+#pragma warning disable CS0618 // Type or member is obsolete
+            if (serviceMapping.Predicate != null)
+            {
+                serviceEntries = serviceEntries.Where(entry =>
+                {
+                    var result = new HealthResult(entry.Key, entry.Value.Tags, entry.Value.Status, entry.Value.Description, entry.Value.Duration, entry.Value.Exception, entry.Value.Data);
+                    return serviceMapping.Predicate(result);
+                });
+            }
+#pragma warning restore CS0618 // Type or member is obsolete
+
+            (status, _) = HealthChecksStatusHelpers.GetStatus(serviceEntries);
         }
         else
         {
@@ -128,7 +155,7 @@ internal sealed class HealthServiceIntegration : Grpc.Health.V1.Health.HealthBas
                 _receivedFirstWrite = true;
                 message = await _service.GetHealthCheckResponseAsync(_request.Service, throwOnNotFound: false, _cancellationToken);
             }
-            
+
             await _innerResponseStream.WriteAsync(message);
         }
     }

@@ -1,4 +1,4 @@
-﻿#region Copyright notice and license
+#region Copyright notice and license
 
 // Copyright 2019 The gRPC Authors
 //
@@ -79,7 +79,7 @@ public static class GrpcHealthChecksServiceExtensions
         services.Configure<GrpcHealthChecksOptions>(options =>
         {
             // Add default registration that uses all results for default service: ""
-            options.Services.MapService(string.Empty, r => true);
+            options.Services.Map(string.Empty, r => true);
         });
 
         return services.AddHealthChecks();

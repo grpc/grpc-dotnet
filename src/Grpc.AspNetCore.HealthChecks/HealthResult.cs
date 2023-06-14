@@ -1,4 +1,4 @@
-﻿#region Copyright notice and license
+#region Copyright notice and license
 
 // Copyright 2019 The gRPC Authors
 //
@@ -23,6 +23,7 @@ namespace Grpc.AspNetCore.HealthChecks;
 /// <summary>
 /// Represents the result of a single <see cref="IHealthCheck"/>.
 /// </summary>
+[Obsolete($"HealthResult is obsolete and will be removed in a future release. Use {nameof(HealthCheckMapContext)} instead.")]
 public sealed class HealthResult
 {
     /// <summary>
