@@ -1,4 +1,4 @@
-﻿#region Copyright notice and license
+#region Copyright notice and license
 
 // Copyright 2019 The gRPC Authors
 //
@@ -106,7 +106,6 @@ public class AsyncClientStreamingCallTests
 
         var responseTask = call.ResponseAsync;
         Assert.IsFalse(responseTask.IsCompleted, "Response not returned until client stream is complete.");
-
 
         await call.RequestStream.WriteAsync(new HelloRequest { Name = "1" }).DefaultTimeout();
         await call.RequestStream.WriteAsync(new HelloRequest { Name = "2" }).DefaultTimeout();
@@ -266,6 +265,106 @@ public class AsyncClientStreamingCallTests
         Assert.AreEqual(string.Empty, call.GetStatus().Detail);
 
         Assert.AreEqual("Hello world", result.Message);
+    }
+
+    [Test]
+    public async Task AsyncClientStreamingCall_ErrorWhileWriting_StatusExceptionThrown()
+    {
+        // Arrange
+        PushStreamContent<HelloRequest, HelloReply>? content = null;
+
+        var responseTcs = new TaskCompletionSource<HttpResponseMessage>(TaskCreationOptions.RunContinuationsAsynchronously);
+        var httpClient = ClientTestHelpers.CreateTestClient(request =>
+        {
+            content = (PushStreamContent<HelloRequest, HelloReply>)request.Content!;
+            return responseTcs.Task;
+        });
+
+        var invoker = HttpClientCallInvokerFactory.Create(httpClient);
+
+        // Act
+
+        // Client starts call
+        var call = invoker.AsyncClientStreamingCall<HelloRequest, HelloReply>(ClientTestHelpers.ServiceMethod, string.Empty, new CallOptions());
+        // Client starts request stream write
+        var writeTask = call.RequestStream.WriteAsync(new HelloRequest());
+
+        // Simulate HttpClient starting to accept the write. Stream.WriteAsync is blocked.
+        var writeSyncPoint = new SyncPoint(runContinuationsAsynchronously: true);
+        var testStream = new TestStream(writeSyncPoint);
+        var serializeToStreamTask = content!.SerializeToStreamAsync(testStream);
+
+        // Server completes response.
+        await writeSyncPoint.WaitForSyncPoint().DefaultTimeout();
+        responseTcs.SetResult(ResponseUtils.CreateResponse(HttpStatusCode.OK, new ByteArrayContent(Array.Empty<byte>()), grpcStatusCode: StatusCode.InvalidArgument));
+
+        await ExceptionAssert.ThrowsAsync<RpcException>(() => call.ResponseAsync).DefaultTimeout();
+        Assert.AreEqual(StatusCode.InvalidArgument, call.GetStatus().StatusCode);
+
+        // Unblock Stream.WriteAsync
+        writeSyncPoint.Continue();
+
+        // Get error thrown from write task. It should have the status returned by the server.
+        var ex = await ExceptionAssert.ThrowsAsync<RpcException>(() => writeTask).DefaultTimeout();
+
+        // Assert
+        Assert.AreEqual(StatusCode.InvalidArgument, ex.StatusCode);
+        Assert.AreEqual(StatusCode.InvalidArgument, call.GetStatus().StatusCode);
+        Assert.AreEqual(string.Empty, call.GetStatus().Detail);
+    }
+
+    private sealed class TestStream : Stream
+    {
+        private readonly SyncPoint _writeSyncPoint;
+
+        public TestStream(SyncPoint writeSyncPoint)
+        {
+            _writeSyncPoint = writeSyncPoint;
+        }
+
+        public override bool CanRead { get; }
+        public override bool CanSeek { get; }
+        public override bool CanWrite { get; }
+        public override long Length { get; }
+        public override long Position { get; set; }
+
+        public override void Flush()
+        {
+        }
+
+        public override int Read(byte[] buffer, int offset, int count)
+        {
+            throw new NotImplementedException();
+        }
+
+        public override long Seek(long offset, SeekOrigin origin)
+        {
+            throw new NotImplementedException();
+        }
+
+        public override void SetLength(long value)
+        {
+            throw new NotImplementedException();
+        }
+
+        public override void Write(byte[] buffer, int offset, int count)
+        {
+            throw new NotImplementedException();
+        }
+
+#if !NET472_OR_GREATER
+        public override async ValueTask WriteAsync(ReadOnlyMemory<byte> buffer, CancellationToken cancellationToken = default)
+        {
+            await _writeSyncPoint.WaitToContinue();
+            throw new OperationCanceledException();
+        }
+#else
+        public override async Task WriteAsync(byte[] buffer, int offset, int count, CancellationToken cancellationToken)
+        {
+            await _writeSyncPoint.WaitToContinue();
+            throw new OperationCanceledException();
+        }
+#endif
     }
 
     [Test]

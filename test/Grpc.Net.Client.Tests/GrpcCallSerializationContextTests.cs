@@ -1,4 +1,4 @@
-﻿#region Copyright notice and license
+#region Copyright notice and license
 
 // Copyright 2019 The gRPC Authors
 //
@@ -318,6 +318,7 @@ public class GrpcCallSerializationContextTests
         public override Type RequestType { get; } = typeof(int);
         public override Type ResponseType { get; } = typeof(string);
         public override CancellationToken CancellationToken { get; }
+        public override Task<Status> CallTask => Task.FromResult(Status.DefaultCancelled);
     }
 
     private GrpcCallSerializationContext CreateSerializationContext(string? requestGrpcEncoding = null, int? maxSendMessageSize = null)

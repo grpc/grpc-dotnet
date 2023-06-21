@@ -90,7 +90,7 @@ internal sealed partial class GrpcCall<TRequest, TResponse> : GrpcCall, IGrpcCal
         }
     }
 
-    public Task<Status> CallTask => _callTcs.Task;
+    public override Task<Status> CallTask => _callTcs.Task;
 
     public override CancellationToken CancellationToken => _callCts.Token;
 
@@ -246,12 +246,6 @@ internal sealed partial class GrpcCall<TRequest, TResponse> : GrpcCall, IGrpcCal
         {
             throw new ObjectDisposedException(nameof(GrpcCall<TRequest, TResponse>));
         }
-    }
-
-    public Exception CreateCanceledStatusException(Exception? ex = null)
-    {
-        var status = (CallTask.IsCompletedSuccessfully()) ? CallTask.Result : new Status(StatusCode.Cancelled, string.Empty, ex);
-        return CreateRpcException(status);
     }
 
     private void FinishResponseAndCleanUp(Status status)
@@ -760,23 +754,6 @@ internal sealed partial class GrpcCall<TRequest, TResponse> : GrpcCall, IGrpcCal
         return ex;
     }
 
-    public CancellationToken GetCanceledToken(CancellationToken methodCancellationToken)
-    {
-        if (methodCancellationToken.IsCancellationRequested)
-        {
-            return methodCancellationToken;
-        }
-        else if (Options.CancellationToken.IsCancellationRequested)
-        {
-            return Options.CancellationToken;
-        }
-        else if (CancellationToken.IsCancellationRequested)
-        {
-            return CancellationToken;
-        }
-        return CancellationToken.None;
-    }
-
     private void SetFailedResult(Status status)
     {
         CompatibilityHelpers.Assert(_responseTcs != null);
@@ -792,23 +769,6 @@ internal sealed partial class GrpcCall<TRequest, TResponse> : GrpcCall, IGrpcCal
         else
         {
             _responseTcs.TrySetException(CreateRpcException(status));
-        }
-    }
-
-    public Exception CreateFailureStatusException(Status status)
-    {
-        if (Channel.ThrowOperationCanceledOnCancellation &&
-            (status.StatusCode == StatusCode.DeadlineExceeded || status.StatusCode == StatusCode.Cancelled))
-        {
-            // Convert status response of DeadlineExceeded to OperationCanceledException when
-            // ThrowOperationCanceledOnCancellation is true.
-            // This avoids a race between the client-side timer and the server status throwing different
-            // errors on deadline exceeded.
-            return new OperationCanceledException();
-        }
-        else
-        {
-            return CreateRpcException(status);
         }
     }
 
