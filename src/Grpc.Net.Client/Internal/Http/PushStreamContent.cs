@@ -1,4 +1,4 @@
-﻿#region Copyright notice and license
+#region Copyright notice and license
 
 // Copyright 2019 The gRPC Authors
 //
@@ -72,4 +72,10 @@ internal class PushStreamContent<TRequest, TResponse> : HttpContent
     // Hacky. ReadAsStreamAsync does not complete until SerializeToStreamAsync finishes.
     // WARNING: Will run SerializeToStreamAsync again on .NET Framework.
     internal Task PushComplete => ReadAsStreamAsync();
+
+    // Internal for testing.
+    internal Task SerializeToStreamAsync(Stream stream)
+    {
+        return SerializeToStreamAsync(stream, context: null);
+    }
 }
