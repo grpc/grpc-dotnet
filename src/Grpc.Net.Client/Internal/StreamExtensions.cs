@@ -367,7 +367,7 @@ internal static partial class StreamExtensions
         // In this situation, report the call's completed status.
         //
         // Replace exception with the status error if:
-        // 1. The exception type is thrown Stream.WriteAsync if the call was completed during a write, and
+        // 1. The original exception is one Stream.WriteAsync throws if the call was completed during a write, and
         // 2. The call has already been successfully completed.
         if (originalException is OperationCanceledException or ObjectDisposedException &&
             call.CallTask.IsCompletedSuccessfully())
