@@ -1,4 +1,4 @@
-﻿#region Copyright notice and license
+#region Copyright notice and license
 
 // Copyright 2019 The gRPC Authors
 //
@@ -65,5 +65,6 @@ internal static class StreamSerializationHelper
         public override Type RequestType => _type;
         public override Type ResponseType => _type;
         public override CancellationToken CancellationToken { get; }
+        public override Task<Status> CallTask => Task.FromResult(Status.DefaultCancelled);
     }
 }
