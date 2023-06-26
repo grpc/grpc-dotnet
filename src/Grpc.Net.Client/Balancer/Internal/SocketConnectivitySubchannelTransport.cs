@@ -339,8 +339,7 @@ internal class SocketConnectivitySubchannelTransport : ISubchannelTransport, IDi
         {
             if (_initialSocketDirtyBytesReadCount > 0 || IsSocketInBadState(socket, address, allowAvailableReadBytes: false))
             {
-                var readBytesAvailableCount = _initialSocketDirtyBytesReadCount += socket.Available;
-                SocketConnectivitySubchannelTransportLog.SocketPollBadState(_logger, _subchannel.Id, address, readBytesAvailableCount);
+                SocketConnectivitySubchannelTransportLog.ClosingUnusableSocket(_logger, _subchannel.Id, address);
 
                 socket.Dispose();
                 socket = null;
@@ -504,6 +503,9 @@ internal static class SocketConnectivitySubchannelTransportLog
     private static readonly Action<ILogger, int, BalancerAddress, int, Exception?> _socketReceivingAvailable =
         LoggerMessage.Define<int, BalancerAddress, int>(LogLevel.Trace, new EventId(15, "SocketReceivingAvailable"), "Subchannel id '{SubchannelId}' socket {Address} is receiving {ReadBytesAvailableCount} available bytes.");
 
+    private static readonly Action<ILogger, int, BalancerAddress, Exception?> _closingUnusableSocket =
+        LoggerMessage.Define<int, BalancerAddress>(LogLevel.Debug, new EventId(16, "ClosingUnusableSocket"), "Subchannel id '{SubchannelId}' socket {Address} is being closed because it can't be used. The socket either can't receive data or it has received unexpected data.");
+
     public static void ConnectingSocket(ILogger logger, int subchannelId, BalancerAddress address)
     {
         _connectingSocket(logger, subchannelId, address, null);
@@ -578,6 +580,13 @@ internal static class SocketConnectivitySubchannelTransportLog
     {
         _socketReceivingAvailable(logger, subchannelId, address, readBytesAvailableCount, null);
     }
+
+    public static void ClosingUnusableSocket(ILogger logger, int subchannelId, BalancerAddress address)
+    {
+        _closingUnusableSocket(logger, subchannelId, address, null);
+    }
+
+    // 
 }
 #endif
 #endif

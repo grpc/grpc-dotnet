@@ -502,8 +502,8 @@ public class ConnectionTests : FunctionalTestBase
 
         // Assert 2
         await TestHelpers.AssertIsTrueRetryAsync(
-            () => Logs.Any(l => l.EventId.Name == "SocketPollBadState"),
-            "Wait for bad poll.").DefaultTimeout();
+            () => Logs.Any(l => l.EventId.Name == "ClosingUnusableSocket"),
+            "Wait for socket to be closed because it's unusable.").DefaultTimeout();
         cts.Cancel();
     }
 
