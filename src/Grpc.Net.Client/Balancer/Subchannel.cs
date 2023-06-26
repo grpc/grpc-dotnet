@@ -182,8 +182,8 @@ public sealed class Subchannel : IDisposable
                     var currentAddress = CurrentAddress;
                     if (currentAddress != null && !_addresses.Contains(currentAddress))
                     {
-                        requireReconnect = true;
                         SubchannelLog.ConnectedAddressNotInUpdatedAddresses(_logger, Id, currentAddress);
+                        requireReconnect = true;
                     }
                     break;
                 case ConnectivityState.Shutdown:

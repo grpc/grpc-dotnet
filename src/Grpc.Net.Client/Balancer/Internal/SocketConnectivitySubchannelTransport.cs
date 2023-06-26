@@ -161,7 +161,8 @@ internal class SocketConnectivitySubchannelTransport : ISubchannelTransport, IDi
                     _initialSocket = socket;
                     _initialSocketAddress = currentAddress;
 
-                    // Schedule ping. Don't set a periodic interval to avoid any change of overlapping execution.
+                    // Schedule ping. Don't set a periodic interval to avoid any chance of timer running the logic multiple
+                    // times because of execution delays (e.g. hitting a debugger breakpoint).
                     _socketConnectedTimer.Change(_socketPingInterval, Timeout.InfiniteTimeSpan);
                 }
 
