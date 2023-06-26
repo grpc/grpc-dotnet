@@ -585,7 +585,7 @@ public class ConnectionTests : FunctionalTestBase
     }
 
     [Test]
-    public async Task DisconnectSocket_NoCallsMade_ServerSentData_ChannelStateUpdated()
+    public async Task DisconnectSocket_NoCallsMade_ServerSentData_SocketClosed_ChannelStateUpdated()
     {
         using var httpEventSource = new SocketsEventSourceListener(LoggerFactory);
 
@@ -629,6 +629,8 @@ public class ConnectionTests : FunctionalTestBase
 
         // Assert
         await waitForConnectingTask.DefaultTimeout();
+
+        Assert.IsTrue(Logs.Any(l => l.EventId.Name == "SocketReceivingAvailable"), "Socket should have read available data.");
     }
 }
 #endif

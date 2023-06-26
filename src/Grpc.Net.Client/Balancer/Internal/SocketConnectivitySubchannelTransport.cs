@@ -146,9 +146,6 @@ internal class SocketConnectivitySubchannelTransport : ISubchannelTransport, IDi
             Socket socket;
 
             socket = new Socket(SocketType.Stream, ProtocolType.Tcp) { NoDelay = true };
-            //socket.SetSocketOption(SocketOptionLevel.Tcp, SocketOptionName.TcpKeepAliveInterval, 2);
-            //socket.SetSocketOption(SocketOptionLevel.Tcp, SocketOptionName.TcpKeepAliveRetryCount, 1);
-            //socket.SetSocketOption(SocketOptionLevel.Tcp, SocketOptionName.TcpKeepAliveTime, 2);
             _subchannel.UpdateConnectivityState(ConnectivityState.Connecting, "Connecting to socket.");
 
             try
@@ -250,12 +247,14 @@ internal class SocketConnectivitySubchannelTransport : ISubchannelTransport, IDi
                             var available = socket.Available;
                             if (available > 0)
                             {
-                                _initialSocketDirtyBytesReadCount += available;
+                                SocketConnectivitySubchannelTransportLog.SocketReceivingAvailable(_logger, _subchannel.Id, socketAddress, available);
 
                                 var buffer = ArrayPool<byte>.Shared.Rent(minimumLength: available);
                                 try
                                 {
-                                    socket.Receive(buffer);
+                                    // Data is already available so this won't block.
+                                    var readCount = socket.Receive(buffer);
+                                    _initialSocketDirtyBytesReadCount += readCount;
                                 }
                                 finally
                                 {
@@ -502,6 +501,9 @@ internal static class SocketConnectivitySubchannelTransportLog
     private static readonly Action<ILogger, int, BalancerAddress, int, Exception?> _socketPollBadState =
         LoggerMessage.Define<int, BalancerAddress, int>(LogLevel.Debug, new EventId(14, "SocketPollBadState"), "Subchannel id '{SubchannelId}' socket {Address} is in a bad state and can't be used. Either it is not connected, or there is unexpected pending read data. Read bytes available count: {ReadBytesAvailableCount}");
 
+    private static readonly Action<ILogger, int, BalancerAddress, int, Exception?> _socketReceivingAvailable =
+        LoggerMessage.Define<int, BalancerAddress, int>(LogLevel.Trace, new EventId(15, "SocketReceivingAvailable"), "Subchannel id '{SubchannelId}' socket {Address} is receiving {ReadBytesAvailableCount} available bytes.");
+
     public static void ConnectingSocket(ILogger logger, int subchannelId, BalancerAddress address)
     {
         _connectingSocket(logger, subchannelId, address, null);
@@ -570,6 +572,11 @@ internal static class SocketConnectivitySubchannelTransportLog
     public static void SocketPollBadState(ILogger logger, int subchannelId, BalancerAddress address, int readBytesAvailableCount)
     {
         _socketPollBadState(logger, subchannelId, address, readBytesAvailableCount, null);
+    }
+
+    public static void SocketReceivingAvailable(ILogger logger, int subchannelId, BalancerAddress address, int readBytesAvailableCount)
+    {
+        _socketReceivingAvailable(logger, subchannelId, address, readBytesAvailableCount, null);
     }
 }
 #endif
