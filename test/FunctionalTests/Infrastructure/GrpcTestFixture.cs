@@ -1,4 +1,4 @@
-﻿#region Copyright notice and license
+#region Copyright notice and license
 
 // Copyright 2019 The gRPC Authors
 //
@@ -20,7 +20,6 @@ using System.Net.Sockets;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Server.Kestrel.Core;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Logging;
 
 namespace Grpc.AspNetCore.FunctionalTests.Infrastructure;
 
@@ -34,8 +33,6 @@ public class GrpcTestFixture<TStartup> : IDisposable where TStartup : class
         Action<KestrelServerOptions, IDictionary<TestServerEndpointName, string>>? configureKestrel = null,
         TestServerEndpointName? defaultClientEndpointName = null)
     {
-        LoggerFactory = new LoggerFactory();
-
         Action<IServiceCollection> configureServices = services =>
         {
             // Registers a service for tests to add new methods
@@ -131,7 +128,6 @@ public class GrpcTestFixture<TStartup> : IDisposable where TStartup : class
         (Client, Handler) = CreateHttpCore(defaultClientEndpointName);
     }
 
-    public ILoggerFactory LoggerFactory { get; }
     public DynamicGrpcServiceRegistry DynamicGrpc { get; }
 
     public HttpMessageHandler Handler { get; }

@@ -43,8 +43,10 @@ namespace Grpc.AspNetCore.FunctionalTests.Balancer;
 public class RoundRobinBalancerTests : FunctionalTestBase
 {
     [Test]
-    public async Task DisconnectEndpoint_NoCallsMade_SubchannelStateUpdated()
+    public async Task DisconnectEndpoint_NoCallsMade_ChannelStateUpdated()
     {
+        using var httpEventSource = new SocketsEventSourceListener(LoggerFactory);
+
         // Ignore errors
         SetExpectedErrorsFilter(writeContext =>
         {
@@ -59,21 +61,26 @@ public class RoundRobinBalancerTests : FunctionalTestBase
         }
 
         // Arrange
-        using var endpoint = BalancerHelpers.CreateGrpcEndpoint<HelloRequest, HelloReply>(50051, UnaryMethod, nameof(UnaryMethod));
+        Logger.LogInformation("Creating server.");
+        using var endpoint = BalancerHelpers.CreateGrpcEndpoint<HelloRequest, HelloReply>(50051, UnaryMethod, nameof(UnaryMethod), loggerFactory: LoggerFactory);
 
         var channel = await BalancerHelpers.CreateChannel(LoggerFactory, new RoundRobinConfig(), new[] { endpoint.Address });
 
+        Logger.LogInformation("Client connecting to server.");
         await channel.ConnectAsync().DefaultTimeout();
 
+        Logger.LogInformation("Client waiting for ready.");
         var subchannel = await BalancerWaitHelpers.WaitForSubchannelToBeReadyAsync(Logger, channel).DefaultTimeout();
 
+        var waitForConnectingTask = BalancerWaitHelpers.WaitForChannelStatesAsync(Logger, channel, new[] { ConnectivityState.Connecting });
+
         // Act
+        Logger.LogInformation("Server shutting down.");
         endpoint.Dispose();
 
         // Assert
-        await TestHelpers.AssertIsTrueRetryAsync(
-            () => subchannel.State == ConnectivityState.TransientFailure,
-            "Wait for subchannel to fail.").DefaultTimeout();
+        Logger.LogInformation("Waiting for client state change.");
+        await waitForConnectingTask.TimeoutAfter(TimeSpan.FromSeconds(10));
     }
 
     [Test]
