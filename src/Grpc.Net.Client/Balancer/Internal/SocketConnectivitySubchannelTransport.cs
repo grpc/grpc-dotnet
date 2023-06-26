@@ -34,7 +34,6 @@ using Microsoft.Extensions.Logging;
 
 namespace Grpc.Net.Client.Balancer.Internal;
 
-#if NET5_0_OR_GREATER
 /// <summary>
 /// Transport that makes it possible to monitor connectivity state while using HttpClient.
 /// 
@@ -237,11 +236,11 @@ internal class SocketConnectivitySubchannelTransport : ISubchannelTransport, IDi
                         // We don't care that there is available data to be be read at this point. If there is available data
                         // then the socket can't be used by SocketsHttpHandler, but the socket can get recreated when it is eventually used.
                         //
-                        // Available data needs to be read because the only way to determine whether the connection is closed is to
+                        // Available data needs to be read now because the only way to determine whether the connection is closed is to
                         // get the results of polling after available data is received.
                         //
                         // If a socket with data is closed immediately then that might happen continuously.
-                        // Chill, and be happy that the socket can be read from.
+                        // Chill, leave the socket alone, and be happy that it can be read from. We can create a new one later.
                         do
                         {
                             closeSocket = IsSocketInBadState(socket, socketAddress, allowAvailableReadBytes: true);
@@ -340,7 +339,7 @@ internal class SocketConnectivitySubchannelTransport : ISubchannelTransport, IDi
         {
             if (_initialSocketDirtyBytesReadCount > 0 || IsSocketInBadState(socket, address, allowAvailableReadBytes: false))
             {
-                SocketConnectivitySubchannelTransportLog.ClosingUnusableSocket(_logger, _subchannel.Id, address);
+                SocketConnectivitySubchannelTransportLog.ClosingUnusableSocketOnCreateStream(_logger, _subchannel.Id, address);
 
                 socket.Dispose();
                 socket = null;
@@ -504,8 +503,8 @@ internal static class SocketConnectivitySubchannelTransportLog
     private static readonly Action<ILogger, int, BalancerAddress, int, Exception?> _socketReceivingAvailable =
         LoggerMessage.Define<int, BalancerAddress, int>(LogLevel.Trace, new EventId(15, "SocketReceivingAvailable"), "Subchannel id '{SubchannelId}' socket {Address} is receiving {ReadBytesAvailableCount} available bytes.");
 
-    private static readonly Action<ILogger, int, BalancerAddress, Exception?> _closingUnusableSocket =
-        LoggerMessage.Define<int, BalancerAddress>(LogLevel.Debug, new EventId(16, "ClosingUnusableSocket"), "Subchannel id '{SubchannelId}' socket {Address} is being closed because it can't be used. The socket either can't receive data or it has received unexpected data.");
+    private static readonly Action<ILogger, int, BalancerAddress, Exception?> _closingUnusableSocketOnCreateStream =
+        LoggerMessage.Define<int, BalancerAddress>(LogLevel.Debug, new EventId(16, "ClosingUnusableSocketOnCreateStream"), "Subchannel id '{SubchannelId}' socket {Address} is being closed because it can't be used. The socket either can't receive data or it has received unexpected data.");
 
     public static void ConnectingSocket(ILogger logger, int subchannelId, BalancerAddress address)
     {
@@ -582,12 +581,9 @@ internal static class SocketConnectivitySubchannelTransportLog
         _socketReceivingAvailable(logger, subchannelId, address, readBytesAvailableCount, null);
     }
 
-    public static void ClosingUnusableSocket(ILogger logger, int subchannelId, BalancerAddress address)
+    public static void ClosingUnusableSocketOnCreateStream(ILogger logger, int subchannelId, BalancerAddress address)
     {
-        _closingUnusableSocket(logger, subchannelId, address, null);
+        _closingUnusableSocketOnCreateStream(logger, subchannelId, address, null);
     }
-
-    // 
 }
-#endif
 #endif

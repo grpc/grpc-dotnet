@@ -502,7 +502,7 @@ public class ConnectionTests : FunctionalTestBase
 
         // Assert 2
         await TestHelpers.AssertIsTrueRetryAsync(
-            () => Logs.Any(l => l.EventId.Name == "ClosingUnusableSocket"),
+            () => Logs.Any(l => l.EventId.Name == "ClosingUnusableSocketOnStreamCreate"),
             "Wait for socket to be closed because it's unusable.").DefaultTimeout();
         cts.Cancel();
     }
