@@ -8,39 +8,30 @@
 
 ## Configure gRPC
 
-In *Startup.cs*:
+In *Program.cs*:
 
 * gRPC is enabled with the `AddGrpc` method.
-* Each gRPC service is added to the routing pipeline through the `MapGrpcService` method. For information about how to create gRPC services, see [Create gRPC services and methods](https://docs.microsoft.com/aspnet/core/grpc/services).
+* Each gRPC service is added to the routing pipeline through the `MapGrpcService` method. For information about how to create gRPC services, see [Create gRPC services and methods](https://learn.microsoft.com/aspnet/core/grpc/services).
 
 ```csharp
-public class Startup
-{
-    public void ConfigureServices(IServiceCollection services)
-    {
-        services.AddGrpc();
-    }
+using GrpcGreeter.Services;
 
-    public void Configure(IApplicationBuilder app, IWebHostEnvironment env)
-    {
-        if (env.IsDevelopment())
-        {
-            app.UseDeveloperExceptionPage();
-        }
+var builder = WebApplication.CreateBuilder(args);
 
-        app.UseRouting();
+// Add services to the container.
+builder.Services.AddGrpc();
 
-        app.UseEndpoints(endpoints =>
-        {
-            endpoints.MapGrpcService<GreeterService>();
-        });
-    }
-}
+var app = builder.Build();
+
+// Configure the HTTP request pipeline.
+app.MapGrpcService<GreeterService>();
+
+app.Run();
 ```
 
 ASP.NET Core middleware and features share the routing pipeline, therefore an app can be configured to serve additional request handlers. The additional request handlers, such as MVC controllers, work in parallel with the configured gRPC services.
 
 ## Links
 
-* [Documentation](https://docs.microsoft.com/aspnet/core/grpc/aspnetcore)
+* [Documentation](https://learn.microsoft.com/aspnet/core/grpc/aspnetcore)
 * [grpc-dotnet GitHub](https://github.com/grpc/grpc-dotnet)

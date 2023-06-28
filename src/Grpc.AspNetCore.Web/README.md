@@ -2,33 +2,32 @@
 
 Grpc.AspNetCore.Web provides middleware that enables ASP.NET Core gRPC services to accept gRPC-Web calls.
 
-In *Startup.cs*:
+## Configure gRPC-Web
+
+In *Program.cs*:
 
 ```csharp
-public void ConfigureServices(IServiceCollection services)
-{
-    services.AddGrpc();
-    services.AddGrpcWeb(o => o.GrpcWebEnabled = true);
-}
+using GrpcGreeter.Services;
 
-public void Configure(IApplicationBuilder app)
-{
-    app.UseRouting();
-    app.UseGrpcWeb();
-    app.UseEndpoints(endpoints =>
-    {
-        endpoints.MapGrpcService<GreeterService>();
-    });
-}
+var builder = WebApplication.CreateBuilder(args);
+
+// Add services to the container.
+builder.Services.AddGrpc();
+
+var app = builder.Build();
+
+// Configure the HTTP request pipeline.
+app.UseRouting();
+app.UseGrpcWeb(new GrpcWebOptions { DefaultEnabled = true });
+app.MapGrpcService<GreeterService>();
+
+app.Run();
 ```
 
-gRPC-Web can be enabled for all gRPC services by setting `GrpcWebOptions.GrpcWebEnabled = true`, or enabled on individual services with `EnableGrpcWeb()`:
+gRPC-Web can be enabled for all gRPC services by setting `GrpcWebOptions.DefaultEnabled = true`, or enabled on individual services with `EnableGrpcWeb()`:
 
 ```csharp
-app.UseEndpoints(endpoints =>
-{
-    endpoints.MapGrpcService<GreeterService>().EnableGrpcWeb();
-});
+app.MapGrpcService<GreeterService>().EnableGrpcWeb();
 ```
 
 ### gRPC-Web and streaming
@@ -43,5 +42,5 @@ When using gRPC-Web, we only recommend the use of unary methods and server strea
 
 ## Links
 
-* [Documentation](https://docs.microsoft.com/aspnet/core/grpc/browser)
+* [Documentation](https://learn.microsoft.com/aspnet/core/grpc/browser)
 * [grpc-dotnet GitHub](https://github.com/grpc/grpc-dotnet)
