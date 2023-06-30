@@ -5,7 +5,7 @@
     <GoogleProtobufPackageVersion>3.23.1</GoogleProtobufPackageVersion>
     <GrpcDotNetPackageVersion>2.52.0</GrpcDotNetPackageVersion>  <!-- Used by example projects -->
     <GrpcPackageVersion>2.46.6</GrpcPackageVersion>
-    <GrpcToolsPackageVersion>2.55.1</GrpcToolsPackageVersion>
+    <GrpcToolsPackageVersion>2.56.0</GrpcToolsPackageVersion>
     <MicrosoftAspNetCoreAppPackageVersion>7.0.0</MicrosoftAspNetCoreAppPackageVersion>
     <MicrosoftAspNetCoreApp6PackageVersion>6.0.11</MicrosoftAspNetCoreApp6PackageVersion>
     <MicrosoftAspNetCoreApp5PackageVersion>5.0.3</MicrosoftAspNetCoreApp5PackageVersion>
