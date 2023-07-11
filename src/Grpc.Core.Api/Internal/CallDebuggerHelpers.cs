@@ -35,6 +35,8 @@ internal static class CallDebuggerHelpers
 
     public static Status? GetStatus(AsyncCallState callState)
     {
+        // This is the only public API to get this value and there is no way to check if it's available.
+        // The overhead of throwing an error in the background is acceptable because this is only called while debugging.
         try
         {
             return callState.GetStatus();
@@ -47,6 +49,8 @@ internal static class CallDebuggerHelpers
 
     public static Metadata? GetTrailers(AsyncCallState callState)
     {
+        // This is the only public API to get this value and there is no way to check if it's available.
+        // The overhead of throwing an error in the background is acceptable because this is only called while debugging.
         try
         {
             return callState.GetTrailers();

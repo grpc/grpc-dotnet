@@ -28,8 +28,7 @@ internal class HttpContextStreamReader<TRequest> : IAsyncStreamReader<TRequest> 
 {
     private readonly HttpContextServerCallContext _serverCallContext;
     private readonly Func<DeserializationContext, TRequest> _deserializer;
-
-    internal bool _completed { get; private set; }
+    private bool _completed;
     private long _readCount;
 
     public HttpContextStreamReader(HttpContextServerCallContext serverCallContext, Func<DeserializationContext, TRequest> deserializer)

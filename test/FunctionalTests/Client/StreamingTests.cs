@@ -445,8 +445,6 @@ public class StreamingTests : FunctionalTestBase
         }
 
         // Arrange
-        System.Diagnostics.Debugger.Launch();
-
         var method = Fixture.DynamicGrpc.AddDuplexStreamingMethod<DataMessage, DataMessage>(UnaryDeadlineExceeded);
 
         var channel = CreateChannel();

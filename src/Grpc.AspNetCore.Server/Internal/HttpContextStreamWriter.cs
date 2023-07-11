@@ -30,8 +30,7 @@ internal class HttpContextStreamWriter<TResponse> : IServerStreamWriter<TRespons
     private readonly Action<TResponse, SerializationContext> _serializer;
     private readonly object _writeLock;
     private Task? _writeTask;
-
-    internal bool _completed { get; private set; }
+    private bool _completed;
     private long _writeCount;
 
     public HttpContextStreamWriter(HttpContextServerCallContext context, Action<TResponse, SerializationContext> serializer)

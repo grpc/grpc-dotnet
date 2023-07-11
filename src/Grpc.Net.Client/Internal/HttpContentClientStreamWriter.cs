@@ -41,7 +41,6 @@ internal class HttpContentClientStreamWriter<TRequest, TResponse> : ClientStream
     private bool _completeCalled;
     private long _writeCount;
 
-    public bool IsCompleted => _completeCalled;
     public TaskCompletionSource<Stream> WriteStreamTcs { get; }
     public TaskCompletionSource<bool> CompleteTcs { get; }
 
@@ -208,7 +207,7 @@ internal class HttpContentClientStreamWriter<TRequest, TResponse> : ClientStream
         }
 
         public bool CallCompleted => _writer._call.CallTask.IsCompletedSuccessfully();
-        public bool WriterCompleted => _writer.IsCompleted;
+        public bool WriterCompleted => _writer._completeCalled;
         public bool IsWriteInProgress => _writer.IsWriteInProgressUnsynchronized;
         public long WriteCount => _writer._writeCount;
     }

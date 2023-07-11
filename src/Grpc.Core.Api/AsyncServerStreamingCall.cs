@@ -140,7 +140,7 @@ public sealed class AsyncServerStreamingCall<TResponse> : IDisposable
 
         public bool IsComplete => CallDebuggerHelpers.GetStatus(_call.callState) != null;
         public Status? Status => CallDebuggerHelpers.GetStatus(_call.callState);
-        public Metadata? ResponseHeaders => _call.ResponseHeadersAsync.Status == TaskStatus.RanToCompletion ? _call.ResponseHeadersAsync.GetAwaiter().GetResult() : null;
+        public Metadata? ResponseHeaders => _call.ResponseHeadersAsync.Status == TaskStatus.RanToCompletion ? _call.ResponseHeadersAsync.Result : null;
         public Metadata? Trailers => CallDebuggerHelpers.GetTrailers(_call.callState);
         public IAsyncStreamReader<TResponse> ResponseStream => _call.ResponseStream;
     }
