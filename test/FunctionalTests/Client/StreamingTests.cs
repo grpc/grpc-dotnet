@@ -1,4 +1,4 @@
-﻿#region Copyright notice and license
+#region Copyright notice and license
 
 // Copyright 2019 The gRPC Authors
 //
@@ -445,6 +445,8 @@ public class StreamingTests : FunctionalTestBase
         }
 
         // Arrange
+        System.Diagnostics.Debugger.Launch();
+
         var method = Fixture.DynamicGrpc.AddDuplexStreamingMethod<DataMessage, DataMessage>(UnaryDeadlineExceeded);
 
         var channel = CreateChannel();
@@ -579,7 +581,6 @@ public class StreamingTests : FunctionalTestBase
             {
                 return true;
             }
-
 
             return false;
         });
@@ -726,7 +727,6 @@ public class StreamingTests : FunctionalTestBase
             {
                 return true;
             }
-
 
             return false;
         });

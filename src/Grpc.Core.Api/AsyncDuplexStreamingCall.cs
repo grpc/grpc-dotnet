@@ -17,7 +17,9 @@
 #endregion
 
 using System;
+using System.Diagnostics;
 using System.Threading.Tasks;
+using Grpc.Core.Internal;
 
 namespace Grpc.Core;
 
@@ -26,6 +28,8 @@ namespace Grpc.Core;
 /// </summary>
 /// <typeparam name="TRequest">Request message type for this call.</typeparam>
 /// <typeparam name="TResponse">Response message type for this call.</typeparam>
+[DebuggerDisplay("{DebuggerToString(),nq}")]
+[DebuggerTypeProxy(typeof(AsyncDuplexStreamingCall<,>.AsyncDuplexStreamingCallDebugView))]
 public sealed class AsyncDuplexStreamingCall<TRequest, TResponse> : IDisposable
 {
     readonly IClientStreamWriter<TRequest> requestStream;
@@ -140,5 +144,24 @@ public sealed class AsyncDuplexStreamingCall<TRequest, TResponse> : IDisposable
     public void Dispose()
     {
         callState.Dispose();
+    }
+
+    private string DebuggerToString() => CallDebuggerHelpers.DebuggerToString(callState);
+
+    private sealed class AsyncDuplexStreamingCallDebugView
+    {
+        private readonly AsyncDuplexStreamingCall<TRequest, TResponse> _call;
+
+        public AsyncDuplexStreamingCallDebugView(AsyncDuplexStreamingCall<TRequest, TResponse> call)
+        {
+            _call = call;
+        }
+
+        public bool IsComplete => CallDebuggerHelpers.GetStatus(_call.callState) != null;
+        public Status? Status => CallDebuggerHelpers.GetStatus(_call.callState);
+        public Metadata? ResponseHeaders => _call.ResponseHeadersAsync.Status == TaskStatus.RanToCompletion ? _call.ResponseHeadersAsync.GetAwaiter().GetResult() : null;
+        public Metadata? Trailers => CallDebuggerHelpers.GetTrailers(_call.callState);
+        public IAsyncStreamReader<TResponse> ResponseStream => _call.ResponseStream;
+        public IClientStreamWriter<TRequest> RequestStream => _call.RequestStream;
     }
 }

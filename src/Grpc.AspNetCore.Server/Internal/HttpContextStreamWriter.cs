@@ -16,10 +16,13 @@
 
 #endregion
 
+using System.Diagnostics;
 using Grpc.Core;
 
 namespace Grpc.AspNetCore.Server.Internal;
 
+[DebuggerDisplay("{DebuggerToString(),nq}")]
+[DebuggerTypeProxy(typeof(HttpContextStreamWriter<>.HttpContextStreamWriterDebugView))]
 internal class HttpContextStreamWriter<TResponse> : IServerStreamWriter<TResponse>
     where TResponse : class
 {
@@ -27,7 +30,9 @@ internal class HttpContextStreamWriter<TResponse> : IServerStreamWriter<TRespons
     private readonly Action<TResponse, SerializationContext> _serializer;
     private readonly object _writeLock;
     private Task? _writeTask;
-    private bool _completed;
+
+    internal bool _completed { get; private set; }
+    private long _writeCount;
 
     public HttpContextStreamWriter(HttpContextServerCallContext context, Action<TResponse, SerializationContext> serializer)
     {
@@ -93,6 +98,7 @@ internal class HttpContextStreamWriter<TResponse> : IServerStreamWriter<TRespons
             }
 
             await _writeTask;
+            Interlocked.Increment(ref _writeCount);
         }
         finally
         {
@@ -116,5 +122,21 @@ internal class HttpContextStreamWriter<TResponse> : IServerStreamWriter<TRespons
             var writeTask = _writeTask;
             return writeTask != null && !writeTask.IsCompleted;
         }
+    }
+
+    private string DebuggerToString() => $"WriteCount = {_writeCount}, CallCompleted = {(_completed ? "true" : "false")}";
+
+    private sealed class HttpContextStreamWriterDebugView
+    {
+        private readonly HttpContextStreamWriter<TResponse> _writer;
+
+        public HttpContextStreamWriterDebugView(HttpContextStreamWriter<TResponse> writer)
+        {
+            _writer = writer;
+        }
+
+        public bool WriterCompleted => _writer._completed;
+        public bool IsWriteInProgress => _writer.IsWriteInProgressUnsynchronized;
+        public long WriteCount => _writer._writeCount;
     }
 }

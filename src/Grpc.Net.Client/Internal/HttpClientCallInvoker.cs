@@ -16,6 +16,8 @@
 
 #endregion
 
+using System.Diagnostics;
+using System.Runtime.CompilerServices;
 using Grpc.Core;
 using Grpc.Net.Client.Internal.Retry;
 
@@ -42,6 +44,8 @@ internal sealed class HttpClientCallInvoker : CallInvoker
         var call = CreateRootGrpcCall<TRequest, TResponse>(Channel, method, options);
         call.StartClientStreaming();
 
+        PrepareForDebugging(call);
+
         return new AsyncClientStreamingCall<TRequest, TResponse>(
             requestStream: call.ClientStreamWriter!,
             responseAsync: call.GetResponseAsync(),
@@ -62,6 +66,8 @@ internal sealed class HttpClientCallInvoker : CallInvoker
         var call = CreateRootGrpcCall<TRequest, TResponse>(Channel, method, options);
         call.StartDuplexStreaming();
 
+        PrepareForDebugging(call);
+
         return new AsyncDuplexStreamingCall<TRequest, TResponse>(
             requestStream: call.ClientStreamWriter!,
             responseStream: call.ClientStreamReader!,
@@ -81,6 +87,8 @@ internal sealed class HttpClientCallInvoker : CallInvoker
         var call = CreateRootGrpcCall<TRequest, TResponse>(Channel, method, options);
         call.StartServerStreaming(request);
 
+        PrepareForDebugging(call);
+
         return new AsyncServerStreamingCall<TResponse>(
             responseStream: call.ClientStreamReader!,
             responseHeadersAsync: Callbacks<TRequest, TResponse>.GetResponseHeadersAsync,
@@ -97,6 +105,8 @@ internal sealed class HttpClientCallInvoker : CallInvoker
     {
         var call = CreateRootGrpcCall<TRequest, TResponse>(Channel, method, options);
         call.StartUnary(request);
+
+        PrepareForDebugging(call);
 
         return new AsyncUnaryCall<TResponse>(
             responseAsync: call.GetResponseAsync(),
@@ -139,6 +149,21 @@ internal sealed class HttpClientCallInvoker : CallInvoker
         {
             // No retry/hedge policy configured. Fast path!
             return CreateGrpcCall<TRequest, TResponse>(channel, method, options, attempt: 1);
+        }
+    }
+
+    private void PrepareForDebugging<TRequest, TResponse>(IGrpcCall<TRequest, TResponse> call)
+        where TRequest : class
+        where TResponse : class
+    {
+        // The ResponseHeadersAsync task is lazy and is only started if accessed.
+        // By default, the debugger can't access a property that runs across threads.
+        // See https://learn.microsoft.com/en-us/dotnet/api/system.diagnostics.debugger.notifyofcrossthreaddependency
+        //
+        // If the debugger is attached then start the task outside of debugging to make the response headers available.
+        if (Channel.Debugger.IsAttached)
+        {
+            _ = call.GetResponseHeadersAsync();
         }
     }
 

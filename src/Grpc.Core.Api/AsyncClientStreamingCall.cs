@@ -17,8 +17,10 @@
 #endregion
 
 using System;
+using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using System.Threading.Tasks;
+using Grpc.Core.Internal;
 
 namespace Grpc.Core;
 
@@ -27,6 +29,8 @@ namespace Grpc.Core;
 /// </summary>
 /// <typeparam name="TRequest">Request message type for this call.</typeparam>
 /// <typeparam name="TResponse">Response message type for this call.</typeparam>
+[DebuggerDisplay("{DebuggerToString(),nq}")]
+[DebuggerTypeProxy(typeof(AsyncClientStreamingCall<,>.AsyncClientStreamingCallDebugView))]
 public sealed class AsyncClientStreamingCall<TRequest, TResponse> : IDisposable
 {
     readonly IClientStreamWriter<TRequest> requestStream;
@@ -163,5 +167,24 @@ public sealed class AsyncClientStreamingCall<TRequest, TResponse> : IDisposable
     public void Dispose()
     {
         callState.Dispose();
+    }
+
+    private string DebuggerToString() => CallDebuggerHelpers.DebuggerToString(callState);
+
+    private sealed class AsyncClientStreamingCallDebugView
+    {
+        private readonly AsyncClientStreamingCall<TRequest, TResponse> _call;
+
+        public AsyncClientStreamingCallDebugView(AsyncClientStreamingCall<TRequest, TResponse> call)
+        {
+            _call = call;
+        }
+
+        public bool IsComplete => CallDebuggerHelpers.GetStatus(_call.callState) != null;
+        public Status? Status => CallDebuggerHelpers.GetStatus(_call.callState);
+        public Metadata? ResponseHeaders => _call.ResponseHeadersAsync.Status == TaskStatus.RanToCompletion ? _call.ResponseHeadersAsync.GetAwaiter().GetResult() : null;
+        public Metadata? Trailers => CallDebuggerHelpers.GetTrailers(_call.callState);
+        public IClientStreamWriter<TRequest> RequestStream => _call.RequestStream;
+        public TResponse? Response => _call.ResponseAsync.Status == TaskStatus.RanToCompletion ? _call.ResponseAsync.Result : default;
     }
 }

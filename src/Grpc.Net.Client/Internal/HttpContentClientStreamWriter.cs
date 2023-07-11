@@ -1,4 +1,4 @@
-﻿#region Copyright notice and license
+#region Copyright notice and license
 
 // Copyright 2019 The gRPC Authors
 //
@@ -16,6 +16,7 @@
 
 #endregion
 
+using System.Diagnostics;
 using System.Runtime.ExceptionServices;
 using Grpc.Core;
 using Grpc.Shared;
@@ -27,6 +28,8 @@ using ValueTask = System.Threading.Tasks.Task;
 
 namespace Grpc.Net.Client.Internal;
 
+[DebuggerDisplay("{DebuggerToString(),nq}")]
+[DebuggerTypeProxy(typeof(HttpContentClientStreamWriter<,>.HttpContentClientStreamWriterDebugView))]
 internal class HttpContentClientStreamWriter<TRequest, TResponse> : ClientStreamWriterBase<TRequest>
     where TRequest : class
     where TResponse : class
@@ -36,7 +39,9 @@ internal class HttpContentClientStreamWriter<TRequest, TResponse> : ClientStream
 
     private readonly GrpcCall<TRequest, TResponse> _call;
     private bool _completeCalled;
+    private long _writeCount;
 
+    public bool IsCompleted => _completeCalled;
     public TaskCompletionSource<Stream> WriteStreamTcs { get; }
     public TaskCompletionSource<bool> CompleteTcs { get; }
 
@@ -98,6 +103,7 @@ internal class HttpContentClientStreamWriter<TRequest, TResponse> : ClientStream
         try
         {
             await WriteAsync(WriteMessageToStream, message, cancellationToken).ConfigureAwait(false);
+            Interlocked.Increment(ref _writeCount);
         }
         finally
         {
@@ -188,5 +194,22 @@ internal class HttpContentClientStreamWriter<TRequest, TResponse> : ClientStream
             }
             ExceptionDispatchInfo.Capture(resolvedCanceledException).Throw();
         }
+    }
+
+    private string DebuggerToString() => $"WriteCount = {_writeCount}, CallCompleted = {(_call.CallTask.IsCompletedSuccessfully() ? "true" : "false")}";
+
+    private sealed class HttpContentClientStreamWriterDebugView
+    {
+        private readonly HttpContentClientStreamWriter<TRequest, TResponse> _writer;
+
+        public HttpContentClientStreamWriterDebugView(HttpContentClientStreamWriter<TRequest, TResponse> writer)
+        {
+            _writer = writer;
+        }
+
+        public bool CallCompleted => _writer._call.CallTask.IsCompletedSuccessfully();
+        public bool WriterCompleted => _writer.IsCompleted;
+        public bool IsWriteInProgress => _writer.IsWriteInProgressUnsynchronized;
+        public long WriteCount => _writer._writeCount;
     }
 }

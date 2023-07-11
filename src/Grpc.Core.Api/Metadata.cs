@@ -17,11 +17,14 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
+using System.Diagnostics;
 using System.Globalization;
+using System.Linq;
 using System.Runtime.InteropServices;
 using System.Text;
+using System.Threading;
 using Grpc.Core.Api.Utils;
-
 using Grpc.Core.Utils;
 
 namespace Grpc.Core;
@@ -35,6 +38,8 @@ namespace Grpc.Core;
 /// <item><term>Response trailers</term><description>are sent by the server at the end of a remote call along with resulting call status.</description></item>
 /// </list>
 /// </summary>
+[DebuggerDisplay("{DebuggerToString(),nq}")]
+[DebuggerTypeProxy(typeof(MetadataDebugView))]
 public sealed class Metadata : IList<Metadata.Entry>
 {
     /// <summary>
@@ -498,5 +503,28 @@ public sealed class Metadata : IList<Metadata.Entry>
             }
             return false;
         }
+    }
+
+    private string DebuggerToString()
+    {
+        var debugText = $"Count = {Count}";
+        if (IsReadOnly)
+        {
+            debugText += $", IsReadOnly = true";
+        }
+        return debugText;
+    }
+
+    private sealed class MetadataDebugView
+    {
+        private readonly Metadata _metadata;
+
+        public MetadataDebugView(Metadata metadata)
+        {
+            _metadata = metadata;
+        }
+
+        [DebuggerBrowsable(DebuggerBrowsableState.RootHidden)]
+        public Entry[] Items => _metadata.ToArray();
     }
 }
