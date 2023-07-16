@@ -17,8 +17,10 @@
 #endregion
 
 using System;
+using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using System.Threading.Tasks;
+using Grpc.Core.Internal;
 
 namespace Grpc.Core;
 
@@ -26,11 +28,12 @@ namespace Grpc.Core;
 /// Return type for single request - single response call.
 /// </summary>
 /// <typeparam name="TResponse">Response message type for this call.</typeparam>
+[DebuggerDisplay("{DebuggerToString(),nq}")]
+[DebuggerTypeProxy(typeof(AsyncUnaryCall<>.AsyncUnaryCallDebugView))]
 public sealed class AsyncUnaryCall<TResponse> : IDisposable
 {
     readonly Task<TResponse> responseAsync;
     readonly AsyncCallState callState;
-
 
     /// <summary>
     /// Creates a new AsyncUnaryCall object with the specified properties.
@@ -145,5 +148,23 @@ public sealed class AsyncUnaryCall<TResponse> : IDisposable
     public void Dispose()
     {
         callState.Dispose();
+    }
+
+    private string DebuggerToString() => CallDebuggerHelpers.DebuggerToString(callState);
+
+    private sealed class AsyncUnaryCallDebugView
+    {
+        private readonly AsyncUnaryCall<TResponse> _call;
+
+        public AsyncUnaryCallDebugView(AsyncUnaryCall<TResponse> call)
+        {
+            _call = call;
+        }
+
+        public bool IsComplete => CallDebuggerHelpers.GetStatus(_call.callState) != null;
+        public Status? Status => CallDebuggerHelpers.GetStatus(_call.callState);
+        public Metadata? ResponseHeaders => _call.ResponseHeadersAsync.Status == TaskStatus.RanToCompletion ? _call.ResponseHeadersAsync.Result : null;
+        public Metadata? Trailers => CallDebuggerHelpers.GetTrailers(_call.callState);
+        public TResponse? Response => _call.ResponseAsync.Status == TaskStatus.RanToCompletion ? _call.ResponseAsync.Result : default;
     }
 }

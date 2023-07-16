@@ -27,6 +27,8 @@ using Microsoft.Extensions.Logging;
 
 namespace Grpc.AspNetCore.Server.Internal;
 
+[DebuggerDisplay("{DebuggerToString(),nq}")]
+[DebuggerTypeProxy(typeof(HttpContextServerCallContextDebugView))]
 internal sealed partial class HttpContextServerCallContext : ServerCallContext, IServerCallContextFeature
 {
     private static readonly AuthContext UnauthenticatedContext = new AuthContext(null, new Dictionary<string, List<AuthProperty>>());
@@ -571,5 +573,31 @@ internal sealed partial class HttpContextServerCallContext : ServerCallContext, 
         {
             GrpcServerLog.EncodingNotInAcceptEncoding(Logger, resolvedResponseGrpcEncoding);
         }
+    }
+
+    private string DebuggerToString() => $"Host = {Host}, Method = {Method}";
+
+    private sealed class HttpContextServerCallContextDebugView
+    {
+        private readonly HttpContextServerCallContext _context;
+
+        public HttpContextServerCallContextDebugView(HttpContextServerCallContext context)
+        {
+            _context = context;
+        }
+
+        public AuthContext AuthContext => _context.AuthContext;
+        public CancellationToken CancellationToken => _context.CancellationToken;
+        public DateTime Deadline => _context.Deadline;
+        public string Host => _context.Host;
+        public string Method => _context.Method;
+        public string Peer => _context.Peer;
+        public Metadata RequestHeaders => _context.RequestHeaders;
+        public Metadata ResponseTrailers => _context.ResponseTrailers;
+        public Status Status => _context.Status;
+        public IDictionary<object, object> UserState => _context.UserState;
+        public WriteOptions? WriteOptions => _context.WriteOptions;
+
+        public HttpContext HttpContext => _context.HttpContext;
     }
 }

@@ -1,4 +1,4 @@
-﻿#region Copyright notice and license
+#region Copyright notice and license
 
 // Copyright 2019 The gRPC Authors
 //
@@ -16,16 +16,20 @@
 
 #endregion
 
+using System.Diagnostics;
 using Grpc.Core;
 using Grpc.Shared;
 
 namespace Grpc.AspNetCore.Server.Internal;
 
+[DebuggerDisplay("{DebuggerToString(),nq}")]
+[DebuggerTypeProxy(typeof(HttpContextStreamReader<>.HttpContextStreamReaderDebugView))]
 internal class HttpContextStreamReader<TRequest> : IAsyncStreamReader<TRequest> where TRequest : class
 {
     private readonly HttpContextServerCallContext _serverCallContext;
     private readonly Func<DeserializationContext, TRequest> _deserializer;
     private bool _completed;
+    private long _readCount;
 
     public HttpContextStreamReader(HttpContextServerCallContext serverCallContext, Func<DeserializationContext, TRequest> deserializer)
     {
@@ -75,11 +79,28 @@ internal class HttpContextStreamReader<TRequest> : IAsyncStreamReader<TRequest> 
         }
 
         Current = request;
+        Interlocked.Increment(ref _readCount);
         return true;
     }
 
     public void Complete()
     {
         _completed = true;
+    }
+
+    private string DebuggerToString() => $"ReadCount = {_readCount}, CallCompleted = {(_completed ? "true" : "false")}";
+
+    private sealed class HttpContextStreamReaderDebugView
+    {
+        private readonly HttpContextStreamReader<TRequest> _reader;
+
+        public HttpContextStreamReaderDebugView(HttpContextStreamReader<TRequest> reader)
+        {
+            _reader = reader;
+        }
+
+        public bool ReaderCompleted => _reader._completed;
+        public long ReadCount => _reader._readCount;
+        public TRequest Current => _reader.Current;
     }
 }
