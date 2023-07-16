@@ -16,11 +16,17 @@
 
 #endregion
 
+using System.Diagnostics;
+
 namespace Grpc.Net.Client.Internal;
 
-internal sealed class SystemClock : ISystemClock
+internal sealed class CachedDebugger : IDebugger
 {
-    public static readonly SystemClock Instance = new SystemClock();
+    public bool IsAttached { get; }
 
-    public DateTime UtcNow => DateTime.UtcNow;
+    public CachedDebugger()
+    {
+        // Don't want to check Debugger.IsAttached with every call. Cache the result when the channel is created.
+        IsAttached = Debugger.IsAttached;
+    }
 }

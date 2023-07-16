@@ -17,6 +17,7 @@
 #endregion
 
 using System.Collections.Concurrent;
+using System.Diagnostics;
 using Grpc.Core;
 #if SUPPORT_LOAD_BALANCING
 using Grpc.Net.Client.Balancer;
@@ -93,6 +94,7 @@ public sealed class GrpcChannel : ChannelBase, IDisposable
     internal ISystemClock Clock = SystemClock.Instance;
     internal IOperatingSystem OperatingSystem;
     internal IRandomGenerator RandomGenerator;
+    internal IDebugger Debugger;
     internal bool DisableClientDeadline;
     internal long MaxTimerDueTime = uint.MaxValue - 1; // Max System.Threading.Timer due time
 
@@ -113,6 +115,7 @@ public sealed class GrpcChannel : ChannelBase, IDisposable
         LoggerFactory = channelOptions.LoggerFactory ?? channelOptions.ResolveService<ILoggerFactory>(NullLoggerFactory.Instance);
         OperatingSystem = channelOptions.ResolveService<IOperatingSystem>(Internal.OperatingSystem.Instance);
         RandomGenerator = channelOptions.ResolveService<IRandomGenerator>(new RandomGenerator());
+        Debugger = channelOptions.ResolveService<IDebugger>(new CachedDebugger());
         Logger = LoggerFactory.CreateLogger<GrpcChannel>();
 
 #if SUPPORT_LOAD_BALANCING

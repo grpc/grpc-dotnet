@@ -1,4 +1,4 @@
-﻿#region Copyright notice and license
+#region Copyright notice and license
 
 // Copyright 2019 The gRPC Authors
 //
@@ -16,7 +16,6 @@
 
 #endregion
 
-using System.Diagnostics;
 using Grpc.Core;
 using Microsoft.Extensions.Logging;
 using Log = Grpc.Net.Client.Internal.ClientStreamWriterBaseLog;
@@ -71,8 +70,6 @@ internal abstract class ClientStreamWriterBase<TRequest> : IClientStreamWriter<T
     {
         get
         {
-            Debug.Assert(Monitor.IsEntered(WriteLock));
-
             var writeTask = WriteTask;
             return writeTask != null && !writeTask.IsCompleted;
         }

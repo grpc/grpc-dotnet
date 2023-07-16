@@ -18,9 +18,7 @@
 
 namespace Grpc.Net.Client.Internal;
 
-internal sealed class SystemClock : ISystemClock
+internal interface IDebugger
 {
-    public static readonly SystemClock Instance = new SystemClock();
-
-    public DateTime UtcNow => DateTime.UtcNow;
+    bool IsAttached { get; }
 }

@@ -17,6 +17,7 @@
 #endregion
 
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using Grpc.Core.Utils;
 
@@ -28,6 +29,7 @@ namespace Grpc.Core;
 /// Using any other call/context properties for authentication purposes is wrong and inherently unsafe.
 /// Note: experimental API that can change or be removed without any prior notice.
 /// </summary>
+[DebuggerDisplay("IsPeerAuthenticated = {IsPeerAuthenticated}")]
 public class AuthContext
 {
     private readonly string? peerIdentityPropertyName;

@@ -17,7 +17,9 @@
 #endregion
 
 using System;
+using System.Diagnostics;
 using System.Threading.Tasks;
+using Grpc.Core.Internal;
 
 namespace Grpc.Core;
 
@@ -25,6 +27,8 @@ namespace Grpc.Core;
 /// Return type for server streaming calls.
 /// </summary>
 /// <typeparam name="TResponse">Response message type for this call.</typeparam>
+[DebuggerDisplay("{DebuggerToString(),nq}")]
+[DebuggerTypeProxy(typeof(AsyncServerStreamingCall<>.AsyncServerStreamingCallDebugView))]
 public sealed class AsyncServerStreamingCall<TResponse> : IDisposable
 {
     readonly IAsyncStreamReader<TResponse> responseStream;
@@ -121,5 +125,23 @@ public sealed class AsyncServerStreamingCall<TResponse> : IDisposable
     public void Dispose()
     {
         callState.Dispose();
+    }
+
+    private string DebuggerToString() => CallDebuggerHelpers.DebuggerToString(callState);
+
+    private sealed class AsyncServerStreamingCallDebugView
+    {
+        private readonly AsyncServerStreamingCall<TResponse> _call;
+
+        public AsyncServerStreamingCallDebugView(AsyncServerStreamingCall<TResponse> call)
+        {
+            _call = call;
+        }
+
+        public bool IsComplete => CallDebuggerHelpers.GetStatus(_call.callState) != null;
+        public Status? Status => CallDebuggerHelpers.GetStatus(_call.callState);
+        public Metadata? ResponseHeaders => _call.ResponseHeadersAsync.Status == TaskStatus.RanToCompletion ? _call.ResponseHeadersAsync.Result : null;
+        public Metadata? Trailers => CallDebuggerHelpers.GetTrailers(_call.callState);
+        public IAsyncStreamReader<TResponse> ResponseStream => _call.ResponseStream;
     }
 }

@@ -580,7 +580,6 @@ public class StreamingTests : FunctionalTestBase
                 return true;
             }
 
-
             return false;
         });
 
@@ -726,7 +725,6 @@ public class StreamingTests : FunctionalTestBase
             {
                 return true;
             }
-
 
             return false;
         });
