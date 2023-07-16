@@ -137,5 +137,6 @@ internal class HttpContextStreamWriter<TResponse> : IServerStreamWriter<TRespons
         public bool WriterCompleted => _writer._completed;
         public bool IsWriteInProgress => _writer.IsWriteInProgressUnsynchronized;
         public long WriteCount => _writer._writeCount;
+        public WriteOptions? WriteOptions => _writer.WriteOptions;
     }
 }

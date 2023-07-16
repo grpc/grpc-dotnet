@@ -101,5 +101,6 @@ internal class HttpContextStreamReader<TRequest> : IAsyncStreamReader<TRequest> 
 
         public bool ReaderCompleted => _reader._completed;
         public long ReadCount => _reader._readCount;
+        public TRequest Current => _reader.Current;
     }
 }

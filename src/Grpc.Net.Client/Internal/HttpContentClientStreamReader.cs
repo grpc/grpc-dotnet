@@ -269,6 +269,7 @@ internal class HttpContentClientStreamReader<TRequest, TResponse> : IAsyncStream
         public bool CallCompleted => _reader._call.CallTask.IsCompletedSuccessfully();
         public long ReadCount => _reader._readCount;
         public bool IsMoveNextInProgress => _reader.IsMoveNextInProgressUnsynchronized;
+        public TResponse Current => _reader.Current;
     }
 }
 

@@ -210,5 +210,6 @@ internal class HttpContentClientStreamWriter<TRequest, TResponse> : ClientStream
         public bool WriterCompleted => _writer._completeCalled;
         public bool IsWriteInProgress => _writer.IsWriteInProgressUnsynchronized;
         public long WriteCount => _writer._writeCount;
+        public WriteOptions? WriteOptions => _writer.WriteOptions;
     }
 }
