@@ -575,11 +575,7 @@ internal sealed partial class HttpContextServerCallContext : ServerCallContext, 
         }
     }
 
-    private string DebuggerToString()
-    {
-        var request = HttpContext.Request;
-        return $"{request.Scheme}://{request.Host.Value}{request.PathBase.Value}{request.Path.Value}{request.QueryString.Value}";
-    }
+    private string DebuggerToString() => $"Host = {Host}, Method = {Method}";
 
     private sealed class HttpContextServerCallContextDebugView
     {
