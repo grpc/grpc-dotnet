@@ -156,13 +156,18 @@ internal sealed class HttpClientCallInvoker : CallInvoker
         where TRequest : class
         where TResponse : class
     {
-        // The ResponseHeadersAsync task is lazy and is only started if accessed.
         // By default, the debugger can't access a property that runs across threads.
         // See https://learn.microsoft.com/en-us/dotnet/api/system.diagnostics.debugger.notifyofcrossthreaddependency
         //
-        // If the debugger is attached then start the task outside of debugging to make the response headers available.
+        // The ResponseHeadersAsync task is lazy and is only started if accessed. Trying to initiate the lazy task from
+        // the debugger isn't allowed and the debugger requires you to opt-in to run it. Not a good experience.
+        //
+        // If the debugger is attached then we don't care about performance saving of making ResponseHeadersAsync lazy.
+        // Instead, start the ResponseHeadersAsync task with the call. This is in regular app execution so there is no problem
+        // doing it here. Now the response headers are automatically available when debugging.
         if (Channel.Debugger.IsAttached)
         {
+            // Start the ResponseHeadersAsync task. Response isn't important here.
             _ = call.GetResponseHeadersAsync();
         }
     }
