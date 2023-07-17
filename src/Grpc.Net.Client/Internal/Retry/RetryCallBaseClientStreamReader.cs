@@ -29,7 +29,6 @@ internal class RetryCallBaseClientStreamReader<TRequest, TResponse> : IAsyncStre
     where TResponse : class
 {
     private readonly RetryCallBase<TRequest, TResponse> _retryCallBase;
-    private int _readCount;
 
     public RetryCallBaseClientStreamReader(RetryCallBase<TRequest, TResponse> retryCallBase)
     {
@@ -42,21 +41,13 @@ internal class RetryCallBaseClientStreamReader<TRequest, TResponse> : IAsyncStre
 
     public async Task<bool> MoveNext(CancellationToken cancellationToken)
     {
-        _readCount++;
-
         var call = await _retryCallBase.CommitedCallTask.ConfigureAwait(false);
         return await call.ClientStreamReader!.MoveNext(cancellationToken).ConfigureAwait(false);
     }
 
     private string DebuggerToString()
     {
-        //IGrpcCall<TRequest, TResponse>? commitedCall = null;
-        //if (_retryCallBase.CommitedCallTask.IsCompletedSuccessfully())
-        //{
-        //    commitedCall = _retryCallBase.CommitedCallTask.Result;
-        //}
-
-        return $"ReadCount = {_readCount}, EndOfStream = {(_retryCallBase.ResponseFinished ? "true" : "false")}";
+        return $"ReadCount = {_retryCallBase.MessagesRead}, EndOfStream = {(_retryCallBase.ResponseFinished ? "true" : "false")}";
     }
 
     private sealed class RetryCallBaseClientStreamReaderDebugView
@@ -69,7 +60,7 @@ internal class RetryCallBaseClientStreamReader<TRequest, TResponse> : IAsyncStre
         }
 
         public object? Call => _reader._retryCallBase.CallWrapper;
-        public long ReadCount => _reader._readCount;
+        public long ReadCount => _reader._retryCallBase.MessagesRead;
         public TResponse Current => _reader.Current;
         public bool EndOfStream => _reader._retryCallBase.ResponseFinished;
     }

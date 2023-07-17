@@ -39,6 +39,7 @@ internal sealed class StatusGrpcCall<TRequest, TResponse> : IGrpcCall<TRequest, 
     public IAsyncStreamReader<TResponse>? ClientStreamReader => _clientStreamReader ??= new StatusStreamReader(_status);
     public bool Disposed => true;
     public bool ResponseFinished => true;
+    public int MessagesRead { get; }
 
     public object? CallWrapper { get; set; }
 
@@ -47,11 +48,12 @@ internal sealed class StatusGrpcCall<TRequest, TResponse> : IGrpcCall<TRequest, 
     string IMethod.Name => _method.Name;
     string IMethod.FullName => _method.FullName;
 
-    public StatusGrpcCall(Status status, GrpcChannel channel, Method<TRequest, TResponse> method)
+    public StatusGrpcCall(Status status, GrpcChannel channel, Method<TRequest, TResponse> method, int messagesRead)
     {
         _status = status;
         _channel = channel;
         _method = method;
+        MessagesRead = messagesRead;
     }
 
     public void Dispose()

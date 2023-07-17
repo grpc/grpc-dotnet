@@ -56,4 +56,5 @@ internal interface IGrpcCall<TRequest, TResponse> : IDisposable, IMethod
     object? CallWrapper { get; set; }
     bool Disposed { get; }
     bool ResponseFinished { get; }
+    int MessagesRead { get; }
 }

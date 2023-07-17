@@ -59,6 +59,7 @@ internal abstract partial class RetryCallBase<TRequest, TResponse> : IGrpcCall<T
     public bool Disposed { get; private set; }
     public object? CallWrapper { get; set; }
     public bool ResponseFinished => CommitedCallTask.IsCompletedSuccessfully() ? CommitedCallTask.Result.ResponseFinished : false;
+    public int MessagesRead => CommitedCallTask.IsCompletedSuccessfully() ? CommitedCallTask.Result.MessagesRead : 0;
 
     protected int AttemptCount { get; private set; }
     protected List<ReadOnlyMemory<byte>> BufferedMessages { get; }
@@ -493,7 +494,7 @@ internal abstract partial class RetryCallBase<TRequest, TResponse> : IGrpcCall<T
 
     protected StatusGrpcCall<TRequest, TResponse> CreateStatusCall(Status status)
     {
-        var call = new StatusGrpcCall<TRequest, TResponse>(status, Channel, Method);
+        var call = new StatusGrpcCall<TRequest, TResponse>(status, Channel, Method, MessagesRead);
         call.CallWrapper = CallWrapper;
         return call;
     }
