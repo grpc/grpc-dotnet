@@ -255,7 +255,7 @@ internal class HttpContentClientStreamReader<TRequest, TResponse> : IAsyncStream
         }
     }
 
-    private string DebuggerToString() => $"ReadCount = {_readCount}, CallCompleted = {(_call.CallTask.IsCompletedSuccessfully() ? "true" : "false")}";
+    private string DebuggerToString() => $"ReadCount = {_readCount}, EndOfStream = {(_call.ResponseFinished ? "true" : "false")}";
 
     private sealed class HttpContentClientStreamReaderDebugView
     {
@@ -266,10 +266,10 @@ internal class HttpContentClientStreamReader<TRequest, TResponse> : IAsyncStream
             _reader = reader;
         }
 
-        public bool CallCompleted => _reader._call.CallTask.IsCompletedSuccessfully();
+        public object? Call => _reader._call.CallWrapper;
         public long ReadCount => _reader._readCount;
-        public bool IsMoveNextInProgress => _reader.IsMoveNextInProgressUnsynchronized;
         public TResponse Current => _reader.Current;
+        public bool EndOfStream => _reader._call.ResponseFinished;
     }
 }
 

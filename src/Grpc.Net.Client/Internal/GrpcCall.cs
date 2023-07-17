@@ -100,6 +100,13 @@ internal sealed partial class GrpcCall<TRequest, TResponse> : GrpcCall, IGrpcCal
     IClientStreamWriter<TRequest>? IGrpcCall<TRequest, TResponse>.ClientStreamWriter => ClientStreamWriter;
     IAsyncStreamReader<TResponse>? IGrpcCall<TRequest, TResponse>.ClientStreamReader => ClientStreamReader;
 
+    public object? CallWrapper { get; set; }
+
+    MethodType IMethod.Type => Method.Type;
+    string IMethod.ServiceName => Method.ServiceName;
+    string IMethod.Name => Method.Name;
+    string IMethod.FullName => Method.FullName;
+
     public void StartUnary(TRequest request) => StartUnaryCore(CreatePushUnaryContent(request));
 
     public void StartClientStreaming()

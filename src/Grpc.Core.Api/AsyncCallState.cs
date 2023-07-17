@@ -60,6 +60,8 @@ internal struct AsyncCallState
         this.callbackState = null;
     }
 
+    internal object? State => callbackState;
+
     internal Task<Metadata> ResponseHeadersAsync()
     {
         var withState = responseHeadersAsync as Func<object, Task<Metadata>>;

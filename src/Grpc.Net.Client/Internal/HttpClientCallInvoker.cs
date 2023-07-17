@@ -44,9 +44,7 @@ internal sealed class HttpClientCallInvoker : CallInvoker
         var call = CreateRootGrpcCall<TRequest, TResponse>(Channel, method, options);
         call.StartClientStreaming();
 
-        PrepareForDebugging(call);
-
-        return new AsyncClientStreamingCall<TRequest, TResponse>(
+        var callWrapper = new AsyncClientStreamingCall<TRequest, TResponse>(
             requestStream: call.ClientStreamWriter!,
             responseAsync: call.GetResponseAsync(),
             responseHeadersAsync: Callbacks<TRequest, TResponse>.GetResponseHeadersAsync,
@@ -54,6 +52,10 @@ internal sealed class HttpClientCallInvoker : CallInvoker
             getTrailersFunc: Callbacks<TRequest, TResponse>.GetTrailers,
             disposeAction: Callbacks<TRequest, TResponse>.Dispose,
             call);
+
+        PrepareForDebugging(call, callWrapper);
+
+        return callWrapper;
     }
 
     /// <summary>
@@ -66,9 +68,7 @@ internal sealed class HttpClientCallInvoker : CallInvoker
         var call = CreateRootGrpcCall<TRequest, TResponse>(Channel, method, options);
         call.StartDuplexStreaming();
 
-        PrepareForDebugging(call);
-
-        return new AsyncDuplexStreamingCall<TRequest, TResponse>(
+        var callWrapper = new AsyncDuplexStreamingCall<TRequest, TResponse>(
             requestStream: call.ClientStreamWriter!,
             responseStream: call.ClientStreamReader!,
             responseHeadersAsync: Callbacks<TRequest, TResponse>.GetResponseHeadersAsync,
@@ -76,6 +76,10 @@ internal sealed class HttpClientCallInvoker : CallInvoker
             getTrailersFunc: Callbacks<TRequest, TResponse>.GetTrailers,
             disposeAction: Callbacks<TRequest, TResponse>.Dispose,
             call);
+
+        PrepareForDebugging(call, callWrapper);
+
+        return callWrapper;
     }
 
     /// <summary>
@@ -87,15 +91,17 @@ internal sealed class HttpClientCallInvoker : CallInvoker
         var call = CreateRootGrpcCall<TRequest, TResponse>(Channel, method, options);
         call.StartServerStreaming(request);
 
-        PrepareForDebugging(call);
-
-        return new AsyncServerStreamingCall<TResponse>(
+        var callWrapper = new AsyncServerStreamingCall<TResponse>(
             responseStream: call.ClientStreamReader!,
             responseHeadersAsync: Callbacks<TRequest, TResponse>.GetResponseHeadersAsync,
             getStatusFunc: Callbacks<TRequest, TResponse>.GetStatus,
             getTrailersFunc: Callbacks<TRequest, TResponse>.GetTrailers,
             disposeAction: Callbacks<TRequest, TResponse>.Dispose,
             call);
+
+        PrepareForDebugging(call, callWrapper);
+
+        return callWrapper;
     }
 
     /// <summary>
@@ -106,15 +112,17 @@ internal sealed class HttpClientCallInvoker : CallInvoker
         var call = CreateRootGrpcCall<TRequest, TResponse>(Channel, method, options);
         call.StartUnary(request);
 
-        PrepareForDebugging(call);
-
-        return new AsyncUnaryCall<TResponse>(
+        var callWrapper = new AsyncUnaryCall<TResponse>(
             responseAsync: call.GetResponseAsync(),
             responseHeadersAsync: Callbacks<TRequest, TResponse>.GetResponseHeadersAsync,
             getStatusFunc: Callbacks<TRequest, TResponse>.GetStatus,
             getTrailersFunc: Callbacks<TRequest, TResponse>.GetTrailers,
             disposeAction: Callbacks<TRequest, TResponse>.Dispose,
             call);
+
+        PrepareForDebugging(call, callWrapper);
+
+        return callWrapper;
     }
 
     /// <summary>
@@ -148,40 +156,46 @@ internal sealed class HttpClientCallInvoker : CallInvoker
         else
         {
             // No retry/hedge policy configured. Fast path!
-            return CreateGrpcCall<TRequest, TResponse>(channel, method, options, attempt: 1);
+            // Note that callWrapper is null here and will be set later.
+            return CreateGrpcCall<TRequest, TResponse>(channel, method, options, attempt: 1, callWrapper: null);
         }
     }
 
-    private void PrepareForDebugging<TRequest, TResponse>(IGrpcCall<TRequest, TResponse> call)
+    private void PrepareForDebugging<TRequest, TResponse>(IGrpcCall<TRequest, TResponse> call, object callWrapper)
         where TRequest : class
         where TResponse : class
     {
-        // By default, the debugger can't access a property that runs across threads.
-        // See https://learn.microsoft.com/en-us/dotnet/api/system.diagnostics.debugger.notifyofcrossthreaddependency
-        //
-        // The ResponseHeadersAsync task is lazy and is only started if accessed. Trying to initiate the lazy task from
-        // the debugger isn't allowed and the debugger requires you to opt-in to run it. Not a good experience.
-        //
-        // If the debugger is attached then we don't care about performance saving of making ResponseHeadersAsync lazy.
-        // Instead, start the ResponseHeadersAsync task with the call. This is in regular app execution so there is no problem
-        // doing it here. Now the response headers are automatically available when debugging.
         if (Channel.Debugger.IsAttached)
         {
+            // By default, the debugger can't access a property that runs across threads.
+            // See https://learn.microsoft.com/en-us/dotnet/api/system.diagnostics.debugger.notifyofcrossthreaddependency
+            //
+            // The ResponseHeadersAsync task is lazy and is only started if accessed. Trying to initiate the lazy task from
+            // the debugger isn't allowed and the debugger requires you to opt-in to run it. Not a good experience.
+            //
+            // If the debugger is attached then we don't care about performance saving of making ResponseHeadersAsync lazy.
+            // Instead, start the ResponseHeadersAsync task with the call. This is in regular app execution so there is no problem
+            // doing it here. Now the response headers are automatically available when debugging.
+            //
             // Start the ResponseHeadersAsync task. Response isn't important here.
             _ = call.GetResponseHeadersAsync();
         }
+
+        call.CallWrapper = callWrapper;
     }
 
     public static GrpcCall<TRequest, TResponse> CreateGrpcCall<TRequest, TResponse>(
         GrpcChannel channel,
         Method<TRequest, TResponse> method,
         CallOptions options,
-        int attempt)
+        int attempt,
+        object? callWrapper)
         where TRequest : class
         where TResponse : class
     {
         var methodInfo = channel.GetCachedGrpcMethodInfo(method);
         var call = new GrpcCall<TRequest, TResponse>(method, methodInfo, options, channel, attempt);
+        call.CallWrapper = callWrapper;
 
         return call;
     }
