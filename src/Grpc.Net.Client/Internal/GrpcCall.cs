@@ -59,6 +59,7 @@ internal sealed partial class GrpcCall<TRequest, TResponse> : GrpcCall, IGrpcCal
     private TaskCompletionSource<TResponse>? _responseTcs;
 
     public int MessagesWritten { get; private set; }
+    public int MessagesRead { get; private set; }
     public HttpContentClientStreamWriter<TRequest, TResponse>? ClientStreamWriter { get; private set; }
     public HttpContentClientStreamReader<TRequest, TResponse>? ClientStreamReader { get; private set; }
 
@@ -99,6 +100,13 @@ internal sealed partial class GrpcCall<TRequest, TResponse> : GrpcCall, IGrpcCal
 
     IClientStreamWriter<TRequest>? IGrpcCall<TRequest, TResponse>.ClientStreamWriter => ClientStreamWriter;
     IAsyncStreamReader<TResponse>? IGrpcCall<TRequest, TResponse>.ClientStreamReader => ClientStreamReader;
+
+    public object? CallWrapper { get; set; }
+
+    MethodType IMethod.Type => Method.Type;
+    string IMethod.ServiceName => Method.ServiceName;
+    string IMethod.Name => Method.Name;
+    string IMethod.FullName => Method.FullName;
 
     public void StartUnary(TRequest request) => StartUnaryCore(CreatePushUnaryContent(request));
 
@@ -1109,21 +1117,27 @@ internal sealed partial class GrpcCall<TRequest, TResponse> : GrpcCall, IGrpcCal
     }
 
 #if !NETSTANDARD2_0
-    internal ValueTask<TResponse?> ReadMessageAsync(
+    internal async ValueTask<TResponse?> ReadMessageAsync(
 #else
-    internal Task<TResponse?> ReadMessageAsync(
+    internal async Task<TResponse?> ReadMessageAsync(
 #endif
         Stream responseStream,
         string grpcEncoding,
         bool singleMessage,
         CancellationToken cancellationToken)
     {
-        return responseStream.ReadMessageAsync(
+        var message = await responseStream.ReadMessageAsync(
             this,
             Method.ResponseMarshaller.ContextualDeserializer,
             grpcEncoding,
             singleMessage,
-            cancellationToken);
+            cancellationToken).ConfigureAwait(false);
+        if (message == null)
+        {
+            return null;
+        }
+        MessagesRead++;
+        return message;
     }
 
     public Task WriteClientStreamAsync<TState>(Func<GrpcCall<TRequest, TResponse>, Stream, CallOptions, TState, ValueTask> writeFunc, TState state, CancellationToken cancellationToken)

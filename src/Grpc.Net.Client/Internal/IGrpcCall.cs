@@ -1,4 +1,4 @@
-﻿#region Copyright notice and license
+#region Copyright notice and license
 
 // Copyright 2019 The gRPC Authors
 //
@@ -25,7 +25,7 @@ using ValueTask = System.Threading.Tasks.Task;
 
 namespace Grpc.Net.Client.Internal;
 
-internal interface IGrpcCall<TRequest, TResponse> : IDisposable
+internal interface IGrpcCall<TRequest, TResponse> : IDisposable, IMethod
     where TRequest : class
     where TResponse : class
 {
@@ -53,5 +53,8 @@ internal interface IGrpcCall<TRequest, TResponse> : IDisposable
         CancellationToken cancellationToken,
         [NotNullWhen(true)] out CancellationTokenRegistration? cancellationTokenRegistration);
 
+    object? CallWrapper { get; set; }
     bool Disposed { get; }
+    bool ResponseFinished { get; }
+    int MessagesRead { get; }
 }

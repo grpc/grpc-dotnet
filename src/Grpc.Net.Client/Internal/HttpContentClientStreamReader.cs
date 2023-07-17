@@ -44,7 +44,6 @@ internal class HttpContentClientStreamReader<TRequest, TResponse> : IAsyncStream
     private string? _grpcEncoding;
     private Stream? _responseStream;
     private Task<bool>? _moveNextTask;
-    private long _readCount;
 
     public HttpContentClientStreamReader(GrpcCall<TRequest, TResponse> call)
     {
@@ -182,7 +181,6 @@ internal class HttpContentClientStreamReader<TRequest, TResponse> : IAsyncStream
                 GrpcEventSource.Log.MessageReceived();
             }
             Current = readMessage!;
-            Interlocked.Increment(ref _readCount);
             return true;
         }
         catch (OperationCanceledException ex)
@@ -255,7 +253,7 @@ internal class HttpContentClientStreamReader<TRequest, TResponse> : IAsyncStream
         }
     }
 
-    private string DebuggerToString() => $"ReadCount = {_readCount}, CallCompleted = {(_call.CallTask.IsCompletedSuccessfully() ? "true" : "false")}";
+    private string DebuggerToString() => $"ReadCount = {_call.MessagesRead}, EndOfStream = {(_call.ResponseFinished ? "true" : "false")}";
 
     private sealed class HttpContentClientStreamReaderDebugView
     {
@@ -266,10 +264,10 @@ internal class HttpContentClientStreamReader<TRequest, TResponse> : IAsyncStream
             _reader = reader;
         }
 
-        public bool CallCompleted => _reader._call.CallTask.IsCompletedSuccessfully();
-        public long ReadCount => _reader._readCount;
-        public bool IsMoveNextInProgress => _reader.IsMoveNextInProgressUnsynchronized;
+        public object? Call => _reader._call.CallWrapper;
+        public long ReadCount => _reader._call.MessagesRead;
         public TResponse Current => _reader.Current;
+        public bool EndOfStream => _reader._call.ResponseFinished;
     }
 }
 

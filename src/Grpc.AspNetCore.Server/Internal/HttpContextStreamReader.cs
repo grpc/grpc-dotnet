@@ -30,6 +30,7 @@ internal class HttpContextStreamReader<TRequest> : IAsyncStreamReader<TRequest> 
     private readonly Func<DeserializationContext, TRequest> _deserializer;
     private bool _completed;
     private long _readCount;
+    private bool _endOfStream;
 
     public HttpContextStreamReader(HttpContextServerCallContext serverCallContext, Func<DeserializationContext, TRequest> deserializer)
     {
@@ -74,6 +75,7 @@ internal class HttpContextStreamReader<TRequest> : IAsyncStreamReader<TRequest> 
         // Stream is complete
         if (request == null)
         {
+            _endOfStream = true;
             Current = null!;
             return false;
         }
@@ -88,7 +90,7 @@ internal class HttpContextStreamReader<TRequest> : IAsyncStreamReader<TRequest> 
         _completed = true;
     }
 
-    private string DebuggerToString() => $"ReadCount = {_readCount}, CallCompleted = {(_completed ? "true" : "false")}";
+    private string DebuggerToString() => $"ReadCount = {_readCount}, EndOfStream = {(_endOfStream ? "true" : "false")}";
 
     private sealed class HttpContextStreamReaderDebugView
     {
@@ -99,8 +101,9 @@ internal class HttpContextStreamReader<TRequest> : IAsyncStreamReader<TRequest> 
             _reader = reader;
         }
 
-        public bool ReaderCompleted => _reader._completed;
+        public ServerCallContext ServerCallContext => _reader._serverCallContext;
         public long ReadCount => _reader._readCount;
         public TRequest Current => _reader.Current;
+        public bool EndOfStream => _reader._endOfStream;
     }
 }

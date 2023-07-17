@@ -180,6 +180,7 @@ public sealed class AsyncClientStreamingCall<TRequest, TResponse> : IDisposable
             _call = call;
         }
 
+        public CallDebuggerMethodDebugView? Method => _call.callState.State is IMethod method ? new CallDebuggerMethodDebugView(method) : null;
         public bool IsComplete => CallDebuggerHelpers.GetStatus(_call.callState) != null;
         public Status? Status => CallDebuggerHelpers.GetStatus(_call.callState);
         public Metadata? ResponseHeaders => _call.ResponseHeadersAsync.Status == TaskStatus.RanToCompletion ? _call.ResponseHeadersAsync.GetAwaiter().GetResult() : null;

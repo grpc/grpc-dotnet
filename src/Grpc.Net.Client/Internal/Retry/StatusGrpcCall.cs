@@ -1,4 +1,4 @@
-﻿#region Copyright notice and license
+#region Copyright notice and license
 
 // Copyright 2019 The gRPC Authors
 //
@@ -31,17 +31,29 @@ internal sealed class StatusGrpcCall<TRequest, TResponse> : IGrpcCall<TRequest, 
 {
     private readonly Status _status;
     private readonly GrpcChannel _channel;
+    private readonly Method<TRequest, TResponse> _method;
     private IClientStreamWriter<TRequest>? _clientStreamWriter;
     private IAsyncStreamReader<TResponse>? _clientStreamReader;
 
     public IClientStreamWriter<TRequest>? ClientStreamWriter => _clientStreamWriter ??= new StatusClientStreamWriter(_status);
     public IAsyncStreamReader<TResponse>? ClientStreamReader => _clientStreamReader ??= new StatusStreamReader(_status);
     public bool Disposed => true;
+    public bool ResponseFinished => true;
+    public int MessagesRead { get; }
 
-    public StatusGrpcCall(Status status, GrpcChannel channel)
+    public object? CallWrapper { get; set; }
+
+    MethodType IMethod.Type => _method.Type;
+    string IMethod.ServiceName => _method.ServiceName;
+    string IMethod.Name => _method.Name;
+    string IMethod.FullName => _method.FullName;
+
+    public StatusGrpcCall(Status status, GrpcChannel channel, Method<TRequest, TResponse> method, int messagesRead)
     {
         _status = status;
         _channel = channel;
+        _method = method;
+        MessagesRead = messagesRead;
     }
 
     public void Dispose()

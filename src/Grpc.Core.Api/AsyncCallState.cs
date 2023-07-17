@@ -60,6 +60,9 @@ internal struct AsyncCallState
         this.callbackState = null;
     }
 
+    // Debugging uses the state property to attempt to discover the method of the gRPC call.
+    internal object? State => callbackState;
+
     internal Task<Metadata> ResponseHeadersAsync()
     {
         var withState = responseHeadersAsync as Func<object, Task<Metadata>>;
