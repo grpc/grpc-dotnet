@@ -177,10 +177,11 @@ internal sealed class HttpClientCallInvoker : CallInvoker
             // Instead, start the ResponseHeadersAsync task with the call. This is in regular app execution so there is no problem
             // doing it here. Now the response headers are automatically available when debugging.
             //
-            // Start the ResponseHeadersAsync task. Response isn't important here.
+            // Start the ResponseHeadersAsync task.
             _ = call.GetResponseHeadersAsync();
         }
 
+        // CallWrapper is set as a property because there is a circular relationship between the underlying call and the call wrapper.
         call.CallWrapper = callWrapper;
     }
 
