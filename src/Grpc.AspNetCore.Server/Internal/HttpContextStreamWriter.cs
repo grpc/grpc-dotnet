@@ -123,7 +123,7 @@ internal class HttpContextStreamWriter<TResponse> : IServerStreamWriter<TRespons
         }
     }
 
-    private string DebuggerToString() => $"WriteCount = {_writeCount}, CallCompleted = {(_completed ? "true" : "false")}";
+    private string DebuggerToString() => $"WriteCount = {_writeCount}, WriterCompleted = {(_completed ? "true" : "false")}";
 
     private sealed class HttpContextStreamWriterDebugView
     {
@@ -134,8 +134,8 @@ internal class HttpContextStreamWriter<TResponse> : IServerStreamWriter<TRespons
             _writer = writer;
         }
 
+        public ServerCallContext ServerCallContext => _writer._context;
         public bool WriterCompleted => _writer._completed;
-        public bool IsWriteInProgress => _writer.IsWriteInProgressUnsynchronized;
         public long WriteCount => _writer._writeCount;
         public WriteOptions? WriteOptions => _writer.WriteOptions;
     }

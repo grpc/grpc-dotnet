@@ -1,4 +1,4 @@
-﻿#region Copyright notice and license
+#region Copyright notice and license
 
 // Copyright 2019 The gRPC Authors
 //
@@ -16,11 +16,14 @@
 
 #endregion
 
+using System.Diagnostics;
 using Grpc.Core;
 using Grpc.Shared;
 
 namespace Grpc.Net.Client.Internal.Retry;
 
+[DebuggerDisplay("{DebuggerToString(),nq}")]
+[DebuggerTypeProxy(typeof(RetryCallBaseClientStreamReader<,>.RetryCallBaseClientStreamReaderDebugView))]
 internal class RetryCallBaseClientStreamReader<TRequest, TResponse> : IAsyncStreamReader<TResponse>
     where TRequest : class
     where TResponse : class
@@ -40,5 +43,25 @@ internal class RetryCallBaseClientStreamReader<TRequest, TResponse> : IAsyncStre
     {
         var call = await _retryCallBase.CommitedCallTask.ConfigureAwait(false);
         return await call.ClientStreamReader!.MoveNext(cancellationToken).ConfigureAwait(false);
+    }
+
+    private string DebuggerToString()
+    {
+        return $"ReadCount = {_retryCallBase.MessagesRead}, EndOfStream = {(_retryCallBase.ResponseFinished ? "true" : "false")}";
+    }
+
+    private sealed class RetryCallBaseClientStreamReaderDebugView
+    {
+        private readonly RetryCallBaseClientStreamReader<TRequest, TResponse> _reader;
+
+        public RetryCallBaseClientStreamReaderDebugView(RetryCallBaseClientStreamReader<TRequest, TResponse> reader)
+        {
+            _reader = reader;
+        }
+
+        public object? Call => _reader._retryCallBase.CallWrapper;
+        public long ReadCount => _reader._retryCallBase.MessagesRead;
+        public TResponse Current => _reader.Current;
+        public bool EndOfStream => _reader._retryCallBase.ResponseFinished;
     }
 }

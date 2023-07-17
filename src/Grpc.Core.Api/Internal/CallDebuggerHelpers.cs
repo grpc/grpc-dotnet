@@ -17,6 +17,7 @@
 #endregion
 
 using System;
+using System.Diagnostics;
 
 namespace Grpc.Core.Internal;
 
@@ -24,8 +25,14 @@ internal static class CallDebuggerHelpers
 {
     public static string DebuggerToString(AsyncCallState callState)
     {
+        string debugText = string.Empty;
+        if (callState.State is IMethod method)
+        {
+            debugText = $"Method = {method.FullName}, ";
+        }
+
         var status = GetStatus(callState);
-        var debugText = $"IsComplete = {((status != null) ? "true" : "false")}";
+        debugText += $"IsComplete = {((status != null) ? "true" : "false")}";
         if (status != null)
         {
             debugText += $", Status = {status}";
@@ -60,4 +67,20 @@ internal static class CallDebuggerHelpers
             return null;
         }
     }
+}
+
+[DebuggerDisplay("{FullName,nq}")]
+internal sealed class CallDebuggerMethodDebugView
+{
+    private readonly IMethod _method;
+
+    public CallDebuggerMethodDebugView(IMethod method)
+    {
+        _method = method;
+    }
+
+    public MethodType Type => _method.Type;
+    public string ServiceName => _method.ServiceName;
+    public string Name => _method.Name;
+    public string FullName => _method.FullName;
 }

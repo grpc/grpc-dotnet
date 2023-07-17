@@ -575,7 +575,7 @@ internal sealed partial class HttpContextServerCallContext : ServerCallContext, 
         }
     }
 
-    private string DebuggerToString() => $"Host = {Host}, Method = {Method}";
+    private string DebuggerToString() => $"Method = {Method}";
 
     private sealed class HttpContextServerCallContextDebugView
     {

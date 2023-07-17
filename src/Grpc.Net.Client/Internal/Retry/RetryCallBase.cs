@@ -55,12 +55,21 @@ internal abstract partial class RetryCallBase<TRequest, TResponse> : IGrpcCall<T
     public IClientStreamWriter<TRequest>? ClientStreamWriter => _retryBaseClientStreamWriter ??= new RetryCallBaseClientStreamWriter<TRequest, TResponse>(this);
     public WriteOptions? ClientStreamWriteOptions { get; internal set; }
     public bool ClientStreamComplete { get; set; }
+    public int MessagesWritten { get; private set; }
     public bool Disposed { get; private set; }
+    public object? CallWrapper { get; set; }
+    public bool ResponseFinished => CommitedCallTask.IsCompletedSuccessfully() ? CommitedCallTask.Result.ResponseFinished : false;
+    public int MessagesRead => CommitedCallTask.IsCompletedSuccessfully() ? CommitedCallTask.Result.MessagesRead : 0;
 
     protected int AttemptCount { get; private set; }
     protected List<ReadOnlyMemory<byte>> BufferedMessages { get; }
     protected long CurrentCallBufferSize { get; set; }
     protected bool BufferedCurrentMessage { get; set; }
+
+    MethodType IMethod.Type => Method.Type;
+    string IMethod.ServiceName => Method.ServiceName;
+    string IMethod.Name => Method.Name;
+    string IMethod.FullName => Method.FullName;
 
     protected RetryCallBase(GrpcChannel channel, Method<TRequest, TResponse> method, CallOptions options, string loggerName, int retryAttempts)
     {
@@ -340,6 +349,7 @@ internal abstract partial class RetryCallBase<TRequest, TResponse> : IGrpcCall<T
         }
 
         await call.WriteMessageAsync(writeStream, messageData, callOptions.CancellationToken).ConfigureAwait(false);
+        MessagesWritten++;
     }
 
     protected void CommitCall(IGrpcCall<TRequest, TResponse> call, CommitReason commitReason)
@@ -484,7 +494,9 @@ internal abstract partial class RetryCallBase<TRequest, TResponse> : IGrpcCall<T
 
     protected StatusGrpcCall<TRequest, TResponse> CreateStatusCall(Status status)
     {
-        return new StatusGrpcCall<TRequest, TResponse>(status, Channel);
+        var call = new StatusGrpcCall<TRequest, TResponse>(status, Channel, Method, MessagesRead);
+        call.CallWrapper = CallWrapper;
+        return call;
     }
 
     protected void HandleUnexpectedError(Exception ex)

@@ -39,7 +39,6 @@ internal class HttpContentClientStreamWriter<TRequest, TResponse> : ClientStream
 
     private readonly GrpcCall<TRequest, TResponse> _call;
     private bool _completeCalled;
-    private long _writeCount;
 
     public TaskCompletionSource<Stream> WriteStreamTcs { get; }
     public TaskCompletionSource<bool> CompleteTcs { get; }
@@ -102,7 +101,6 @@ internal class HttpContentClientStreamWriter<TRequest, TResponse> : ClientStream
         try
         {
             await WriteAsync(WriteMessageToStream, message, cancellationToken).ConfigureAwait(false);
-            Interlocked.Increment(ref _writeCount);
         }
         finally
         {
@@ -195,7 +193,7 @@ internal class HttpContentClientStreamWriter<TRequest, TResponse> : ClientStream
         }
     }
 
-    private string DebuggerToString() => $"WriteCount = {_writeCount}, CallCompleted = {(_call.CallTask.IsCompletedSuccessfully() ? "true" : "false")}";
+    private string DebuggerToString() => $"WriteCount = {_call.MessagesWritten}, WriterCompleted = {(_completeCalled ? "true" : "false")}";
 
     private sealed class HttpContentClientStreamWriterDebugView
     {
@@ -206,10 +204,9 @@ internal class HttpContentClientStreamWriter<TRequest, TResponse> : ClientStream
             _writer = writer;
         }
 
-        public bool CallCompleted => _writer._call.CallTask.IsCompletedSuccessfully();
+        public object? Call => _writer._call.CallWrapper;
         public bool WriterCompleted => _writer._completeCalled;
-        public bool IsWriteInProgress => _writer.IsWriteInProgressUnsynchronized;
-        public long WriteCount => _writer._writeCount;
+        public long WriteCount => _writer._call.MessagesWritten;
         public WriteOptions? WriteOptions => _writer.WriteOptions;
     }
 }

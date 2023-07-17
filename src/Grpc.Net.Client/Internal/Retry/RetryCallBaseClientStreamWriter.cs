@@ -1,4 +1,4 @@
-﻿#region Copyright notice and license
+#region Copyright notice and license
 
 // Copyright 2019 The gRPC Authors
 //
@@ -16,11 +16,14 @@
 
 #endregion
 
+using System.Diagnostics;
 using Grpc.Core;
 using Log = Grpc.Net.Client.Internal.ClientStreamWriterBaseLog;
 
 namespace Grpc.Net.Client.Internal.Retry;
 
+[DebuggerDisplay("{DebuggerToString(),nq}")]
+[DebuggerTypeProxy(typeof(RetryCallBaseClientStreamWriter<,>.RetryCallBaseClientStreamWriterDebugView))]
 internal class RetryCallBaseClientStreamWriter<TRequest, TResponse> : ClientStreamWriterBase<TRequest>
     where TRequest : class
     where TResponse : class
@@ -80,5 +83,22 @@ internal class RetryCallBaseClientStreamWriter<TRequest, TResponse> : ClientStre
         }
 
         return WriteTask;
+    }
+
+    private string DebuggerToString() => $"WriteCount = {_retryCallBase.MessagesWritten}, WriterCompleted = {(_retryCallBase.ClientStreamComplete ? "true" : "false")}";
+
+    private sealed class RetryCallBaseClientStreamWriterDebugView
+    {
+        private readonly RetryCallBaseClientStreamWriter<TRequest, TResponse> _writer;
+
+        public RetryCallBaseClientStreamWriterDebugView(RetryCallBaseClientStreamWriter<TRequest, TResponse> writer)
+        {
+            _writer = writer;
+        }
+
+        public object? Call => _writer._retryCallBase.CallWrapper;
+        public bool WriterCompleted => _writer._retryCallBase.ClientStreamComplete;
+        public long WriteCount => _writer._retryCallBase.MessagesWritten;
+        public WriteOptions? WriteOptions => _writer.WriteOptions;
     }
 }

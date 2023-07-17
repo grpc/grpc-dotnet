@@ -109,7 +109,7 @@ internal sealed class RetryCall<TRequest, TResponse> : RetryCallBase<TRequest, T
                     // Start new call.
                     OnStartingAttempt();
 
-                    currentCall = _activeCall = HttpClientCallInvoker.CreateGrpcCall<TRequest, TResponse>(Channel, Method, Options, AttemptCount);
+                    currentCall = _activeCall = HttpClientCallInvoker.CreateGrpcCall<TRequest, TResponse>(Channel, Method, Options, AttemptCount, CallWrapper);
                     startCallFunc(currentCall);
 
                     SetNewActiveCallUnsynchronized(currentCall);
