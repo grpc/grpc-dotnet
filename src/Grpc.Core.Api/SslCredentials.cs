@@ -117,5 +117,3 @@ public sealed class SslCredentials : ChannelCredentials
 
     internal override bool IsComposable => true;
 }
-
-

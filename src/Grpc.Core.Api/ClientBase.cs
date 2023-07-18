@@ -17,6 +17,8 @@
 #endregion
 
 using System;
+using System.Collections.Generic;
+using System.Diagnostics;
 using Grpc.Core.Interceptors;
 using Grpc.Core.Internal;
 using Grpc.Core.Utils;
@@ -84,6 +86,9 @@ public abstract class ClientBase<T> : ClientBase
 /// <summary>
 /// Base class for client-side stubs.
 /// </summary>
+// The call invoker's debug information is provided by DebuggerDisplayAttribute. It isn't available in ToString.
+[DebuggerDisplay("{ServiceNameDebuggerToString(),nq}{CallInvoker}")]
+[DebuggerTypeProxy(typeof(ClientBaseDebugType))]
 public abstract class ClientBase
 {
     readonly ClientBaseConfiguration configuration;
@@ -139,6 +144,31 @@ public abstract class ClientBase
     internal ClientBaseConfiguration Configuration
     {
         get { return this.configuration; }
+    }
+
+    internal string ServiceNameDebuggerToString()
+    {
+        var serviceName = ClientDebuggerHelpers.GetServiceName(GetType());
+        if (serviceName == null)
+        {
+            return string.Empty;
+        }
+
+        return $@"Service = ""{serviceName}"", ";
+    }
+
+    internal sealed class ClientBaseDebugType
+    {
+        readonly ClientBase client;
+
+        public ClientBaseDebugType(ClientBase client)
+        {
+            this.client = client;
+        }
+
+        public CallInvoker CallInvoker => client.CallInvoker;
+        public string? Service => ClientDebuggerHelpers.GetServiceName(client.GetType());
+        public List<IMethod>? Methods => ClientDebuggerHelpers.GetServiceMethods(client.GetType());
     }
 
     /// <summary>

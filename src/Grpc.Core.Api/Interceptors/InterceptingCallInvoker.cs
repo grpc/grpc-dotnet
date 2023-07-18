@@ -17,6 +17,7 @@
 #endregion
 
 using System;
+using System.Diagnostics;
 using Grpc.Core.Utils;
 
 namespace Grpc.Core.Interceptors;
@@ -25,6 +26,7 @@ namespace Grpc.Core.Interceptors;
 /// Decorates an underlying <see cref="Grpc.Core.CallInvoker" /> to
 /// intercept calls through a given interceptor.
 /// </summary>
+[DebuggerDisplay("{invoker}")]
 internal class InterceptingCallInvoker : CallInvoker
 {
     readonly CallInvoker invoker;

@@ -38,6 +38,7 @@ namespace Grpc.Net.Client;
 /// Client objects can reuse the same channel. Creating a channel is an expensive operation compared to invoking
 /// a remote call so in general you should reuse a single channel for as many calls as possible.
 /// </summary>
+[DebuggerDisplay("{DebuggerToString(),nq}")]
 public sealed class GrpcChannel : ChannelBase, IDisposable
 {
     internal const int DefaultMaxReceiveMessageSize = 1024 * 1024 * 4; // 4 MB
@@ -844,6 +845,22 @@ public sealed class GrpcChannel : ChannelBase, IDisposable
         }
     }
 #endif
+
+    internal string DebuggerToString()
+    {
+        var debugText = $@"Address = ""{Address.OriginalString}""";
+        if (!IsHttpOrHttpsAddress(Address))
+        {
+            // It is easy to tell whether a channel is secured when the address contains http/https.
+            // Load balancing use custom schemes. Include IsSecure in debug text for custom schemes.
+            debugText += $", IsSecure = {(_isSecure ? "true" : "false")}";
+        }
+        if (Disposed)
+        {
+            debugText += ", Disposed = true";
+        }
+        return debugText;
+    }
 
     private readonly struct MethodKey : IEquatable<MethodKey>
     {
