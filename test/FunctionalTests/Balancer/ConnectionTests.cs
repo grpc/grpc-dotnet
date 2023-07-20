@@ -554,7 +554,7 @@ public class ConnectionTests : FunctionalTestBase
             () => Logs.Count(l => l.EventId.Name == "CheckingSocket") >= RequiredCheckLogCount,
             "Wait for multiple checking socket logs.").DefaultTimeout();
 
-        Assert.True(Logs.Any(l => l.EventId.Name == "ErrorCheckingSocket" && l.Exception?.Message == "The server sent 65536 bytes to the client before a connection was established. This exceeds maximum data allow."), "Socket was unexpectedly disconnected with a bad state.");
+        Assert.True(Logs.Any(l => l.EventId.Name == "ErrorCheckingSocket" && l.Exception is { } ex && ex.Message.Contains("Maximum allowed data exceeded.")), "Socket was disconnected because of large data.");
     }
 
     private static bool HasState<T>(LogRecord l, string key, T expectedValue)

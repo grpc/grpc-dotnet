@@ -266,7 +266,7 @@ internal class SocketConnectivitySubchannelTransport : ISubchannelTransport, IDi
                                 var serverDataAvailable = CalculateInitialSocketDataLength(_initialSocketData) + available;
                                 if (serverDataAvailable > MaximumInitialSocketDataLength)
                                 {
-                                    throw new InvalidOperationException($"The server sent {serverDataAvailable} bytes to the client before a connection was established. This exceeds maximum data allow.");
+                                    throw new InvalidOperationException($"The server sent {serverDataAvailable} bytes to the client before a connection was established. Maximum allowed data exceeded.");
                                 }
 
                                 SocketConnectivitySubchannelTransportLog.SocketReceivingAvailable(_logger, _subchannel.Id, socketAddress, available);
