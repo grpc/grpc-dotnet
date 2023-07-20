@@ -74,15 +74,12 @@ internal sealed class StreamWrapper : Stream
     public override Task WriteAsync(byte[] buffer, int offset, int count, CancellationToken cancellationToken) =>
         _inner.WriteAsync(buffer, offset, count, cancellationToken);
 
-#if !NETSTANDARD2_0
     public override ValueTask WriteAsync(ReadOnlyMemory<byte> buffer, CancellationToken cancellationToken = default) =>
         _inner.WriteAsync(buffer, cancellationToken);
-#endif
 
     public override Task<int> ReadAsync(byte[] buffer, int offset, int count, CancellationToken cancellationToken) =>
         ReadAsync(buffer.AsMemory(offset, count), cancellationToken).AsTask();
 
-#if !NETSTANDARD2_0
     public override async ValueTask<int> ReadAsync(Memory<byte> buffer, CancellationToken cancellationToken = default)
     {
         if (_initialSocketData != null && _initialSocketData.Count > 0)
@@ -104,7 +101,6 @@ internal sealed class StreamWrapper : Stream
 
         return await _inner.ReadAsync(buffer, cancellationToken).ConfigureAwait(false);
     }
-#endif
 
     public override Task CopyToAsync(Stream destination, int bufferSize, CancellationToken cancellationToken) =>
         _inner.CopyToAsync(destination, bufferSize, cancellationToken);
