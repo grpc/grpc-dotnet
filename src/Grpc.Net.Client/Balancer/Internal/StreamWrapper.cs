@@ -1,4 +1,4 @@
-﻿#region Copyright notice and license
+#region Copyright notice and license
 
 // Copyright 2019 The gRPC Authors
 //
@@ -29,12 +29,14 @@ internal sealed class StreamWrapper : Stream
 {
     private readonly Stream _inner;
     private readonly Action<Stream> _onDispose;
+    private readonly List<ReadOnlyMemory<byte>>? _initialSocketData;
     private bool _disposed;
 
-    public StreamWrapper(Stream inner, Action<Stream> onDispose)
+    public StreamWrapper(Stream inner, Action<Stream> onDispose, List<ReadOnlyMemory<byte>>? initialSocketData)
     {
         _inner = inner;
         _onDispose = onDispose;
+        _initialSocketData = initialSocketData;
     }
 
     public override bool CanRead => _inner.CanRead;
@@ -78,11 +80,30 @@ internal sealed class StreamWrapper : Stream
 #endif
 
     public override Task<int> ReadAsync(byte[] buffer, int offset, int count, CancellationToken cancellationToken) =>
-        _inner.ReadAsync(buffer, offset, count, cancellationToken);
+        ReadAsync(buffer.AsMemory(offset, count), cancellationToken).AsTask();
 
 #if !NETSTANDARD2_0
-    public override ValueTask<int> ReadAsync(Memory<byte> buffer, CancellationToken cancellationToken = default) =>
-        _inner.ReadAsync(buffer, cancellationToken);
+    public override async ValueTask<int> ReadAsync(Memory<byte> buffer, CancellationToken cancellationToken = default)
+    {
+        if (_initialSocketData != null && _initialSocketData.Count > 0)
+        {
+            var data = _initialSocketData[0];
+            if (data.Length <= buffer.Length)
+            {
+                data.CopyTo(buffer);
+                _initialSocketData.RemoveAt(0);
+                return data.Length;
+            }
+            else
+            {
+                data.Slice(0, buffer.Length).CopyTo(buffer);
+                _initialSocketData[0] = data.Slice(buffer.Length);
+                return buffer.Length;
+            }
+        }
+
+        return await _inner.ReadAsync(buffer, cancellationToken).ConfigureAwait(false);
+    }
 #endif
 
     public override Task CopyToAsync(Stream destination, int bufferSize, CancellationToken cancellationToken) =>

@@ -448,7 +448,7 @@ public class ConnectionTests : FunctionalTestBase
     }
 
     [Test]
-    public async Task SocketSendsBytes_BeforeCall_StaysConnected()
+    public async Task SocketSendsBytes_BeforeCall_ReplaysBufferedData()
     {
         // Arrange
         using var listener = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
@@ -485,7 +485,8 @@ public class ConnectionTests : FunctionalTestBase
 
         // Act 1
         Logger.LogInformation("Server sending data.");
-        socket.Send(Encoding.UTF8.GetBytes("Hello world"));
+        var data = Convert.FromBase64String("AAAYBAAAAAAAAAQAP///AAUAP///AAYAACAA/gMAAAABAAAECAAAAAAAAD8AAA==");
+        socket.Send(data);
 
         // Assert 1
         const int RequiredCheckLogCount = 2;
@@ -502,9 +503,65 @@ public class ConnectionTests : FunctionalTestBase
 
         // Assert 2
         await TestHelpers.AssertIsTrueRetryAsync(
-            () => Logs.Any(l => l.EventId.Name == "ClosingUnusableSocketOnCreateStream"),
-            "Wait for socket to be closed because it's unusable.").DefaultTimeout();
+            () => Logs.Any(l => l.EventId.Name == "StreamCreated" && HasState(l, "BufferedBytes", 46)),
+            "Wait for stream to be created with buffered data.").DefaultTimeout();
         cts.Cancel();
+    }
+
+    [Test]
+    public async Task SocketSendsBytes_BeforeCall_LargeData_Error()
+    {
+        // Arrange
+        using var listener = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
+        listener.Bind(new IPEndPoint(IPAddress.Loopback, 0));
+        listener.Listen(int.MaxValue);
+
+        var acceptSocketTask = Task.Run(async () =>
+        {
+            var socket = await listener.AcceptAsync();
+            socket.NoDelay = true;
+            return socket;
+        });
+
+        // Ignore errors
+        SetExpectedErrorsFilter(writeContext =>
+        {
+            return true;
+        });
+
+        var url = $"http://localhost:{((IPEndPoint?)listener.LocalEndPoint!).Port}";
+
+        var channel = await BalancerHelpers.CreateChannel(LoggerFactory, new RoundRobinConfig(), new[] { new Uri(url) });
+
+        Logger.LogInformation("Client starting connect.");
+        var connectTask = channel.ConnectAsync().DefaultTimeout();
+
+        Logger.LogInformation("Server accepting socket.");
+        var socket = await acceptSocketTask.DefaultTimeout();
+
+        Logger.LogInformation("Client waiting for connect complete.");
+        await connectTask.DefaultTimeout();
+
+        var subchannel = await BalancerWaitHelpers.WaitForSubchannelToBeReadyAsync(Logger, channel).DefaultTimeout();
+
+        // Act
+        Logger.LogInformation("Server sending data.");
+        socket.Send(new byte[1024 * 1024]);
+
+        // Assert
+        const int RequiredCheckLogCount = 2;
+        await TestHelpers.AssertIsTrueRetryAsync(
+            () => Logs.Count(l => l.EventId.Name == "CheckingSocket") >= RequiredCheckLogCount,
+            "Wait for multiple checking socket logs.").DefaultTimeout();
+
+        Assert.True(Logs.Any(l => l.EventId.Name == "ErrorCheckingSocket" && l.Exception?.Message == "The server sent 65536 bytes to the client before a connection was established. This exceeds maximum data allow."), "Socket was unexpectedly disconnected with a bad state.");
+    }
+
+    private static bool HasState<T>(LogRecord l, string key, T expectedValue)
+    {
+        var values = (IReadOnlyList<KeyValuePair<string, object>>)l.State;
+        var value = (T)values.FirstOrDefault(values => values.Key == key).Value;
+        return Equals(expectedValue, value);
     }
 
     [Test]

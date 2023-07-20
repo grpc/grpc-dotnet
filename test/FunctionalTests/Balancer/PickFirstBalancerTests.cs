@@ -445,8 +445,10 @@ public class PickFirstBalancerTests : FunctionalTestBase
         }
 
         // Arrange
+        Logger.LogInformation("Starting server");
         using var endpoint = BalancerHelpers.CreateGrpcEndpoint<HelloRequest, HelloReply>(50051, UnaryMethod, nameof(UnaryMethod));
 
+        Logger.LogInformation("Creating clients");
         var socketsHttpHandler = new SocketsHttpHandler();
         var channel1 = await BalancerHelpers.CreateChannel(LoggerFactory, new PickFirstConfig(), new[] { endpoint.Address }, socketsHttpHandler).DefaultTimeout();
         var channel2 = await BalancerHelpers.CreateChannel(LoggerFactory, new PickFirstConfig(), new[] { endpoint.Address }, socketsHttpHandler).DefaultTimeout();
@@ -455,10 +457,12 @@ public class PickFirstBalancerTests : FunctionalTestBase
         var client2 = TestClientFactory.Create(channel2, endpoint.Method);
 
         // Act
+        Logger.LogInformation("Starting calls");
         var reply1Task = client1.UnaryCall(new HelloRequest { Name = "Balancer" }).ResponseAsync.DefaultTimeout();
         var reply2Task = client2.UnaryCall(new HelloRequest { Name = "Balancer" }).ResponseAsync.DefaultTimeout();
 
         // Assert
+        Logger.LogInformation("Client waiting for replies");
         Assert.AreEqual("Balancer", (await reply1Task).Message);
         Assert.AreEqual("Balancer", (await reply2Task).Message);
         Assert.AreEqual("127.0.0.1:50051", host);

@@ -49,6 +49,7 @@ namespace Grpc.Net.Client.Balancer.Internal;
 /// </summary>
 internal class SocketConnectivitySubchannelTransport : ISubchannelTransport, IDisposable
 {
+    private const int MaximumInitialSocketDataLength = 1024 * 16;
     internal static readonly TimeSpan SocketPingInterval = TimeSpan.FromSeconds(5);
     internal readonly record struct ActiveStream(BalancerAddress Address, Socket Socket, Stream? Stream);
 
@@ -62,7 +63,7 @@ internal class SocketConnectivitySubchannelTransport : ISubchannelTransport, IDi
     private int _lastEndPointIndex;
     internal Socket? _initialSocket;
     private BalancerAddress? _initialSocketAddress;
-    private int _initialSocketDirtyBytesReadCount;
+    private List<ReadOnlyMemory<byte>>? _initialSocketData;
     private bool _disposed;
     private BalancerAddress? _currentAddress;
 
@@ -123,6 +124,7 @@ internal class SocketConnectivitySubchannelTransport : ISubchannelTransport, IDi
         _initialSocket?.Dispose();
         _initialSocket = null;
         _initialSocketAddress = null;
+        _initialSocketData = null;
         _lastEndPointIndex = 0;
         _currentAddress = null;
     }
@@ -159,6 +161,7 @@ internal class SocketConnectivitySubchannelTransport : ISubchannelTransport, IDi
                     _lastEndPointIndex = currentIndex;
                     _initialSocket = socket;
                     _initialSocketAddress = currentAddress;
+                    _initialSocketData = null;
 
                     // Schedule ping. Don't set a periodic interval to avoid any chance of timer running the logic multiple
                     // times because of execution delays (e.g. hitting a debugger breakpoint).
@@ -210,6 +213,21 @@ internal class SocketConnectivitySubchannelTransport : ISubchannelTransport, IDi
         return result;
     }
 
+    private static int CalculateInitialSocketDataLength(List<ReadOnlyMemory<byte>>? initialSocketData)
+    {
+        if (initialSocketData == null)
+        {
+            return 0;
+        }
+
+        var length = 0;
+        foreach (var data in initialSocketData)
+        {
+            length += data.Length;
+        }
+        return length;
+    }
+
     private void OnCheckSocketConnection(object? state)
     {
         try
@@ -232,37 +250,40 @@ internal class SocketConnectivitySubchannelTransport : ISubchannelTransport, IDi
                     {
                         SocketConnectivitySubchannelTransportLog.CheckingSocket(_logger, _subchannel.Id, socketAddress);
 
-                        // Poll socket to check if it can be read from.
-                        // We don't care that there is available data to be be read at this point. If there is available data
-                        // then the socket can't be used by SocketsHttpHandler, but the socket can get recreated when it is eventually used.
+                        // Poll socket to check if it can be read from. Unfortunatly this requires reading pending data.
+                        // The server might send data, e.g. HTTP/2 SETTINGS frame, so we need to read and cache it.
                         //
                         // Available data needs to be read now because the only way to determine whether the connection is closed is to
                         // get the results of polling after available data is received.
-                        //
-                        // If a socket with data is closed immediately then that might happen continuously.
-                        // Chill, leave the socket alone, and be happy that it can be read from. We can create a new one later.
+                        bool hasReadData;
                         do
                         {
-                            closeSocket = IsSocketInBadState(socket, socketAddress, allowAvailableReadBytes: true);
+                            closeSocket = IsSocketInBadState(socket, socketAddress);
                             var available = socket.Available;
                             if (available > 0)
                             {
+                                hasReadData = true;
+                                var serverDataAvailable = CalculateInitialSocketDataLength(_initialSocketData) + available;
+                                if (serverDataAvailable > MaximumInitialSocketDataLength)
+                                {
+                                    throw new InvalidOperationException($"The server sent {serverDataAvailable} bytes to the client before a connection was established. This exceeds maximum data allow.");
+                                }
+
                                 SocketConnectivitySubchannelTransportLog.SocketReceivingAvailable(_logger, _subchannel.Id, socketAddress, available);
 
-                                var buffer = ArrayPool<byte>.Shared.Rent(minimumLength: available);
-                                try
-                                {
-                                    // Data is already available so this won't block.
-                                    var readCount = socket.Receive(buffer);
-                                    _initialSocketDirtyBytesReadCount += readCount;
-                                }
-                                finally
-                                {
-                                    ArrayPool<byte>.Shared.Return(buffer);
-                                }
+                                // Data is already available so this won't block.
+                                var buffer = new byte[available];
+                                var readCount = socket.Receive(buffer);
+
+                                _initialSocketData ??= new List<ReadOnlyMemory<byte>>();
+                                _initialSocketData.Add(buffer.AsMemory(0, readCount));
+                            }
+                            else
+                            {
+                                hasReadData = false;
                             }
                         }
-                        while (socket.Available > 0);
+                        while (hasReadData);
                     }
                     catch (Exception ex)
                     {
@@ -311,6 +332,7 @@ internal class SocketConnectivitySubchannelTransport : ISubchannelTransport, IDi
 
         Socket? socket = null;
         BalancerAddress? socketAddress = null;
+        List<ReadOnlyMemory<byte>>? socketData = null;
         lock (Lock)
         {
             if (_initialSocket != null)
@@ -319,8 +341,10 @@ internal class SocketConnectivitySubchannelTransport : ISubchannelTransport, IDi
 
                 socket = _initialSocket;
                 socketAddress = _initialSocketAddress;
+                socketData = _initialSocketData;
                 _initialSocket = null;
                 _initialSocketAddress = null;
+                _initialSocketData = null;
 
                 // Double check the address matches the socket address and only use socket on match.
                 // Not sure if this is possible in practice, but better safe than sorry.
@@ -332,17 +356,15 @@ internal class SocketConnectivitySubchannelTransport : ISubchannelTransport, IDi
             }
         }
 
-        // Check to see if we've received anything on the connection; if we have, that's
-        // either erroneous data (we shouldn't have received anything yet) or the connection
-        // has been closed; either way, we can't use it.
         if (socket != null)
         {
-            if (_initialSocketDirtyBytesReadCount > 0 || IsSocketInBadState(socket, address, allowAvailableReadBytes: false))
+            if (IsSocketInBadState(socket, address))
             {
                 SocketConnectivitySubchannelTransportLog.ClosingUnusableSocketOnCreateStream(_logger, _subchannel.Id, address);
 
                 socket.Dispose();
                 socket = null;
+                socketData = null;
             }
         }
 
@@ -357,36 +379,31 @@ internal class SocketConnectivitySubchannelTransport : ISubchannelTransport, IDi
         var networkStream = new NetworkStream(socket, ownsSocket: true);
 
         // This stream wrapper intercepts dispose.
-        var stream = new StreamWrapper(networkStream, OnStreamDisposed);
+        var stream = new StreamWrapper(networkStream, OnStreamDisposed, socketData);
 
         lock (Lock)
         {
             _activeStreams.Add(new ActiveStream(address, socket, stream));
-            SocketConnectivitySubchannelTransportLog.StreamCreated(_logger, _subchannel.Id, address, _activeStreams.Count);
+            SocketConnectivitySubchannelTransportLog.StreamCreated(_logger, _subchannel.Id, address, CalculateInitialSocketDataLength(socketData), _activeStreams.Count);
         }
 
         return stream;
     }
 
-    private bool IsSocketInBadState(Socket socket, BalancerAddress address, bool allowAvailableReadBytes)
+    private bool IsSocketInBadState(Socket socket, BalancerAddress address)
     {
-        // Check to see if we've received anything on the connection; if we have, that's either erroneous data (we shouldn't have received anything yet)
-        // or the connection has been closed; either way, we can't use it.
-        //
         // From https://github.com/dotnet/runtime/blob/3195fbbd82fdb7f132d6698591ba6489ad6dd8cf/src/libraries/System.Net.Http/src/System/Net/Http/SocketsHttpHandler/HttpConnection.cs#L158-L168
-        // This implementation adds a flag to allow read bytes.
         try
         {
             // Will return true if closed or there is pending data for some reason.
             var result = socket.Poll(microSeconds: 0, SelectMode.SelectRead);
-            _logger.LogInformation($"Poll result: {result}, Available: {socket.Available}, Connected: {socket.Connected}");
-            if (result && allowAvailableReadBytes && socket.Available > 0)
+            if (result && socket.Available > 0)
             {
                 result = !socket.Connected;
             }
             if (result)
             {
-                SocketConnectivitySubchannelTransportLog.SocketPollBadState(_logger, _subchannel.Id, address, socket.Available);
+                SocketConnectivitySubchannelTransportLog.SocketPollBadState(_logger, _subchannel.Id, address);
             }
             return result;
         }
@@ -491,14 +508,14 @@ internal static class SocketConnectivitySubchannelTransportLog
     private static readonly Action<ILogger, int, BalancerAddress, Exception?> _connectingOnCreateStream =
         LoggerMessage.Define<int, BalancerAddress>(LogLevel.Trace, new EventId(11, "ConnectingOnCreateStream"), "Subchannel id '{SubchannelId}' doesn't have a connected socket available. Connecting new stream socket for {Address}.");
 
-    private static readonly Action<ILogger, int, BalancerAddress, int, Exception?> _streamCreated =
-        LoggerMessage.Define<int, BalancerAddress, int>(LogLevel.Trace, new EventId(12, "StreamCreated"), "Subchannel id '{SubchannelId}' created stream for {Address}. Transport has {ActiveStreams} active streams.");
+    private static readonly Action<ILogger, int, BalancerAddress, int, int, Exception?> _streamCreated =
+        LoggerMessage.Define<int, BalancerAddress, int, int>(LogLevel.Trace, new EventId(12, "StreamCreated"), "Subchannel id '{SubchannelId}' created stream for {Address} with {BufferedBytes} buffered bytes. Transport has {ActiveStreams} active streams.");
 
     private static readonly Action<ILogger, int, BalancerAddress, Exception> _errorPollingSocket =
         LoggerMessage.Define<int, BalancerAddress>(LogLevel.Debug, new EventId(13, "ErrorPollingSocket"), "Subchannel id '{SubchannelId}' error checking socket {Address}.");
 
-    private static readonly Action<ILogger, int, BalancerAddress, int, Exception?> _socketPollBadState =
-        LoggerMessage.Define<int, BalancerAddress, int>(LogLevel.Debug, new EventId(14, "SocketPollBadState"), "Subchannel id '{SubchannelId}' socket {Address} is in a bad state and can't be used. Either it is not connected, or there is unexpected pending read data. Read bytes available count: {ReadBytesAvailableCount}");
+    private static readonly Action<ILogger, int, BalancerAddress, Exception?> _socketPollBadState =
+        LoggerMessage.Define<int, BalancerAddress>(LogLevel.Debug, new EventId(14, "SocketPollBadState"), "Subchannel id '{SubchannelId}' socket {Address} is in a bad state and can't be used.");
 
     private static readonly Action<ILogger, int, BalancerAddress, int, Exception?> _socketReceivingAvailable =
         LoggerMessage.Define<int, BalancerAddress, int>(LogLevel.Trace, new EventId(15, "SocketReceivingAvailable"), "Subchannel id '{SubchannelId}' socket {Address} is receiving {ReadBytesAvailableCount} available bytes.");
@@ -561,9 +578,9 @@ internal static class SocketConnectivitySubchannelTransportLog
         _connectingOnCreateStream(logger, subchannelId, address, null);
     }
 
-    public static void StreamCreated(ILogger logger, int subchannelId, BalancerAddress address, int activeStreams)
+    public static void StreamCreated(ILogger logger, int subchannelId, BalancerAddress address, int bufferedBytes, int activeStreams)
     {
-        _streamCreated(logger, subchannelId, address, activeStreams, null);
+        _streamCreated(logger, subchannelId, address, bufferedBytes, activeStreams, null);
     }
 
     public static void ErrorPollingSocket(ILogger logger, int subchannelId, BalancerAddress address, Exception ex)
@@ -571,9 +588,9 @@ internal static class SocketConnectivitySubchannelTransportLog
         _errorPollingSocket(logger, subchannelId, address, ex);
     }
 
-    public static void SocketPollBadState(ILogger logger, int subchannelId, BalancerAddress address, int readBytesAvailableCount)
+    public static void SocketPollBadState(ILogger logger, int subchannelId, BalancerAddress address)
     {
-        _socketPollBadState(logger, subchannelId, address, readBytesAvailableCount, null);
+        _socketPollBadState(logger, subchannelId, address, null);
     }
 
     public static void SocketReceivingAvailable(ILogger logger, int subchannelId, BalancerAddress address, int readBytesAvailableCount)
