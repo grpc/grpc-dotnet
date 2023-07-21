@@ -53,11 +53,12 @@ internal static class BalancerHelpers
         string methodName,
         HttpProtocols? protocols = null,
         bool? isHttps = null,
-        X509Certificate2? certificate = null)
+        X509Certificate2? certificate = null,
+        ILoggerFactory? loggerFactory = null)
         where TRequest : class, IMessage, new()
         where TResponse : class, IMessage, new()
     {
-        var server = CreateServer(port, protocols, isHttps, certificate);
+        var server = CreateServer(port, protocols, isHttps, certificate, loggerFactory);
         var method = server.DynamicGrpc.AddUnaryMethod(callHandler, methodName);
         var url = server.GetUrl(isHttps.GetValueOrDefault(false) ? TestServerEndpointName.Http2WithTls : TestServerEndpointName.Http2);
 
@@ -79,7 +80,6 @@ internal static class BalancerHelpers
 
         public Method<TRequest, TResponse> Method { get; }
         public Uri Address { get; }
-        public ILoggerFactory LoggerFactory => _server.LoggerFactory;
         public EndPoint EndPoint => new DnsEndPoint(Address.Host, Address.Port);
 
         public void Dispose()
@@ -88,12 +88,18 @@ internal static class BalancerHelpers
         }
     }
 
-    public static GrpcTestFixture<Startup> CreateServer(int port, HttpProtocols? protocols = null, bool? isHttps = null, X509Certificate2? certificate = null)
+    public static GrpcTestFixture<Startup> CreateServer(int port, HttpProtocols? protocols = null, bool? isHttps = null, X509Certificate2? certificate = null, ILoggerFactory? loggerFactory = null)
     {
         var endpointName = isHttps.GetValueOrDefault(false) ? TestServerEndpointName.Http2WithTls : TestServerEndpointName.Http2;
 
         return new GrpcTestFixture<Startup>(
-            null,
+            services =>
+            {
+                if (loggerFactory != null)
+                {
+                    services.AddSingleton<ILoggerFactory>(loggerFactory);
+                }
+            },
             (options, urls) =>
             {
                 urls[endpointName] = isHttps.GetValueOrDefault(false)
