@@ -163,8 +163,9 @@ internal class SocketConnectivitySubchannelTransport : ISubchannelTransport, IDi
                     _initialSocketAddress = currentAddress;
                     _initialSocketData = null;
 
-                    // Schedule ping. Don't set a periodic interval to avoid any chance of timer running the logic multiple
-                    // times because of execution delays (e.g. hitting a debugger breakpoint).
+                    // Schedule ping. Don't set a periodic interval to avoid any chance of timer causing the target method to run multiple times in paralle.
+                    // This could happen because of execution delays (e.g. hitting a debugger breakpoint).
+                    // Instead, the socket timer target method reschedules the next run after it has finished.
                     _socketConnectedTimer.Change(_socketPingInterval, Timeout.InfiniteTimeSpan);
                 }
 
@@ -353,6 +354,8 @@ internal class SocketConnectivitySubchannelTransport : ISubchannelTransport, IDi
                     socket.Dispose();
                     socket = null;
                 }
+
+                _socketConnectedTimer.Change(Timeout.InfiniteTimeSpan, Timeout.InfiniteTimeSpan);
             }
         }
 
