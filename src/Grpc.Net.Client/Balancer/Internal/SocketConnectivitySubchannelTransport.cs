@@ -36,7 +36,7 @@ namespace Grpc.Net.Client.Balancer.Internal;
 
 /// <summary>
 /// Transport that makes it possible to monitor connectivity state while using HttpClient.
-/// 
+///
 /// Features:
 /// 1. When a connection is requested the transport creates a Socket and connects to the server.
 ///    The socket is used with the first stream created by SocketsHttpHandler.ConnectCallback.
@@ -321,7 +321,7 @@ internal class SocketConnectivitySubchannelTransport : ISubchannelTransport, IDi
 
         lock (Lock)
         {
-            if (!_disposed)
+            if (_initialSocket != null && !_disposed)
             {
                 // Schedule next ping.
                 _socketConnectedTimer.Change(_socketPingInterval, Timeout.InfiniteTimeSpan);
