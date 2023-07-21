@@ -1,4 +1,4 @@
-﻿#region Copyright notice and license
+#region Copyright notice and license
 
 // Copyright 2019 The gRPC Authors
 //
@@ -81,7 +81,7 @@ public class AddFileCommandTests : TestBase
         // Act
         Directory.SetCurrentDirectory(tempDir);
         var command = new AddFileCommand(new TestConsole(), projectPath: null, CreateClient());
-        await command.AddFileAsync(Services.Server, Access.Internal, "ImportDir", new[] { Path.Combine("Proto", "*.proto") });
+        await command.AddFileAsync(Services.Server, Access.Internal, "ImportDir", new[] { Path.Combine("Proto", "*.proto") }, SearchOption.TopDirectoryOnly);
         command.Project.ReevaluateIfNecessary();
 
         // Assert
@@ -89,11 +89,48 @@ public class AddFileCommandTests : TestBase
         Assert.AreEqual(1, packageRefs.Count);
         Assert.NotNull(packageRefs.SingleOrDefault(r => r.UnevaluatedInclude == "Grpc.AspNetCore" && !r.HasMetadata(CommandBase.PrivateAssetsElement)));
 
-
         var protoRefs = command.Project.GetItems(CommandBase.ProtobufElement);
         Assert.AreEqual(2, protoRefs.Count);
         Assert.NotNull(protoRefs.SingleOrDefault(r => r.UnevaluatedInclude == "Proto\\a.proto"));
         Assert.NotNull(protoRefs.SingleOrDefault(r => r.UnevaluatedInclude == "Proto\\b.proto"));
+        Assert.Null(protoRefs.SingleOrDefault(r => r.UnevaluatedInclude == "Proto\\Subfolder\\c.proto"));
+        foreach (var protoRef in protoRefs)
+        {
+            Assert.AreEqual("Server", protoRef.GetMetadataValue(CommandBase.GrpcServicesElement));
+            Assert.AreEqual("ImportDir", protoRef.GetMetadataValue(CommandBase.AdditionalImportDirsElement));
+            Assert.AreEqual("Internal", protoRef.GetMetadataValue(CommandBase.AccessElement));
+        }
+
+        // Cleanup
+        Directory.SetCurrentDirectory(currentDir);
+        Directory.Delete(tempDir, true);
+    }
+
+    [Test]
+    [NonParallelizable]
+    public async Task AddFileCommand_AddsPackagesAndReferencesRecursively()
+    {
+        // Arrange
+        var currentDir = Directory.GetCurrentDirectory();
+        var tempDir = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString());
+        new DirectoryInfo(Path.Combine(currentDir, "TestAssets", "EmptyProject")).CopyTo(tempDir);
+
+        // Act
+        Directory.SetCurrentDirectory(tempDir);
+        var command = new AddFileCommand(new TestConsole(), projectPath: null, CreateClient());
+        await command.AddFileAsync(Services.Server, Access.Internal, "ImportDir", new[] { Path.Combine("Proto", "*.proto") }, SearchOption.AllDirectories);
+        command.Project.ReevaluateIfNecessary();
+
+        // Assert
+        var packageRefs = command.Project.GetItems(CommandBase.PackageReferenceElement);
+        Assert.AreEqual(1, packageRefs.Count);
+        Assert.NotNull(packageRefs.SingleOrDefault(r => r.UnevaluatedInclude == "Grpc.AspNetCore" && !r.HasMetadata(CommandBase.PrivateAssetsElement)));
+
+        var protoRefs = command.Project.GetItems(CommandBase.ProtobufElement);
+        Assert.AreEqual(3, protoRefs.Count);
+        Assert.NotNull(protoRefs.SingleOrDefault(r => r.UnevaluatedInclude == "Proto\\a.proto"));
+        Assert.NotNull(protoRefs.SingleOrDefault(r => r.UnevaluatedInclude == "Proto\\b.proto"));
+        Assert.NotNull(protoRefs.SingleOrDefault(r => r.UnevaluatedInclude == "Proto\\Subfolder\\c.proto"));
         foreach (var protoRef in protoRefs)
         {
             Assert.AreEqual("Server", protoRef.GetMetadataValue(CommandBase.GrpcServicesElement));
