@@ -834,7 +834,7 @@ public sealed class GrpcChannel : ChannelBase, IDisposable
             {
                 return new SocketConnectivitySubchannelTransport(
                     subchannel,
-                    TimeSpan.FromSeconds(5),
+                    SocketConnectivitySubchannelTransport.SocketPingInterval,
                     _channel.ConnectTimeout,
                     _channel.LoggerFactory,
                     socketConnect: null);

@@ -44,7 +44,7 @@ internal static class BalancerWaitHelpers
         {
             logger.LogInformation($"Channel id {channelId}: Current channel state '{currentState}' doesn't match expected states {statesText}.");
 
-            await channel.WaitForStateChangedAsync(currentState).DefaultTimeout();
+            await channel.WaitForStateChangedAsync(currentState);
             currentState = channel.State;
         }
 
