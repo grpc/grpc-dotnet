@@ -41,7 +41,7 @@ public class AddFileCommandTests : TestBase
         var parser = Program.BuildParser(CreateClient());
 
         // Act
-        var result = await parser.InvokeAsync($"add-file -p {tempDir} -s Server --access Internal -i ImportDir {Path.Combine("Proto", "*.proto")}", testConsole);
+        var result = await parser.InvokeAsync($"add-file -p {tempDir} -s Server --access Internal -r -i ImportDir {Path.Combine("Proto", "*.proto")}", testConsole);
 
         // Assert
         Assert.AreEqual(0, result, testConsole.Error.ToString());
@@ -55,9 +55,10 @@ public class AddFileCommandTests : TestBase
 
 
         var protoRefs = project.GetItems(CommandBase.ProtobufElement);
-        Assert.AreEqual(2, protoRefs.Count);
+        Assert.AreEqual(3, protoRefs.Count);
         Assert.NotNull(protoRefs.SingleOrDefault(r => r.UnevaluatedInclude == "Proto\\a.proto"));
         Assert.NotNull(protoRefs.SingleOrDefault(r => r.UnevaluatedInclude == "Proto\\b.proto"));
+        Assert.NotNull(protoRefs.SingleOrDefault(r => r.UnevaluatedInclude == "Proto\\Subfolder\\c.proto"));
         foreach (var protoRef in protoRefs)
         {
             Assert.AreEqual("Server", protoRef.GetMetadataValue(CommandBase.GrpcServicesElement));

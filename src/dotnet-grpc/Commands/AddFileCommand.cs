@@ -63,7 +63,7 @@ internal class AddFileCommand : CommandBase
                 var services = context.ParseResult.GetValueForOption(serviceOption);
                 var access = context.ParseResult.GetValueForOption(accessOption);
                 var additionalImportDirs = context.ParseResult.GetValueForOption(additionalImportDirsOption);
-                var searchOption = context.ParseResult.GetValueForOption(recursiveOption) ? SearchOption.TopDirectoryOnly : SearchOption.TopDirectoryOnly;
+                var searchOption = context.ParseResult.HasOption(recursiveOption) ? SearchOption.AllDirectories : SearchOption.TopDirectoryOnly;
                 var files = context.ParseResult.GetValueForArgument(filesArgument);
 
                 try
