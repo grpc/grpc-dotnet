@@ -49,7 +49,7 @@ namespace Grpc.Net.Client.Balancer.Internal;
 /// </summary>
 internal class SocketConnectivitySubchannelTransport : ISubchannelTransport, IDisposable
 {
-    private const int MaximumInitialSocketDataLength = 1024 * 16;
+    private const int MaximumInitialSocketDataSize = 1024 * 16;
     internal static readonly TimeSpan SocketPingInterval = TimeSpan.FromSeconds(5);
     internal readonly record struct ActiveStream(BalancerAddress Address, Socket Socket, Stream? Stream);
 
@@ -265,8 +265,10 @@ internal class SocketConnectivitySubchannelTransport : ISubchannelTransport, IDi
                             {
                                 hasReadData = true;
                                 var serverDataAvailable = CalculateInitialSocketDataLength(_initialSocketData) + available;
-                                if (serverDataAvailable > MaximumInitialSocketDataLength)
+                                if (serverDataAvailable > MaximumInitialSocketDataSize)
                                 {
+                                    // Data sent to the client before a connection is started shouldn't be large.
+                                    // Put a maximum limit on the buffer size to prevent an unexpected scenario from consuming too much memory.
                                     throw new InvalidOperationException($"The server sent {serverDataAvailable} bytes to the client before a connection was established. Maximum allowed data exceeded.");
                                 }
 
