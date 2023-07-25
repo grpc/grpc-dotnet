@@ -321,7 +321,9 @@ internal class SocketConnectivitySubchannelTransport : ISubchannelTransport, IDi
 
         lock (Lock)
         {
-            if (!_disposed)
+            // Double-check that there is still an initial socket before scheduling the next ping.
+            // Parallel code execution could cause the socket to be removed, e.g. a gRPC call runs GetStreamAsync.
+            if (_initialSocket != null && !_disposed)
             {
                 // Schedule next ping.
                 _socketConnectedTimer.Change(_socketPingInterval, Timeout.InfiniteTimeSpan);
