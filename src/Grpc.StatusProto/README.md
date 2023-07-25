@@ -31,13 +31,23 @@ returned in the trailing response metadata.  Setting and reading this metadata i
 
 The server side uses C#'s Object and Collection initializer syntax. The avoids the needs to a *builder* API to be developed.
 
-The server returns an error by throwing an `RpcException` that contains metadata with key `"grpc-status-details-bin"` and value that is a serialized `Google.Rpc.Status`.
+There are two ways that the server can return an error status:
+- by throwing an `RpcException` that contains the details of the status.
+- by explicitly set the `Status` and `ResponseTrailers` in the `ServerCallContext`
+before returning.
+
+There are examples of both methods below.  In a .NET client the result will always be
+an exception received by the client no matter which of the above methods the server
+implements.
 
 The `Google.Rpc.Status` can be created and initialized using C#'s Object and Collection initializer syntax. To add messages to the `Details` repeated field, wrap each one in `Any.Pack()` - see example below.
 
 The `Google.Rpc.Status` extension method `ToRpcException` creates the appropriate `RpcException` from the status.
 
-Example:
+The `Grpc.Core.Metadata` extension method `SetRpcStatus` adds a binary representation of the status to the metadata.
+
+
+Example - throwing a RcpException:
 ```C#
 throw new Google.Rpc.Status
 {
@@ -47,8 +57,8 @@ throw new Google.Rpc.Status
     {
         Any.Pack(new ErrorInfo
         {
-            Domain = "Rich Error Model Demo",
-            Reason = "Simple error requested in the demo"
+            Domain = "error example",
+            Reason = "some reason"
         }),
         Any.Pack(new RequestInfo
         {
@@ -57,6 +67,25 @@ throw new Google.Rpc.Status
         }),
         }
 }.ToRpcException();
+```
+Example - setting the status and response trailers instead of throwing an exception:
+```C#
+context.Status = new Grpc.Core.Status(StatusCode.Internal, "Some detail");
+context.ResponseTrailers.SetRpcStatus(new Google.Rpc.Status
+{
+    Code = (int)StatusCode.NotFound,
+    Message = "Simple error message",
+    Details =
+    {
+        Any.Pack(new ErrorInfo
+        {
+            Domain = "error example",
+            Reason = "some reason"
+        })
+    }
+});
+
+return Task.FromResult( /* ... */ );
 ```
 
 ## Client Side
@@ -173,7 +202,54 @@ and [error_details.proto](https://github.com/googleapis/googleapis/blob/master/g
 files are not currently provided in any NuGet packages. The text for those proto files can be copied from
 the given links and included in your project.
 
-*TODO* example C# code to follow
+Example server code fragment:
+```C#
+ while (await requestStream.MoveNext())
+{
+    var request = requestStream.Current;
+    var response = new WidgetRsp();
+
+    // ... process the request ...
+
+    // to return an error
+    if (error)
+    {
+        response.Status = new Google.Rpc.Status { /* ... */ };
+    } else
+    {
+        response.WidgetDetails = "the details";
+    }
+}
+```
+
+Example client code fragment:
+```C#
+
+// reading the responses
+var responseReaderTask = Task.Run(async () =>
+{
+    while (await call.ResponseStream.MoveNext())
+    {
+        var rsp = call.ResponseStream.Current;
+        switch (rsp.MessageCase)
+        {
+            case WidgetRsp.MessageOneofCase.WidgetDetails:
+                // ... processes the details ...
+                break;
+            case WidgetRsp.MessageOneofCase.Status:
+                // ... handle the error ...
+                break;
+        }
+    }
+});
+
+// sending the requests
+foreach (var request in requests)
+{
+    await call.RequestStream.WriteAsync(request);
+}
+```
+
 
 ## See also
 * [Richer error model](https://grpc.io/docs/guides/error/#richer-error-model)
