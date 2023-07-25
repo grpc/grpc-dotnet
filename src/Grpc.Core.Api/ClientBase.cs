@@ -86,7 +86,8 @@ public abstract class ClientBase<T> : ClientBase
 /// <summary>
 /// Base class for client-side stubs.
 /// </summary>
-// The call invoker's debug information is provided by DebuggerDisplayAttribute. It isn't available in ToString.
+// The call invoker's debug information is specified in DebuggerDisplayAttribute.
+// It can't be concatenated inside ServiceNameDebuggerToString() because it isn't available in ToString.
 [DebuggerDisplay("{ServiceNameDebuggerToString(),nq}{CallInvoker}")]
 [DebuggerTypeProxy(typeof(ClientBaseDebugType))]
 public abstract class ClientBase

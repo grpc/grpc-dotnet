@@ -853,6 +853,7 @@ public sealed class GrpcChannel : ChannelBase, IDisposable
         {
             // It is easy to tell whether a channel is secured when the address contains http/https.
             // Load balancing use custom schemes. Include IsSecure in debug text for custom schemes.
+            // For example: Address = "dns:///my-dns-server, IsSecure = false
             debugText += $", IsSecure = {(_isSecure ? "true" : "false")}";
         }
         if (Disposed)
