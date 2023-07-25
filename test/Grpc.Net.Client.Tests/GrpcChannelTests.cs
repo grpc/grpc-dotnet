@@ -99,6 +99,56 @@ public class GrpcChannelTests
     }
 
     [TestCase("http://localhost")]
+    [TestCase("https://localhost")]
+    public void DebuggerToString_HttpAddress_ExpectedResult(string address)
+    {
+        // Arrange
+        var channel = GrpcChannel.ForAddress(address,
+            CreateGrpcChannelOptions());
+
+        // Act & Assert
+        Assert.AreEqual($@"Address = ""{address}""", channel.DebuggerToString());
+    }
+
+    [Test]
+    public void DebuggerToString_Dispose_ExpectedResult()
+    {
+        // Arrange
+        var channel = GrpcChannel.ForAddress("http://localhost",
+            CreateGrpcChannelOptions());
+        channel.Dispose();
+
+        // Act & Assert
+        Assert.AreEqual(@"Address = ""http://localhost"", Disposed = true", channel.DebuggerToString());
+    }
+
+#if SUPPORT_LOAD_BALANCING
+    [Test]
+    public void DebuggerToString_NonHttpAddress_ExpectedResult()
+    {
+        // Arrange
+        var services = new ServiceCollection();
+        services.AddSingleton<ResolverFactory, ChannelTestResolverFactory>();
+        services.AddSingleton<ISubchannelTransportFactory, TestSubchannelTransportFactory>();
+
+        var handler = new TestHttpMessageHandler();
+        var channelOptions = new GrpcChannelOptions
+        {
+            ServiceProvider = services.BuildServiceProvider(),
+            HttpHandler = handler,
+            Credentials = ChannelCredentials.SecureSsl
+        };
+        var channel = GrpcChannel.ForAddress("test:///localhost", channelOptions);
+
+        // Act
+        var debugText = channel.DebuggerToString();
+
+        // Assert
+        Assert.AreEqual(@"Address = ""test:///localhost"", IsSecure = true", debugText);
+    }
+#endif
+
+    [TestCase("http://localhost")]
     [TestCase("HTTP://localhost")]
     public void Build_SslCredentialsWithHttp_ThrowsError(string address)
     {

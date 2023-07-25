@@ -26,6 +26,7 @@ namespace Grpc.Net.Client.Internal;
 /// <summary>
 /// A client-side RPC invocation using HttpClient.
 /// </summary>
+[DebuggerDisplay("{Channel}")]
 internal sealed class HttpClientCallInvoker : CallInvoker
 {
     internal GrpcChannel Channel { get; }
