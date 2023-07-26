@@ -273,17 +273,23 @@ internal sealed class RetryCall<TRequest, TResponse> : RetryCallBase<TRequest, T
 
     protected override void OnCommitCall(IGrpcCall<TRequest, TResponse> call)
     {
+        Debug.Assert(Monitor.IsEntered(Lock));
+
         _activeCall = null;
     }
 
     protected override void Dispose(bool disposing)
     {
+        base.Dispose(disposing);
+
+        // Don't dispose the active call inside the retry lock.
+        // Canceling the call could cause callbacks to run on other threads that want to aquire this lock, causing an app deadlock.
+        GrpcCall<TRequest, TResponse>? activeCall = null;
         lock (Lock)
         {
-            base.Dispose(disposing);
-
-            _activeCall?.Dispose();
+            activeCall = _activeCall;
         }
+        activeCall?.Dispose();
     }
 
     protected override void StartCore(Action<GrpcCall<TRequest, TResponse>> startCallFunc)

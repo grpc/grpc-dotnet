@@ -365,10 +365,10 @@ internal sealed partial class HedgingCall<TRequest, TResponse> : RetryCallBase<T
 
     protected override void Dispose(bool disposing)
     {
+        base.Dispose(disposing);
+
         lock (Lock)
         {
-            base.Dispose(disposing);
-
             CleanUpUnsynchronized();
         }
     }
