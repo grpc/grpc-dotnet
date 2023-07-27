@@ -142,6 +142,45 @@ public class ConnectionTests : FunctionalTestBase
     }
 
     [Test]
+    public async Task Active_UnaryCall_ConnectionIdleTimeout_SocketRecreated()
+    {
+        // Ignore errors
+        SetExpectedErrorsFilter(writeContext =>
+        {
+            return true;
+        });
+
+        Task<HelloReply> UnaryMethod(HelloRequest request, ServerCallContext context)
+        {
+            return Task.FromResult(new HelloReply { Message = request.Name });
+        }
+
+        // Arrange
+        using var endpoint = BalancerHelpers.CreateGrpcEndpoint<HelloRequest, HelloReply>(50051, UnaryMethod, nameof(UnaryMethod));
+
+        var connectionIdleTimeout = TimeSpan.FromSeconds(1);
+        var channel = await BalancerHelpers.CreateChannel(
+            LoggerFactory,
+            new PickFirstConfig(),
+            new[] { endpoint.Address },
+            connectionIdleTimeout: connectionIdleTimeout).DefaultTimeout();
+
+        Logger.LogInformation("Connecting channel.");
+        await channel.ConnectAsync();
+
+        await Task.Delay(connectionIdleTimeout);
+
+        var client = TestClientFactory.Create(channel, endpoint.Method);
+        var response = await client.UnaryCall(new HelloRequest { Name = "Test!" }).ResponseAsync.DefaultTimeout();
+
+        // Assert
+        Assert.AreEqual("Test!", response.Message);
+
+        AssertHasLog(LogLevel.Debug, "ClosingSocketFromIdleTimeoutOnCreateStream", "Subchannel id '1' socket 127.0.0.1:50051 is being closed because it exceeds the idle timeout of 00:00:01.");
+        AssertHasLog(LogLevel.Trace, "ConnectingOnCreateStream", "Subchannel id '1' doesn't have a connected socket available. Connecting new stream socket for 127.0.0.1:50051.");
+    }
+
+    [Test]
     public async Task Active_UnaryCall_MultipleStreams_UnavailableAddress_FallbackToWorkingAddress()
     {
         // Ignore errors

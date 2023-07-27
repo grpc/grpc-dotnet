@@ -56,6 +56,7 @@ internal class SocketConnectivitySubchannelTransport : ISubchannelTransport, IDi
     private readonly ILogger _logger;
     private readonly Subchannel _subchannel;
     private readonly TimeSpan _socketPingInterval;
+    private readonly TimeSpan _connectionIdleTimeout;
     private readonly Func<Socket, DnsEndPoint, CancellationToken, ValueTask> _socketConnect;
     private readonly List<ActiveStream> _activeStreams;
     private readonly Timer _socketConnectedTimer;
@@ -64,6 +65,7 @@ internal class SocketConnectivitySubchannelTransport : ISubchannelTransport, IDi
     internal Socket? _initialSocket;
     private BalancerAddress? _initialSocketAddress;
     private List<ReadOnlyMemory<byte>>? _initialSocketData;
+    private DateTime? _initialSocketCreatedTime;
     private bool _disposed;
     private BalancerAddress? _currentAddress;
 
@@ -71,6 +73,7 @@ internal class SocketConnectivitySubchannelTransport : ISubchannelTransport, IDi
         Subchannel subchannel,
         TimeSpan socketPingInterval,
         TimeSpan? connectTimeout,
+        TimeSpan connectionIdleTimeout,
         ILoggerFactory loggerFactory,
         Func<Socket, DnsEndPoint, CancellationToken, ValueTask>? socketConnect)
     {
@@ -78,6 +81,7 @@ internal class SocketConnectivitySubchannelTransport : ISubchannelTransport, IDi
         _subchannel = subchannel;
         _socketPingInterval = socketPingInterval;
         ConnectTimeout = connectTimeout;
+        _connectionIdleTimeout = connectionIdleTimeout;
         _socketConnect = socketConnect ?? OnConnect;
         _activeStreams = new List<ActiveStream>();
         _socketConnectedTimer = NonCapturingTimer.Create(OnCheckSocketConnection, state: null, Timeout.InfiniteTimeSpan, Timeout.InfiniteTimeSpan);
@@ -125,6 +129,7 @@ internal class SocketConnectivitySubchannelTransport : ISubchannelTransport, IDi
         _initialSocket = null;
         _initialSocketAddress = null;
         _initialSocketData = null;
+        _initialSocketCreatedTime = null;
         _lastEndPointIndex = 0;
         _currentAddress = null;
     }
@@ -162,6 +167,7 @@ internal class SocketConnectivitySubchannelTransport : ISubchannelTransport, IDi
                     _initialSocket = socket;
                     _initialSocketAddress = currentAddress;
                     _initialSocketData = null;
+                    _initialSocketCreatedTime = DateTime.UtcNow;
 
                     // Schedule ping. Don't set a periodic interval to avoid any chance of timer causing the target method to run multiple times in paralle.
                     // This could happen because of execution delays (e.g. hitting a debugger breakpoint).
@@ -338,6 +344,7 @@ internal class SocketConnectivitySubchannelTransport : ISubchannelTransport, IDi
         Socket? socket = null;
         BalancerAddress? socketAddress = null;
         List<ReadOnlyMemory<byte>>? socketData = null;
+        DateTime? socketCreatedTime = null;
         lock (Lock)
         {
             if (_initialSocket != null)
@@ -347,9 +354,11 @@ internal class SocketConnectivitySubchannelTransport : ISubchannelTransport, IDi
                 socket = _initialSocket;
                 socketAddress = _initialSocketAddress;
                 socketData = _initialSocketData;
+                socketCreatedTime = _initialSocketCreatedTime;
                 _initialSocket = null;
                 _initialSocketAddress = null;
                 _initialSocketData = null;
+                _initialSocketCreatedTime = null;
 
                 // Double check the address matches the socket address and only use socket on match.
                 // Not sure if this is possible in practice, but better safe than sorry.
@@ -365,10 +374,23 @@ internal class SocketConnectivitySubchannelTransport : ISubchannelTransport, IDi
 
         if (socket != null)
         {
-            if (IsSocketInBadState(socket, address))
+            Debug.Assert(socketCreatedTime != null);
+
+            var closeSocket = false;
+
+            if (DateTime.UtcNow > socketCreatedTime.Value.Add(_connectionIdleTimeout))
+            {
+                SocketConnectivitySubchannelTransportLog.ClosingSocketFromIdleTimeoutOnCreateStream(_logger, _subchannel.Id, address, _connectionIdleTimeout);
+                closeSocket = true;
+            }
+            else if (IsSocketInBadState(socket, address))
             {
                 SocketConnectivitySubchannelTransportLog.ClosingUnusableSocketOnCreateStream(_logger, _subchannel.Id, address);
+                closeSocket = true;
+            }
 
+            if (closeSocket)
+            {
                 socket.Dispose();
                 socket = null;
                 socketData = null;
@@ -530,6 +552,9 @@ internal static class SocketConnectivitySubchannelTransportLog
     private static readonly Action<ILogger, int, BalancerAddress, Exception?> _closingUnusableSocketOnCreateStream =
         LoggerMessage.Define<int, BalancerAddress>(LogLevel.Debug, new EventId(16, "ClosingUnusableSocketOnCreateStream"), "Subchannel id '{SubchannelId}' socket {Address} is being closed because it can't be used. The socket either can't receive data or it has received unexpected data.");
 
+    private static readonly Action<ILogger, int, BalancerAddress, TimeSpan, Exception?> _closingSocketFromIdleTimeoutOnCreateStream =
+        LoggerMessage.Define<int, BalancerAddress, TimeSpan>(LogLevel.Debug, new EventId(16, "ClosingSocketFromIdleTimeoutOnCreateStream"), "Subchannel id '{SubchannelId}' socket {Address} is being closed because it exceeds the idle timeout of {IdleTimeout}.");
+
     public static void ConnectingSocket(ILogger logger, int subchannelId, BalancerAddress address)
     {
         _connectingSocket(logger, subchannelId, address, null);
@@ -608,6 +633,11 @@ internal static class SocketConnectivitySubchannelTransportLog
     public static void ClosingUnusableSocketOnCreateStream(ILogger logger, int subchannelId, BalancerAddress address)
     {
         _closingUnusableSocketOnCreateStream(logger, subchannelId, address, null);
+    }
+
+    public static void ClosingSocketFromIdleTimeoutOnCreateStream(ILogger logger, int subchannelId, BalancerAddress address, TimeSpan idleTimeout)
+    {
+        _closingSocketFromIdleTimeoutOnCreateStream(logger, subchannelId, address, idleTimeout, null);
     }
 }
 #endif
