@@ -208,7 +208,7 @@ public class GrpcChannelTests
         Assert.AreEqual("Channel is configured with insecure channel credentials and can't use a HttpClient with a 'https' scheme.", ex.Message);
     }
 
-#if !NET472
+#if SUPPORT_LOAD_BALANCING
     [Test]
     public void Build_ConnectTimeout_ReadFromSocketsHttpHandler()
     {
