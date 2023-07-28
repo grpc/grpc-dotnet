@@ -56,7 +56,7 @@ internal class SocketConnectivitySubchannelTransport : ISubchannelTransport, IDi
     private readonly ILogger _logger;
     private readonly Subchannel _subchannel;
     private readonly TimeSpan _socketPingInterval;
-    private readonly TimeSpan _connectionIdleTimeout;
+    private readonly TimeSpan _socketIdleTimeout;
     private readonly Func<Socket, DnsEndPoint, CancellationToken, ValueTask> _socketConnect;
     private readonly List<ActiveStream> _activeStreams;
     private readonly Timer _socketConnectedTimer;
@@ -73,7 +73,7 @@ internal class SocketConnectivitySubchannelTransport : ISubchannelTransport, IDi
         Subchannel subchannel,
         TimeSpan socketPingInterval,
         TimeSpan? connectTimeout,
-        TimeSpan connectionIdleTimeout,
+        TimeSpan socketIdleTimeout,
         ILoggerFactory loggerFactory,
         Func<Socket, DnsEndPoint, CancellationToken, ValueTask>? socketConnect)
     {
@@ -81,7 +81,7 @@ internal class SocketConnectivitySubchannelTransport : ISubchannelTransport, IDi
         _subchannel = subchannel;
         _socketPingInterval = socketPingInterval;
         ConnectTimeout = connectTimeout;
-        _connectionIdleTimeout = connectionIdleTimeout;
+        _socketIdleTimeout = socketIdleTimeout;
         _socketConnect = socketConnect ?? OnConnect;
         _activeStreams = new List<ActiveStream>();
         _socketConnectedTimer = NonCapturingTimer.Create(OnCheckSocketConnection, state: null, Timeout.InfiniteTimeSpan, Timeout.InfiniteTimeSpan);
@@ -378,9 +378,9 @@ internal class SocketConnectivitySubchannelTransport : ISubchannelTransport, IDi
 
             var closeSocket = false;
 
-            if (DateTime.UtcNow > socketCreatedTime.Value.Add(_connectionIdleTimeout))
+            if (DateTime.UtcNow > socketCreatedTime.Value.Add(_socketIdleTimeout))
             {
-                SocketConnectivitySubchannelTransportLog.ClosingSocketFromIdleTimeoutOnCreateStream(_logger, _subchannel.Id, address, _connectionIdleTimeout);
+                SocketConnectivitySubchannelTransportLog.ClosingSocketFromIdleTimeoutOnCreateStream(_logger, _subchannel.Id, address, _socketIdleTimeout);
                 closeSocket = true;
             }
             else if (IsSocketInBadState(socket, address))
@@ -553,7 +553,7 @@ internal static class SocketConnectivitySubchannelTransportLog
         LoggerMessage.Define<int, BalancerAddress>(LogLevel.Debug, new EventId(16, "ClosingUnusableSocketOnCreateStream"), "Subchannel id '{SubchannelId}' socket {Address} is being closed because it can't be used. The socket either can't receive data or it has received unexpected data.");
 
     private static readonly Action<ILogger, int, BalancerAddress, TimeSpan, Exception?> _closingSocketFromIdleTimeoutOnCreateStream =
-        LoggerMessage.Define<int, BalancerAddress, TimeSpan>(LogLevel.Debug, new EventId(16, "ClosingSocketFromIdleTimeoutOnCreateStream"), "Subchannel id '{SubchannelId}' socket {Address} is being closed because it exceeds the idle timeout of {IdleTimeout}.");
+        LoggerMessage.Define<int, BalancerAddress, TimeSpan>(LogLevel.Debug, new EventId(16, "ClosingSocketFromIdleTimeoutOnCreateStream"), "Subchannel id '{SubchannelId}' socket {Address} is being closed because it exceeds the idle timeout of {SocketIdleTimeout}.");
 
     public static void ConnectingSocket(ILogger logger, int subchannelId, BalancerAddress address)
     {
@@ -635,9 +635,9 @@ internal static class SocketConnectivitySubchannelTransportLog
         _closingUnusableSocketOnCreateStream(logger, subchannelId, address, null);
     }
 
-    public static void ClosingSocketFromIdleTimeoutOnCreateStream(ILogger logger, int subchannelId, BalancerAddress address, TimeSpan idleTimeout)
+    public static void ClosingSocketFromIdleTimeoutOnCreateStream(ILogger logger, int subchannelId, BalancerAddress address, TimeSpan socketIdleTimeout)
     {
-        _closingSocketFromIdleTimeoutOnCreateStream(logger, subchannelId, address, idleTimeout, null);
+        _closingSocketFromIdleTimeoutOnCreateStream(logger, subchannelId, address, socketIdleTimeout, null);
     }
 }
 #endif
