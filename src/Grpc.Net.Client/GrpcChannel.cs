@@ -61,6 +61,7 @@ public sealed class GrpcChannel : ChannelBase, IDisposable
     internal Uri Address { get; }
     internal HttpMessageInvoker HttpInvoker { get; }
     internal TimeSpan? ConnectTimeout { get; }
+    internal TimeSpan? ConnectionIdleTimeout { get; }
     internal HttpHandlerType HttpHandlerType { get; }
     internal TimeSpan InitialReconnectBackoff { get; }
     internal TimeSpan? MaxReconnectBackoff { get; }
@@ -125,7 +126,7 @@ public sealed class GrpcChannel : ChannelBase, IDisposable
 
         var resolverFactory = GetResolverFactory(channelOptions);
         ResolveCredentials(channelOptions, out _isSecure, out _callCredentials);
-        (HttpHandlerType, ConnectTimeout) = CalculateHandlerContext(Logger, address, _isSecure, channelOptions);
+        (HttpHandlerType, ConnectTimeout, ConnectionIdleTimeout) = CalculateHandlerContext(Logger, address, _isSecure, channelOptions);
 
         SubchannelTransportFactory = channelOptions.ResolveService<ISubchannelTransportFactory>(new SubChannelTransportFactory(this));
 
@@ -154,7 +155,7 @@ public sealed class GrpcChannel : ChannelBase, IDisposable
             throw new ArgumentException($"Address '{address.OriginalString}' doesn't have a host. Address should include a scheme, host, and optional port. For example, 'https://localhost:5001'.");
         }
         ResolveCredentials(channelOptions, out _isSecure, out _callCredentials);
-        (HttpHandlerType, ConnectTimeout) = CalculateHandlerContext(Logger, address, _isSecure, channelOptions);
+        (HttpHandlerType, ConnectTimeout, ConnectionIdleTimeout) = CalculateHandlerContext(Logger, address, _isSecure, channelOptions);
 #endif
 
         HttpInvoker = channelOptions.HttpClient ?? CreateInternalHttpInvoker(channelOptions.HttpHandler);
@@ -243,12 +244,14 @@ public sealed class GrpcChannel : ChannelBase, IDisposable
         {
             HttpHandlerType type;
             TimeSpan? connectTimeout;
+            TimeSpan? connectionIdleTimeout;
 
 #if NET5_0_OR_GREATER
             var socketsHttpHandler = HttpRequestHelpers.GetHttpHandlerType<SocketsHttpHandler>(channelOptions.HttpHandler)!;
 
             type = HttpHandlerType.SocketsHttpHandler;
             connectTimeout = socketsHttpHandler.ConnectTimeout;
+            connectionIdleTimeout = socketsHttpHandler.PooledConnectionIdleTimeout;
 
             // Check if the SocketsHttpHandler is being shared by channels.
             // It has already been setup by another channel (i.e. ConnectCallback is set) then
@@ -261,6 +264,7 @@ public sealed class GrpcChannel : ChannelBase, IDisposable
                 {
                     type = HttpHandlerType.Custom;
                     connectTimeout = null;
+                    connectionIdleTimeout = null;
                 }
             }
 
@@ -282,8 +286,9 @@ public sealed class GrpcChannel : ChannelBase, IDisposable
 #else
             type = HttpHandlerType.SocketsHttpHandler;
             connectTimeout = null;
+            connectionIdleTimeout = null;
 #endif
-            return new HttpHandlerContext(type, connectTimeout);
+            return new HttpHandlerContext(type, connectTimeout, connectionIdleTimeout);
         }
         if (HttpRequestHelpers.GetHttpHandlerType<HttpClientHandler>(channelOptions.HttpHandler) != null)
         {
@@ -837,6 +842,7 @@ public sealed class GrpcChannel : ChannelBase, IDisposable
                     subchannel,
                     SocketConnectivitySubchannelTransport.SocketPingInterval,
                     _channel.ConnectTimeout,
+                    _channel.ConnectionIdleTimeout ?? TimeSpan.FromMinutes(1),
                     _channel.LoggerFactory,
                     socketConnect: null);
             }
@@ -895,7 +901,7 @@ public sealed class GrpcChannel : ChannelBase, IDisposable
         }
     }
 
-    private readonly record struct HttpHandlerContext(HttpHandlerType HttpHandlerType, TimeSpan? ConnectTimeout = null);
+    private readonly record struct HttpHandlerContext(HttpHandlerType HttpHandlerType, TimeSpan? ConnectTimeout = null, TimeSpan? ConnectionIdleTimeout = null);
 }
 
 internal enum HttpHandlerType
