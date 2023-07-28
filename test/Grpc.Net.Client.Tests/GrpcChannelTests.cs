@@ -208,6 +208,34 @@ public class GrpcChannelTests
         Assert.AreEqual("Channel is configured with insecure channel credentials and can't use a HttpClient with a 'https' scheme.", ex.Message);
     }
 
+#if SUPPORT_LOAD_BALANCING
+    [Test]
+    public void Build_ConnectTimeout_ReadFromSocketsHttpHandler()
+    {
+        // Arrange & Act
+        var channel = GrpcChannel.ForAddress("https://localhost", CreateGrpcChannelOptions(o => o.HttpHandler = new SocketsHttpHandler
+        {
+            ConnectTimeout = TimeSpan.FromSeconds(1)
+        }));
+
+        // Assert
+        Assert.AreEqual(TimeSpan.FromSeconds(1), channel.ConnectTimeout);
+    }
+
+    [Test]
+    public void Build_ConnectionIdleTimeout_ReadFromSocketsHttpHandler()
+    {
+        // Arrange & Act
+        var channel = GrpcChannel.ForAddress("https://localhost", CreateGrpcChannelOptions(o => o.HttpHandler = new SocketsHttpHandler
+        {
+            PooledConnectionIdleTimeout = TimeSpan.FromSeconds(1)
+        }));
+
+        // Assert
+        Assert.AreEqual(TimeSpan.FromSeconds(1), channel.ConnectionIdleTimeout);
+    }
+#endif
+
     [Test]
     public void Build_HttpClientAndHttpHandler_ThrowsError()
     {

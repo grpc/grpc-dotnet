@@ -26,6 +26,54 @@ namespace Grpc.Net.Client.Tests.Balancer;
 public class StreamWrapperTests
 {
     [Test]
+    public async Task ReadAsync_ExactSize_Read()
+    {
+        // Arrange
+        var ms = new MemoryStream(new byte[] { 4 });
+        var data = new List<ReadOnlyMemory<byte>>
+        {
+            new byte[] { 1, 2, 3 }
+        };
+        var streamWrapper = new StreamWrapper(ms, s => { }, data);
+        var buffer = new byte[3];
+
+        // Act & Assert
+        Assert.AreEqual(3, await streamWrapper.ReadAsync(buffer));
+        Assert.AreEqual(1, buffer[0]);
+        Assert.AreEqual(2, buffer[1]);
+        Assert.AreEqual(3, buffer[2]);
+
+        Assert.AreEqual(1, await streamWrapper.ReadAsync(buffer));
+        Assert.AreEqual(4, buffer[0]);
+
+        Assert.AreEqual(0, await streamWrapper.ReadAsync(buffer));
+    }
+
+    [Test]
+    public async Task ReadAsync_BiggerThanNeeded_Read()
+    {
+        // Arrange
+        var ms = new MemoryStream(new byte[] { 4 });
+        var data = new List<ReadOnlyMemory<byte>>
+        {
+            new byte[] { 1, 2, 3 }
+        };
+        var streamWrapper = new StreamWrapper(ms, s => { }, data);
+        var buffer = new byte[4];
+
+        // Act & Assert
+        Assert.AreEqual(3, await streamWrapper.ReadAsync(buffer));
+        Assert.AreEqual(1, buffer[0]);
+        Assert.AreEqual(2, buffer[1]);
+        Assert.AreEqual(3, buffer[2]);
+
+        Assert.AreEqual(1, await streamWrapper.ReadAsync(buffer));
+        Assert.AreEqual(4, buffer[0]);
+
+        Assert.AreEqual(0, await streamWrapper.ReadAsync(buffer));
+    }
+
+    [Test]
     public async Task ReadAsync_MultipleInitialData_ReadInOrder()
     {
         // Arrange

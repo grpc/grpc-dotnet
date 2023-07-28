@@ -135,13 +135,14 @@ internal static class BalancerHelpers
         bool? connect = null,
         RetryPolicy? retryPolicy = null,
         Func<Socket, DnsEndPoint, CancellationToken, ValueTask>? socketConnect = null,
-        TimeSpan? connectTimeout = null)
+        TimeSpan? connectTimeout = null,
+        TimeSpan? connectionIdleTimeout = null)
     {
         var resolver = new TestResolver();
         var e = endpoints.Select(i => new BalancerAddress(i.Host, i.Port)).ToList();
         resolver.UpdateAddresses(e);
 
-        return CreateChannel(loggerFactory, loadBalancingConfig, resolver, httpMessageHandler, connect, retryPolicy, socketConnect, connectTimeout);
+        return CreateChannel(loggerFactory, loadBalancingConfig, resolver, httpMessageHandler, connect, retryPolicy, socketConnect, connectTimeout, connectionIdleTimeout);
     }
 
     public static async Task<GrpcChannel> CreateChannel(
@@ -152,12 +153,13 @@ internal static class BalancerHelpers
         bool? connect = null,
         RetryPolicy? retryPolicy = null,
         Func<Socket, DnsEndPoint, CancellationToken, ValueTask>? socketConnect = null,
-        TimeSpan? connectTimeout = null)
+        TimeSpan? connectTimeout = null,
+        TimeSpan? connectionIdleTimeout = null)
     {
         var services = new ServiceCollection();
         services.AddSingleton<ResolverFactory>(new TestResolverFactory(resolver));
         services.AddSingleton<IRandomGenerator>(new TestRandomGenerator());
-        services.AddSingleton<ISubchannelTransportFactory>(new TestSubchannelTransportFactory(TimeSpan.FromSeconds(0.5), connectTimeout, socketConnect));
+        services.AddSingleton<ISubchannelTransportFactory>(new TestSubchannelTransportFactory(TimeSpan.FromSeconds(0.5), connectTimeout, connectionIdleTimeout ?? TimeSpan.FromMinutes(1), socketConnect));
         services.AddSingleton<LoadBalancerFactory>(new LeastUsedBalancerFactory());
 
         var serviceConfig = new ServiceConfig();
@@ -214,12 +216,14 @@ internal static class BalancerHelpers
     {
         private readonly TimeSpan _socketPingInterval;
         private readonly TimeSpan? _connectTimeout;
+        private readonly TimeSpan _connectionIdleTimeout;
         private readonly Func<Socket, DnsEndPoint, CancellationToken, ValueTask>? _socketConnect;
 
-        public TestSubchannelTransportFactory(TimeSpan socketPingInterval, TimeSpan? connectTimeout, Func<Socket, DnsEndPoint, CancellationToken, ValueTask>? socketConnect)
+        public TestSubchannelTransportFactory(TimeSpan socketPingInterval, TimeSpan? connectTimeout, TimeSpan connectionIdleTimeout, Func<Socket, DnsEndPoint, CancellationToken, ValueTask>? socketConnect)
         {
             _socketPingInterval = socketPingInterval;
             _connectTimeout = connectTimeout;
+            _connectionIdleTimeout = connectionIdleTimeout;
             _socketConnect = socketConnect;
         }
 
@@ -230,6 +234,7 @@ internal static class BalancerHelpers
                 subchannel,
                 _socketPingInterval,
                 _connectTimeout,
+                _connectionIdleTimeout,
                 subchannel._manager.LoggerFactory,
                 _socketConnect);
 #else
