@@ -219,7 +219,7 @@ public class ConnectionTests : FunctionalTestBase
         // Fails when this test is run with debugging. Kestrel doesn't trigger keepalive timeout if debugging is enabled.
         await TestHelpers.AssertIsTrueRetryAsync(() =>
         {
-            return Logs.Any(l => l.LoggerName == "Microsoft.AspNetCore.Server.Kestrel.Connections" && l.EventId.Name == "ConnectionStop");
+            return Logs.Any(l => l.LoggerName.StartsWith("Microsoft.AspNetCore.Server.Kestrel") && l.EventId.Name == "ConnectionStop");
         }, "Wait for server to close connection.");
 
         var client = TestClientFactory.Create(channel, endpoint.Method);
