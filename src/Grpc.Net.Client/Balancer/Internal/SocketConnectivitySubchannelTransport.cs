@@ -253,53 +253,7 @@ internal class SocketConnectivitySubchannelTransport : ISubchannelTransport, IDi
                 {
                     CompatibilityHelpers.Assert(socketAddress != null);
 
-                    try
-                    {
-                        SocketConnectivitySubchannelTransportLog.CheckingSocket(_logger, _subchannel.Id, socketAddress);
-
-                        // Poll socket to check if it can be read from. Unfortunatly this requires reading pending data.
-                        // The server might send data, e.g. HTTP/2 SETTINGS frame, so we need to read and cache it.
-                        //
-                        // Available data needs to be read now because the only way to determine whether the connection is closed is to
-                        // get the results of polling after available data is received.
-                        bool hasReadData;
-                        do
-                        {
-                            closeSocket = IsSocketInBadState(socket, socketAddress);
-                            var available = socket.Available;
-                            if (available > 0)
-                            {
-                                hasReadData = true;
-                                var serverDataAvailable = CalculateInitialSocketDataLength(_initialSocketData) + available;
-                                if (serverDataAvailable > MaximumInitialSocketDataSize)
-                                {
-                                    // Data sent to the client before a connection is started shouldn't be large.
-                                    // Put a maximum limit on the buffer size to prevent an unexpected scenario from consuming too much memory.
-                                    throw new InvalidOperationException($"The server sent {serverDataAvailable} bytes to the client before a connection was established. Maximum allowed data exceeded.");
-                                }
-
-                                SocketConnectivitySubchannelTransportLog.SocketReceivingAvailable(_logger, _subchannel.Id, socketAddress, available);
-
-                                // Data is already available so this won't block.
-                                var buffer = new byte[available];
-                                var readCount = socket.Receive(buffer);
-
-                                _initialSocketData ??= new List<ReadOnlyMemory<byte>>();
-                                _initialSocketData.Add(buffer.AsMemory(0, readCount));
-                            }
-                            else
-                            {
-                                hasReadData = false;
-                            }
-                        }
-                        while (hasReadData);
-                    }
-                    catch (Exception ex)
-                    {
-                        closeSocket = true;
-                        checkException = ex;
-                        SocketConnectivitySubchannelTransportLog.ErrorCheckingSocket(_logger, _subchannel.Id, socketAddress, ex);
-                    }
+                    closeSocket = CheckSocket(socket, socketAddress, ref _initialSocketData, out checkException);
                 }
             }
 
@@ -334,6 +288,68 @@ internal class SocketConnectivitySubchannelTransport : ISubchannelTransport, IDi
                 // Schedule next ping.
                 _socketConnectedTimer.Change(_socketPingInterval, Timeout.InfiniteTimeSpan);
             }
+        }
+    }
+
+    /// <summary>
+    /// Checks whether the socket is healthy. May read available data into the passed in buffer.
+    /// Returns true if the socket should be closed.
+    /// </summary>
+    private bool CheckSocket(Socket socket, BalancerAddress socketAddress, ref List<ReadOnlyMemory<byte>>? socketData, out Exception? checkException)
+    {
+        checkException = null;
+
+        try
+        {
+            SocketConnectivitySubchannelTransportLog.CheckingSocket(_logger, _subchannel.Id, socketAddress);
+
+            // Poll socket to check if it can be read from. Unfortunatly this requires reading pending data.
+            // The server might send data, e.g. HTTP/2 SETTINGS frame, so we need to read and cache it.
+            //
+            // Available data needs to be read now because the only way to determine whether the connection is closed is to
+            // get the results of polling after available data is received.
+            bool hasReadData;
+            do
+            {
+                if (IsSocketInBadState(socket, socketAddress))
+                {
+                    return true;
+                }
+
+                var available = socket.Available;
+                if (available > 0)
+                {
+                    hasReadData = true;
+                    var serverDataAvailable = CalculateInitialSocketDataLength(socketData) + available;
+                    if (serverDataAvailable > MaximumInitialSocketDataSize)
+                    {
+                        // Data sent to the client before a connection is started shouldn't be large.
+                        // Put a maximum limit on the buffer size to prevent an unexpected scenario from consuming too much memory.
+                        throw new InvalidOperationException($"The server sent {serverDataAvailable} bytes to the client before a connection was established. Maximum allowed data exceeded.");
+                    }
+
+                    SocketConnectivitySubchannelTransportLog.SocketReceivingAvailable(_logger, _subchannel.Id, socketAddress, available);
+
+                    // Data is already available so this won't block.
+                    var buffer = new byte[available];
+                    var readCount = socket.Receive(buffer);
+
+                    socketData ??= new List<ReadOnlyMemory<byte>>();
+                    socketData.Add(buffer.AsMemory(0, readCount));
+                }
+                else
+                {
+                    hasReadData = false;
+                }
+            }
+            while (hasReadData);
+            return false;
+        }
+        catch (Exception ex)
+        {
+            checkException = ex;
+            SocketConnectivitySubchannelTransportLog.ErrorCheckingSocket(_logger, _subchannel.Id, socketAddress, ex);
+            return true;
         }
     }
 
@@ -383,7 +399,7 @@ internal class SocketConnectivitySubchannelTransport : ISubchannelTransport, IDi
                 SocketConnectivitySubchannelTransportLog.ClosingSocketFromIdleTimeoutOnCreateStream(_logger, _subchannel.Id, address, _socketIdleTimeout);
                 closeSocket = true;
             }
-            else if (IsSocketInBadState(socket, address))
+            else if (CheckSocket(socket, address, ref socketData, out _))
             {
                 SocketConnectivitySubchannelTransportLog.ClosingUnusableSocketOnCreateStream(_logger, _subchannel.Id, address);
                 closeSocket = true;
