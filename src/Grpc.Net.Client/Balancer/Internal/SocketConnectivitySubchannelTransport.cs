@@ -304,7 +304,7 @@ internal class SocketConnectivitySubchannelTransport : ISubchannelTransport, IDi
             SocketConnectivitySubchannelTransportLog.CheckingSocket(_logger, _subchannel.Id, socketAddress);
 
             // Poll socket to check if it can be read from. Unfortunatly this requires reading pending data.
-            // The server might send data, e.g. HTTP/2 SETTINGS frame, so we need to read and cache it.
+            // The server might send data, such as an HTTP/2 SETTINGS or GOAWAY frame, so we need to read and cache it.
             //
             // Available data needs to be read now because the only way to determine whether the connection is closed is to
             // get the results of polling after available data is received.
