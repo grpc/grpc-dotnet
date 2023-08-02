@@ -138,6 +138,8 @@ public class PickFirstBalancerTests : FunctionalTestBase
         Logger.LogInformation("Ending " + endpoint.Address);
         endpoint.Dispose();
 
+        await BalancerWaitHelpers.WaitForChannelStateAsync(Logger, channel, ConnectivityState.Idle).DefaultTimeout();
+
         Logger.LogInformation("Restarting");
         using var endpointNew = BalancerHelpers.CreateGrpcEndpoint<HelloRequest, HelloReply>(50051, UnaryMethod, nameof(UnaryMethod));
 
@@ -179,6 +181,9 @@ public class PickFirstBalancerTests : FunctionalTestBase
 
         Logger.LogInformation("Ending " + endpoint.Address);
         endpoint.Dispose();
+
+        // Wait for client to change to idle state in reaction to server stopping.
+        await BalancerWaitHelpers.WaitForChannelStateAsync(Logger, channel, ConnectivityState.Idle).DefaultTimeout();
 
         var ex = await ExceptionAssert.ThrowsAsync<RpcException>(
             () => client.UnaryCall(new HelloRequest { Name = "Balancer" }).ResponseAsync).DefaultTimeout();
