@@ -71,8 +71,9 @@ internal static partial class PipeExtensions
                 GrpcEventSource.Log.MessageSent();
             }
         }
-        catch (Exception ex)
+        catch (Exception ex) when (ex is not OperationCanceledException)
         {
+            // Don't write error when user cancels write
             GrpcServerLog.ErrorSendingMessage(logger, ex);
             throw;
         }
@@ -121,8 +122,9 @@ internal static partial class PipeExtensions
                 GrpcEventSource.Log.MessageSent();
             }
         }
-        catch (Exception ex)
+        catch (Exception ex) when (ex is not OperationCanceledException)
         {
+            // Don't write error when user cancels write
             GrpcServerLog.ErrorSendingMessage(logger, ex);
             throw;
         }
@@ -275,8 +277,9 @@ internal static partial class PipeExtensions
                 }
             }
         }
-        catch (Exception ex)
+        catch (Exception ex) when (ex is not OperationCanceledException)
         {
+            // Don't write error when user cancels read
             GrpcServerLog.ErrorReadingMessage(logger, ex);
             throw;
         }
