@@ -37,9 +37,7 @@ internal class PushUnaryContent<TRequest, TResponse> : HttpContent
 
     protected override Task SerializeToStreamAsync(Stream stream, TransportContext? context)
     {
-#pragma warning disable CA2012 // Use ValueTasks correctly
         var writeMessageTask = _startCallback(_request, stream);
-#pragma warning restore CA2012 // Use ValueTasks correctly
         if (writeMessageTask.IsCompletedSuccessfully)
         {
             if (GrpcEventSource.Log.IsEnabled())
