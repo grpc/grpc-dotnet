@@ -1,4 +1,4 @@
-﻿#region Copyright notice and license
+#region Copyright notice and license
 
 // Copyright 2019 The gRPC Authors
 //
@@ -16,12 +16,7 @@
 
 #endregion
 
-using Grpc.Shared;
 using System.Net;
-
-#if NETSTANDARD2_0 || NET462
-using ValueTask = System.Threading.Tasks.Task;
-#endif
 
 namespace Grpc.Net.Client.Internal.Http;
 
@@ -52,7 +47,7 @@ internal class WinHttpUnaryContent<TRequest, TResponse> : HttpContent
 #pragma warning disable CA2012 // Use ValueTasks correctly
         var writeMessageTask = _startCallback(_request, stream);
 #pragma warning restore CA2012 // Use ValueTasks correctly
-        if (writeMessageTask.IsCompletedSuccessfully())
+        if (writeMessageTask.IsCompletedSuccessfully)
         {
             if (GrpcEventSource.Log.IsEnabled())
             {

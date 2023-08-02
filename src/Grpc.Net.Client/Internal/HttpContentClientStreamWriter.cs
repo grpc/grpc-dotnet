@@ -22,10 +22,6 @@ using Grpc.Core;
 using Grpc.Shared;
 using Log = Grpc.Net.Client.Internal.ClientStreamWriterBaseLog;
 
-#if NETSTANDARD2_0 || NET462
-using ValueTask = System.Threading.Tasks.Task;
-#endif
-
 namespace Grpc.Net.Client.Internal;
 
 [DebuggerDisplay("{DebuggerToString(),nq}")]

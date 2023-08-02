@@ -19,10 +19,6 @@
 using System.Diagnostics.CodeAnalysis;
 using Grpc.Core;
 
-#if NETSTANDARD2_0 || NET462
-using ValueTask = System.Threading.Tasks.Task;
-#endif
-
 namespace Grpc.Net.Client.Internal;
 
 internal interface IGrpcCall<TRequest, TResponse> : IDisposable, IMethod

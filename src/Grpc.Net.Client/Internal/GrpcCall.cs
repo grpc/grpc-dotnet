@@ -19,17 +19,13 @@
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
+using System.Runtime.ExceptionServices;
 using Grpc.Core;
 using Grpc.Net.Client.Internal.Http;
 using Grpc.Shared;
 using Microsoft.Extensions.Logging;
-using System.Runtime.ExceptionServices;
 #if SUPPORT_LOAD_BALANCING
 using Grpc.Net.Client.Balancer.Internal;
-#endif
-
-#if NETSTANDARD2_0 || NET462
-using ValueTask = System.Threading.Tasks.Task;
 #endif
 
 namespace Grpc.Net.Client.Internal;

@@ -24,10 +24,6 @@ using Grpc.Shared;
 using Microsoft.Extensions.Logging;
 using Log = Grpc.Net.Client.Internal.Retry.RetryCallBaseLog;
 
-#if NETSTANDARD2_0 || NET462
-using ValueTask = System.Threading.Tasks.Task;
-#endif
-
 namespace Grpc.Net.Client.Internal.Retry;
 
 internal abstract partial class RetryCallBase<TRequest, TResponse> : IGrpcCall<TRequest, TResponse>
@@ -202,11 +198,7 @@ internal abstract partial class RetryCallBase<TRequest, TResponse> : IGrpcCall<T
 
                 if (BufferedMessages.Count == 0)
                 {
-#if NETSTANDARD2_0 || NET462
-                    writeTask = Task.CompletedTask;
-#else
                     writeTask = default;
-#endif
                 }
                 else
                 {

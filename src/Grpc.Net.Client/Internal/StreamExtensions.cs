@@ -26,10 +26,6 @@ using Grpc.Net.Compression;
 using Grpc.Shared;
 using Microsoft.Extensions.Logging;
 
-#if NETSTANDARD2_0 || NET462
-using ValueTask = System.Threading.Tasks.Task;
-#endif
-
 namespace Grpc.Net.Client.Internal;
 
 internal static partial class StreamExtensions
