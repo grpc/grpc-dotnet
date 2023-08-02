@@ -136,7 +136,7 @@ internal static class UserAgentGenerator
         }
 
         var splitFramework = frameworkName!.Split(',');
-#if !NETSTANDARD2_0
+#if !NETSTANDARD2_0 && !NET462
         var version = Version.Parse(splitFramework[1].AsSpan("Version=v".Length));
 #else
         var version = Version.Parse(splitFramework[1].Substring("Version=v".Length));
@@ -145,7 +145,7 @@ internal static class UserAgentGenerator
         {
             ".NETCoreApp" when version.Major < 5 => $"netcoreapp{version.ToString(2)}",
             ".NETCoreApp" when version.Major >= 5 => $"net{version.ToString(2)}",
-#if !NETSTANDARD2_0
+#if !NETSTANDARD2_0 && !NET462
             ".NETFramework" => $"net{version.ToString().Replace(".", string.Empty, StringComparison.OrdinalIgnoreCase)}",
 #else
             ".NETFramework" => $"net{version.ToString().Replace(".", string.Empty)}",

@@ -193,7 +193,7 @@ internal abstract class GrpcCall
         switch (httpStatusCode)
         {
             case HttpStatusCode.BadRequest:  // 400
-#if !NETSTANDARD2_0
+#if !NETSTANDARD2_0 && !NET462
             case HttpStatusCode.RequestHeaderFieldsTooLarge: // 431
 #else
             case (HttpStatusCode)431:
@@ -205,7 +205,7 @@ internal abstract class GrpcCall
                 return StatusCode.PermissionDenied;
             case HttpStatusCode.NotFound:  // 404
                 return StatusCode.Unimplemented;
-#if !NETSTANDARD2_0
+#if !NETSTANDARD2_0 && !NET462
             case HttpStatusCode.TooManyRequests:  // 429
 #else
             case (HttpStatusCode)429:

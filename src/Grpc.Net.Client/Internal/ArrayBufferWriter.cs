@@ -1,4 +1,4 @@
-﻿#region Copyright notice and license
+#region Copyright notice and license
 
 // Copyright 2019 The gRPC Authors
 //
@@ -18,7 +18,7 @@
 
 using System.Diagnostics;
 
-#if NETSTANDARD2_0
+#if NETSTANDARD2_0 || NET462
 
 // Copied with permission from https://github.com/dotnet/runtime/blob/589d0dc326bf0699149f76033fa66d4b22b9a7fd/src/libraries/Common/src/System/Buffers/ArrayBufferWriter.cs
 // This copy of ArrayBufferWriter is only used with .NET Stardard 2.0. Later versions of .NET ship with this type.

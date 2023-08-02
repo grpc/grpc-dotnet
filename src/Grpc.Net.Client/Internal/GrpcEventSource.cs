@@ -1,4 +1,4 @@
-﻿#region Copyright notice and license
+#region Copyright notice and license
 
 // Copyright 2019 The gRPC Authors
 //
@@ -27,7 +27,7 @@ internal sealed class GrpcEventSource : EventSource
 {
     public static readonly GrpcEventSource Log = new GrpcEventSource();
 
-#if !NETSTANDARD2_0
+#if !NETSTANDARD2_0 && !NET462
     private PollingCounter? _totalCallsCounter;
     private PollingCounter? _currentCallsCounter;
     private PollingCounter? _messagesSentCounter;
@@ -146,7 +146,7 @@ internal sealed class GrpcEventSource : EventSource
             // This is the convention for initializing counters in the RuntimeEventSource (lazily on the first enable command).
             // They aren't disabled afterwards...
 
-#if !NETSTANDARD2_0
+#if !NETSTANDARD2_0 && !NET462
             _totalCallsCounter ??= new PollingCounter("total-calls", this, () => Volatile.Read(ref _totalCalls))
             {
                 DisplayName = "Total Calls",

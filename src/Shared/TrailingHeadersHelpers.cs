@@ -1,4 +1,4 @@
-﻿#region Copyright notice and license
+#region Copyright notice and license
 
 // Copyright 2019 The gRPC Authors
 //
@@ -24,7 +24,7 @@ internal static class TrailingHeadersHelpers
 {
     public static HttpHeaders TrailingHeaders(this HttpResponseMessage responseMessage)
     {
-#if !NETSTANDARD2_0
+#if !NETSTANDARD2_0 && !NET462
         return responseMessage.TrailingHeaders;
 #else
         if (responseMessage.RequestMessage.Properties.TryGetValue(ResponseTrailersKey, out var headers) &&
@@ -40,7 +40,7 @@ internal static class TrailingHeadersHelpers
 #endif
     }
 
-#if NETSTANDARD2_0
+#if NETSTANDARD2_0 || NET462
     public static void EnsureTrailingHeaders(this HttpResponseMessage responseMessage)
     {
         if (!responseMessage.RequestMessage.Properties.ContainsKey(ResponseTrailersKey))

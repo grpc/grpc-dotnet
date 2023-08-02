@@ -286,23 +286,20 @@ public class GrpcChannelTests
         Assert.AreEqual("HttpHandler", ex.Status.DebugException!.Message);
     }
 
-#if NET472
     [Test]
-    public void Build_NoHttpProviderOnNetFx_Throw()
+    public void Build_ForAddressNoOptions_ValidChannel()
     {
         // Arrange & Act
-        var ex = Assert.Throws<PlatformNotSupportedException>(() => GrpcChannel.ForAddress("https://localhost"))!;
+        using var channel = GrpcChannel.ForAddress("https://localhost");
 
         // Assert
-        var message =
-            $"gRPC requires extra configuration on .NET implementations that don't support gRPC over HTTP/2. " +
-            $"An HTTP provider must be specified using {nameof(GrpcChannelOptions)}.{nameof(GrpcChannelOptions.HttpHandler)}." +
-            $"The configured HTTP provider must either support HTTP/2 or be configured to use gRPC-Web. " +
-            $"See https://aka.ms/aspnet/grpc/netstandard for details.";
-
-        Assert.AreEqual(message, ex.Message);
-    }
+        Assert.NotNull(channel);
+#if NET472
+        Assert.AreEqual(HttpHandlerType.WinHttpHandler, channel.HttpHandlerType);
+#else
+        Assert.AreEqual(HttpHandlerType.SocketsHttpHandler, channel.HttpHandlerType);
 #endif
+    }
 
     [Test]
     public void Build_ServiceConfigDuplicateMethodConfigNames_Error()

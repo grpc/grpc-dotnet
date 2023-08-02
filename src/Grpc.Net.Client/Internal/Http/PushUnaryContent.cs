@@ -19,7 +19,7 @@
 using System.Net;
 using Grpc.Shared;
 
-#if NETSTANDARD2_0
+#if NETSTANDARD2_0 || NET462
 using ValueTask = System.Threading.Tasks.Task;
 #endif
 

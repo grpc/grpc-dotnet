@@ -28,7 +28,7 @@ using System.Runtime.ExceptionServices;
 using Grpc.Net.Client.Balancer.Internal;
 #endif
 
-#if NETSTANDARD2_0
+#if NETSTANDARD2_0 || NET462
 using ValueTask = System.Threading.Tasks.Task;
 #endif
 
@@ -1116,7 +1116,7 @@ internal sealed partial class GrpcCall<TRequest, TResponse> : GrpcCall, IGrpcCal
             callOptions);
     }
 
-#if !NETSTANDARD2_0
+#if !NETSTANDARD2_0 && !NET462
     internal async ValueTask<TResponse?> ReadMessageAsync(
 #else
     internal async Task<TResponse?> ReadMessageAsync(
