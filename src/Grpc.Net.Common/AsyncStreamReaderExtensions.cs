@@ -1,4 +1,4 @@
-﻿#region Copyright notice and license
+#region Copyright notice and license
 
 // Copyright 2019 The gRPC Authors
 //
@@ -16,7 +16,7 @@
 
 #endregion
 
-#if !NETSTANDARD2_0
+#if !NETSTANDARD2_0 && !NET462
 
 using System.Collections.Generic;
 using System.Runtime.CompilerServices;

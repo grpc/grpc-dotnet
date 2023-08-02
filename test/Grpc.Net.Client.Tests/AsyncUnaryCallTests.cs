@@ -105,8 +105,10 @@ public class AsyncUnaryCallTests
 
             return ResponseUtils.CreateResponse(HttpStatusCode.OK, streamContent);
         });
-        // Just need to have a type called WinHttpHandler to activate new behavior.
+
+#pragma warning disable CS0436 // Just need to have a type called WinHttpHandler to activate new behavior.
         var winHttpHandler = new WinHttpHandler(handler);
+#pragma warning restore CS0436
         var invoker = HttpClientCallInvokerFactory.Create(winHttpHandler, "https://localhost");
 
         // Act
