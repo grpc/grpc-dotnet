@@ -138,6 +138,7 @@ public class PickFirstBalancerTests : FunctionalTestBase
         Logger.LogInformation("Ending " + endpoint.Address);
         endpoint.Dispose();
 
+        // Wait for client to change to idle state in reaction to server stopping.
         await BalancerWaitHelpers.WaitForChannelStateAsync(Logger, channel, ConnectivityState.Idle).DefaultTimeout();
 
         Logger.LogInformation("Restarting");
