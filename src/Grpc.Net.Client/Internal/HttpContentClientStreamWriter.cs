@@ -103,13 +103,13 @@ internal class HttpContentClientStreamWriter<TRequest, TResponse> : ClientStream
             ctsRegistration?.Dispose();
         }
 
-        static ValueTask WriteMessageToStream(GrpcCall<TRequest, TResponse> call, Stream writeStream, CallOptions callOptions, TRequest message)
+        static Task WriteMessageToStream(GrpcCall<TRequest, TResponse> call, Stream writeStream, CallOptions callOptions, TRequest message)
         {
             return call.WriteMessageAsync(writeStream, message, callOptions);
         }
     }
 
-    public Task WriteAsync<TState>(Func<GrpcCall<TRequest, TResponse>, Stream, CallOptions, TState, ValueTask> writeFunc, TState state, CancellationToken cancellationToken)
+    public Task WriteAsync<TState>(Func<GrpcCall<TRequest, TResponse>, Stream, CallOptions, TState, Task> writeFunc, TState state, CancellationToken cancellationToken)
     {
         _call.EnsureNotDisposed();
 
@@ -154,7 +154,7 @@ internal class HttpContentClientStreamWriter<TRequest, TResponse> : ClientStream
 
     public GrpcCall<TRequest, TResponse> Call => _call;
 
-    public async Task WriteAsyncCore<TState>(Func<GrpcCall<TRequest, TResponse>, Stream, CallOptions, TState, ValueTask> writeFunc, TState state, CancellationToken cancellationToken)
+    public async Task WriteAsyncCore<TState>(Func<GrpcCall<TRequest, TResponse>, Stream, CallOptions, TState, Task> writeFunc, TState state, CancellationToken cancellationToken)
     {
         try
         {

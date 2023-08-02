@@ -17,6 +17,7 @@
 #endregion
 
 using System.Net;
+using Grpc.Shared;
 
 namespace Grpc.Net.Client.Internal.Http;
 
@@ -31,10 +32,10 @@ internal class WinHttpUnaryContent<TRequest, TResponse> : HttpContent
     where TResponse : class
 {
     private readonly TRequest _request;
-    private readonly Func<TRequest, Stream, ValueTask> _startCallback;
+    private readonly Func<TRequest, Stream, Task> _startCallback;
     private readonly GrpcCall<TRequest, TResponse> _call;
 
-    public WinHttpUnaryContent(TRequest request, Func<TRequest, Stream, ValueTask> startCallback, GrpcCall<TRequest, TResponse> call)
+    public WinHttpUnaryContent(TRequest request, Func<TRequest, Stream, Task> startCallback, GrpcCall<TRequest, TResponse> call)
     {
         _request = request;
         _startCallback = startCallback;
@@ -45,7 +46,7 @@ internal class WinHttpUnaryContent<TRequest, TResponse> : HttpContent
     protected override Task SerializeToStreamAsync(Stream stream, TransportContext? context)
     {
         var writeMessageTask = _startCallback(_request, stream);
-        if (writeMessageTask.IsCompletedSuccessfully)
+        if (writeMessageTask.IsCompletedSuccessfully())
         {
             if (GrpcEventSource.Log.IsEnabled())
             {
@@ -57,7 +58,7 @@ internal class WinHttpUnaryContent<TRequest, TResponse> : HttpContent
         return WriteMessageCore(writeMessageTask);
     }
 
-    private static async Task WriteMessageCore(ValueTask writeMessageTask)
+    private static async Task WriteMessageCore(Task writeMessageTask)
     {
         await writeMessageTask.ConfigureAwait(false);
         if (GrpcEventSource.Log.IsEnabled())

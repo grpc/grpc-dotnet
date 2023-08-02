@@ -17,6 +17,7 @@
 #endregion
 
 using System.Net;
+using Grpc.Shared;
 
 namespace Grpc.Net.Client.Internal;
 
@@ -26,9 +27,9 @@ internal class PushUnaryContent<TRequest, TResponse> : HttpContent
     where TResponse : class
 {
     private readonly TRequest _request;
-    private readonly Func<TRequest, Stream, ValueTask> _startCallback;
+    private readonly Func<TRequest, Stream, Task> _startCallback;
 
-    public PushUnaryContent(TRequest request, Func<TRequest, Stream, ValueTask> startCallback)
+    public PushUnaryContent(TRequest request, Func<TRequest, Stream, Task> startCallback)
     {
         _request = request;
         _startCallback = startCallback;
@@ -38,7 +39,7 @@ internal class PushUnaryContent<TRequest, TResponse> : HttpContent
     protected override Task SerializeToStreamAsync(Stream stream, TransportContext? context)
     {
         var writeMessageTask = _startCallback(_request, stream);
-        if (writeMessageTask.IsCompletedSuccessfully)
+        if (writeMessageTask.IsCompletedSuccessfully())
         {
             if (GrpcEventSource.Log.IsEnabled())
             {
@@ -50,7 +51,7 @@ internal class PushUnaryContent<TRequest, TResponse> : HttpContent
         return WriteMessageCore(writeMessageTask);
     }
 
-    private static async Task WriteMessageCore(ValueTask writeMessageTask)
+    private static async Task WriteMessageCore(Task writeMessageTask)
     {
         await writeMessageTask.ConfigureAwait(false);
         if (GrpcEventSource.Log.IsEnabled())

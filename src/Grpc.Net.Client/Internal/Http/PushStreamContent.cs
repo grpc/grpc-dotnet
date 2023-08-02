@@ -25,7 +25,7 @@ internal class PushStreamContent<TRequest, TResponse> : HttpContent
     where TResponse : class
 {
     private readonly HttpContentClientStreamWriter<TRequest, TResponse> _streamWriter;
-    private readonly Func<Stream, ValueTask>? _startCallback;
+    private readonly Func<Stream, Task>? _startCallback;
 
     public PushStreamContent(HttpContentClientStreamWriter<TRequest, TResponse> streamWriter)
     {
@@ -35,7 +35,7 @@ internal class PushStreamContent<TRequest, TResponse> : HttpContent
 
     public PushStreamContent(
         HttpContentClientStreamWriter<TRequest, TResponse> streamWriter,
-        Func<Stream, ValueTask>? startCallback) : this(streamWriter)
+        Func<Stream, Task>? startCallback) : this(streamWriter)
     {
         _startCallback = startCallback;
     }

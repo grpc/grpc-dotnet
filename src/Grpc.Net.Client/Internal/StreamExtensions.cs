@@ -287,7 +287,7 @@ internal static partial class StreamExtensions
         }
     }
 
-    public static async ValueTask WriteMessageAsync<TMessage>(
+    public static async Task WriteMessageAsync<TMessage>(
         this Stream stream,
         GrpcCall call,
         TMessage message,
@@ -328,7 +328,7 @@ internal static partial class StreamExtensions
         }
     }
 
-    public static async ValueTask WriteMessageAsync(
+    public static async Task WriteMessageAsync(
         this Stream stream,
         GrpcCall call,
         ReadOnlyMemory<byte> data,
