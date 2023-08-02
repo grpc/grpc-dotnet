@@ -26,7 +26,7 @@ using Grpc.Net.Compression;
 using Grpc.Shared;
 using Microsoft.Extensions.Logging;
 
-#if NETSTANDARD2_0
+#if NETSTANDARD2_0 || NET462
 using ValueTask = System.Threading.Tasks.Task;
 #endif
 
@@ -42,7 +42,7 @@ internal static partial class StreamExtensions
         return new Status(StatusCode.Unimplemented, $"Unsupported grpc-encoding value '{unsupportedEncoding}'. Supported encodings: {string.Join(", ", supportedEncodings)}");
     }
 
-#if !NETSTANDARD2_0
+#if !NETSTANDARD2_0 && !NET462
     public static async ValueTask<TResponse?> ReadMessageAsync<TResponse>(
 #else
     public static async Task<TResponse?> ReadMessageAsync<TResponse>(
@@ -194,7 +194,7 @@ internal static partial class StreamExtensions
         }
     }
 
-#if NETSTANDARD2_0
+#if NETSTANDARD2_0 || NET462
     public static Task<int> ReadAsync(this Stream stream, Memory<byte> buffer, CancellationToken cancellationToken = default)
     {
         if (MemoryMarshal.TryGetArray<byte>(buffer, out var segment))

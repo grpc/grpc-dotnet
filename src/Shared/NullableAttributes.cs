@@ -1,4 +1,4 @@
-﻿#region Copyright notice and license
+#region Copyright notice and license
 
 // Copyright 2019 The gRPC Authors
 //
@@ -18,7 +18,7 @@
 
 namespace System.Diagnostics.CodeAnalysis;
 
-#if NETSTANDARD2_0
+#if NETSTANDARD2_0 || NET462
 
 /// <summary>Specifies that an output will not be null even if the corresponding type allows it.</summary>
 [AttributeUsage(AttributeTargets.Field | AttributeTargets.Method | AttributeTargets.Parameter | AttributeTargets.Property | AttributeTargets.ReturnValue, AllowMultiple = true)]
@@ -83,7 +83,7 @@ internal sealed class MaybeNullWhenAttribute : Attribute
 
 #endif
 
-#if NETSTANDARD2_0 || NETSTANDARD2_1 || NETCOREAPP3_0
+#if NETSTANDARD2_0 || NETSTANDARD2_1 || NETCOREAPP3_0 || NET462
 /// <summary>Specifies that the method or property will ensure that the listed field and property members have not-null values when returning with the specified return value condition.</summary>
 [AttributeUsage(AttributeTargets.Method | AttributeTargets.Property, Inherited = false, AllowMultiple = true)]
 internal sealed class MemberNotNullWhenAttribute : Attribute

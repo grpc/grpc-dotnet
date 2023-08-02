@@ -1,4 +1,4 @@
-﻿#region Copyright notice and license
+#region Copyright notice and license
 
 // Copyright 2019 The gRPC Authors
 //
@@ -219,7 +219,9 @@ public class GetTrailersTests
             response.Headers.Add("custom", "ABC");
             return response;
         });
+#pragma warning disable CS0436 // Using custom WinHttpHandler type rather than the real one
         var invoker = HttpClientCallInvokerFactory.Create(new WinHttpHandler(httpMessageHandler), "https://localhost");
+#pragma warning restore CS0436
 
         // Act
         var call = invoker.AsyncUnaryCall<HelloRequest, HelloReply>(ClientTestHelpers.ServiceMethod, string.Empty, new CallOptions(), new HelloRequest());

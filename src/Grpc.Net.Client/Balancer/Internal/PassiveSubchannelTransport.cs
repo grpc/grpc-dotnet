@@ -1,4 +1,4 @@
-﻿#region Copyright notice and license
+#region Copyright notice and license
 
 // Copyright 2019 The gRPC Authors
 //
@@ -52,7 +52,7 @@ internal class PassiveSubchannelTransport : ISubchannelTransport, IDisposable
     }
 
     public
-#if !NETSTANDARD2_0
+#if !NETSTANDARD2_0 && !NET462
         ValueTask<ConnectResult>
 #else
         Task<ConnectResult>
@@ -68,7 +68,7 @@ internal class PassiveSubchannelTransport : ISubchannelTransport, IDisposable
         _currentAddress = currentAddress;
         _subchannel.UpdateConnectivityState(ConnectivityState.Ready, "Passively connected.");
 
-#if !NETSTANDARD2_0
+#if !NETSTANDARD2_0 && !NET462
         return new ValueTask<ConnectResult>(ConnectResult.Success);
 #else
         return Task.FromResult(ConnectResult.Success);

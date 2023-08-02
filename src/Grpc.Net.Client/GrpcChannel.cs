@@ -230,7 +230,11 @@ public sealed class GrpcChannel : ChannelBase, IDisposable
         {
             // No way to know what handler a HttpClient is using so assume custom.
             var type = channelOptions.HttpClient == null
+#if NET462
+                ? HttpHandlerType.WinHttpHandler
+#else
                 ? HttpHandlerType.SocketsHttpHandler
+#endif
                 : HttpHandlerType.Custom;
 
             return new HttpHandlerContext(type);

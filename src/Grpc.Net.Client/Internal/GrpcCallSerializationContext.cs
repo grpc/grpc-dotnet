@@ -1,4 +1,4 @@
-﻿#region Copyright notice and license
+#region Copyright notice and license
 
 // Copyright 2019 The gRPC Authors
 //
@@ -295,7 +295,7 @@ internal sealed class GrpcCallSerializationContext : SerializationContext, IBuff
         // GZipStream writes final Adler32 at the end of the stream on dispose.
         using (var compressionStream = _compressionProvider.CreateCompressionStream(output, CompressionLevel.Fastest))
         {
-#if !NETSTANDARD2_0
+#if !NETSTANDARD2_0 && !NET462
             compressionStream.Write(messageData);
 #else
             var array = messageData.ToArray();

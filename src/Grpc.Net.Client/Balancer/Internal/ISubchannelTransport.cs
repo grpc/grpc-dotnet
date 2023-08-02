@@ -33,7 +33,7 @@ internal interface ISubchannelTransport : IDisposable
     ValueTask<Stream> GetStreamAsync(BalancerAddress address, CancellationToken cancellationToken);
 #endif
 
-#if !NETSTANDARD2_0
+#if !NETSTANDARD2_0 && !NET462
     ValueTask<ConnectResult>
 #else
     Task<ConnectResult>
