@@ -156,7 +156,7 @@ public class ConnectionTests : FunctionalTestBase
         }
 
         // Arrange
-        using var endpoint = BalancerHelpers.CreateGrpcEndpoint<HelloRequest, HelloReply>(50051, UnaryMethod, nameof(UnaryMethod));
+        using var endpoint = BalancerHelpers.CreateGrpcEndpoint<HelloRequest, HelloReply>(50051, UnaryMethod, nameof(UnaryMethod), loggerFactory: LoggerFactory);
 
         var connectionIdleTimeout = TimeSpan.FromSeconds(1);
         var channel = await BalancerHelpers.CreateChannel(
@@ -178,6 +178,55 @@ public class ConnectionTests : FunctionalTestBase
 
         AssertHasLog(LogLevel.Debug, "ClosingSocketFromIdleTimeoutOnCreateStream", "Subchannel id '1' socket 127.0.0.1:50051 is being closed because it exceeds the idle timeout of 00:00:01.");
         AssertHasLog(LogLevel.Trace, "ConnectingOnCreateStream", "Subchannel id '1' doesn't have a connected socket available. Connecting new stream socket for 127.0.0.1:50051.");
+    }
+
+    [Test]
+    public async Task Active_UnaryCall_ServerCloseOnKeepAlive_SocketRecreatedOnRequest()
+    {
+        // Ignore errors
+        SetExpectedErrorsFilter(writeContext =>
+        {
+            return true;
+        });
+
+        Task<HelloReply> UnaryMethod(HelloRequest request, ServerCallContext context)
+        {
+            return Task.FromResult(new HelloReply { Message = request.Name });
+        }
+
+        // In this test the client connects to the server, and the server then closes it after keep-alive is triggered.
+        // The client then starts a gRPC call to the server. The client should discard the closed socket and create a new one.
+
+        // Arrange
+        using var endpoint = BalancerHelpers.CreateGrpcEndpoint<HelloRequest, HelloReply>(
+            50051,
+            UnaryMethod,
+            nameof(UnaryMethod),
+            loggerFactory: LoggerFactory,
+            configureServer: o => o.Limits.KeepAliveTimeout = TimeSpan.FromSeconds(1));
+
+        // Don't timeout the socket or ping it from the client.
+        var channel = await BalancerHelpers.CreateChannel(
+            LoggerFactory,
+            new RoundRobinConfig(),
+            new[] { endpoint.Address },
+            connectionIdleTimeout: TimeSpan.FromMinutes(30),
+            socketPingInterval: TimeSpan.FromMinutes(30)).DefaultTimeout();
+
+        Logger.LogInformation("Connecting channel.");
+        await channel.ConnectAsync();
+
+        // Fails when this test is run with debugging. Kestrel doesn't trigger keepalive timeout if debugging is enabled.
+        await TestHelpers.AssertIsTrueRetryAsync(() =>
+        {
+            return Logs.Any(l => l.LoggerName.StartsWith("Microsoft.AspNetCore.Server.Kestrel") && l.EventId.Name == "ConnectionStop");
+        }, "Wait for server to close connection.");
+
+        var client = TestClientFactory.Create(channel, endpoint.Method);
+        var response = await client.UnaryCall(new HelloRequest { Name = "Test!" }).ResponseAsync.DefaultTimeout();
+
+        // Assert
+        Assert.AreEqual("Test!", response.Message);
     }
 
     [Test]
