@@ -17,7 +17,6 @@
 #endregion
 
 using System.Net;
-using System.Net.Http;
 using Grpc.Net.Client.Web.Internal;
 using NUnit.Framework;
 
