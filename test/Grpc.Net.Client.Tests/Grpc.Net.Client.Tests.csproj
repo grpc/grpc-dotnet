@@ -11,6 +11,10 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <Using Include="System.Net.Http" />
+  </ItemGroup>
+
+  <ItemGroup>
     <Protobuf Include="Proto\greet.proto" GrpcServices="Client" />
 
     <Compile Include="..\Shared\CallbackInterceptor.cs" Link="Infrastructure\CallbackInterceptor.cs" />

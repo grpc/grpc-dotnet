@@ -16,8 +16,6 @@
 
 #endregion
 
-using System.Net.Http;
-
 namespace Grpc.Tests.Shared;
 
 public class TestHttpMessageHandler : HttpMessageHandler

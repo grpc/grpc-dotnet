@@ -18,7 +18,6 @@
 
 using System.Globalization;
 using System.Net;
-using System.Net.Http;
 using Greet;
 using Grpc.Core;
 using Grpc.Net.Client.Internal;

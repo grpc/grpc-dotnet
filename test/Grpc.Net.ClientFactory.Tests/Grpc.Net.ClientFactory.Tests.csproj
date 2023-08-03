@@ -12,6 +12,10 @@
   </ItemGroup>
 
   <ItemGroup>
+    <Using Include="System.Net.Http" />
+  </ItemGroup>
+
+  <ItemGroup>
     <Compile Include="..\Shared\CallbackInterceptor.cs" Link="Infrastructure\CallbackInterceptor.cs" />
     <Compile Include="..\Shared\ClientBaseTests.cs" Link="ClientBaseTests.cs" />
     <Compile Include="..\Shared\ClientTestHelpers.cs" Link="Infrastructure\ClientTestHelpers.cs" />
