@@ -595,6 +595,66 @@ public class GrpcChannelTests
     {
         public bool IsBrowser { get; set; }
         public bool IsAndroid { get; set; }
+        public bool IsWindows { get; set; }
+        public Version OSVersion { get; set; } = new Version(1, 2, 3, 4);
+    }
+
+    [Test]
+    public void WinHttpHandler_UnsupportedWindows_Throw()
+    {
+        // Arrange
+        var services = new ServiceCollection();
+        services.AddSingleton<IOperatingSystem>(new TestOperatingSystem
+        {
+            IsWindows = true,
+            OSVersion = new Version(1, 2, 3, 4)
+        });
+
+#pragma warning disable CS0436 // Just need to have a type called WinHttpHandler to activate new behavior.
+        var winHttpHandler = new WinHttpHandler(new TestHttpMessageHandler());
+#pragma warning restore CS0436
+
+        // Act
+        var ex = Assert.Throws<InvalidOperationException>(() =>
+        {
+            GrpcChannel.ForAddress("https://localhost", new GrpcChannelOptions
+            {
+                HttpHandler = winHttpHandler,
+                ServiceProvider = services.BuildServiceProvider()
+            });
+        });
+
+        // Assert
+        Assert.AreEqual(ex!.Message, "The channel configuration isn't valid on this operating system. " +
+                "The channel is configured to use WinHttpHandler and the current version of Windows " +
+                "doesn't support HTTP/2 features required by gRPC. Windows Server 2022 or Windows 11 or later is required. " +
+                "For more information, see https://aka.ms/aspnet/grpc/netframework.");
+    }
+
+    [Test]
+    public void WinHttpHandler_SupportedWindows_Success()
+    {
+        // Arrange
+        var services = new ServiceCollection();
+        services.AddSingleton<IOperatingSystem>(new TestOperatingSystem
+        {
+            IsWindows = true,
+            OSVersion = Version.Parse("10.0.20348.169")
+        });
+
+#pragma warning disable CS0436 // Just need to have a type called WinHttpHandler to activate new behavior.
+        var winHttpHandler = new WinHttpHandler(new TestHttpMessageHandler());
+#pragma warning restore CS0436
+
+        // Act
+        var channel = GrpcChannel.ForAddress("https://localhost", new GrpcChannelOptions
+        {
+            HttpHandler = winHttpHandler,
+            ServiceProvider = services.BuildServiceProvider()
+        });
+
+        // Assert
+        Assert.AreEqual(HttpHandlerType.WinHttpHandler, channel.HttpHandlerType);
     }
 
 #if SUPPORT_LOAD_BALANCING
