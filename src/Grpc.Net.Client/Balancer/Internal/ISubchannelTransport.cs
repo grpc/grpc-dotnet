@@ -17,6 +17,7 @@
 #endregion
 
 #if SUPPORT_LOAD_BALANCING
+using System.Net;
 using Grpc.Shared;
 
 namespace Grpc.Net.Client.Balancer.Internal;
@@ -28,11 +29,11 @@ namespace Grpc.Net.Client.Balancer.Internal;
 /// </summary>
 internal interface ISubchannelTransport : IDisposable
 {
-    BalancerAddress? CurrentAddress { get; }
+    DnsEndPoint? CurrentEndPoint { get; }
     TimeSpan? ConnectTimeout { get; }
     TransportStatus TransportStatus { get; }
 
-    ValueTask<Stream> GetStreamAsync(BalancerAddress address, CancellationToken cancellationToken);
+    ValueTask<Stream> GetStreamAsync(DnsEndPoint endPoint, CancellationToken cancellationToken);
     ValueTask<ConnectResult> TryConnectAsync(ConnectContext context);
 
     void Disconnect();

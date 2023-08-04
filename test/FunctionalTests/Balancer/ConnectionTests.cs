@@ -346,7 +346,7 @@ public class ConnectionTests : FunctionalTestBase
         }, "Wait for connections to start.");
         foreach (var t in activeStreams)
         {
-            Assert.AreEqual(new DnsEndPoint("127.0.0.1", 50051), t.Address.EndPoint);
+            Assert.AreEqual(new DnsEndPoint("127.0.0.1", 50051), t.EndPoint);
         }
 
         // Act
@@ -367,7 +367,7 @@ public class ConnectionTests : FunctionalTestBase
             activeStreams = transport.GetActiveStreams();
             return activeStreams.Count == 11;
         }, "Wait for connections to start.");
-        Assert.AreEqual(new DnsEndPoint("127.0.0.1", 50051), activeStreams[activeStreams.Count - 1].Address.EndPoint);
+        Assert.AreEqual(new DnsEndPoint("127.0.0.1", 50051), activeStreams[activeStreams.Count - 1].EndPoint);
 
         tcs.SetResult(null);
 
@@ -407,7 +407,7 @@ public class ConnectionTests : FunctionalTestBase
 
         activeStreams = transport.GetActiveStreams();
         Assert.AreEqual(1, activeStreams.Count);
-        Assert.AreEqual(new DnsEndPoint("127.0.0.1", 50052), activeStreams[0].Address.EndPoint);
+        Assert.AreEqual(new DnsEndPoint("127.0.0.1", 50052), activeStreams[0].EndPoint);
     }
 
 #if NET7_0_OR_GREATER
