@@ -1,4 +1,4 @@
-﻿#region Copyright notice and license
+#region Copyright notice and license
 
 // Copyright 2019 The gRPC Authors
 //
@@ -24,6 +24,8 @@ internal interface IOperatingSystem
 {
     bool IsBrowser { get; }
     bool IsAndroid { get; }
+    bool IsWindows { get; }
+    Version OSVersion { get; }
 }
 
 internal sealed class OperatingSystem : IOperatingSystem
@@ -32,6 +34,8 @@ internal sealed class OperatingSystem : IOperatingSystem
 
     public bool IsBrowser { get; }
     public bool IsAndroid { get; }
+    public bool IsWindows { get; }
+    public Version OSVersion { get; }
 
     private OperatingSystem()
     {
@@ -41,5 +45,7 @@ internal sealed class OperatingSystem : IOperatingSystem
 #else
         IsAndroid = false;
 #endif
+        IsWindows = RuntimeInformation.IsOSPlatform(OSPlatform.Windows);
+        OSVersion = Environment.OSVersion.Version;
     }
 }
