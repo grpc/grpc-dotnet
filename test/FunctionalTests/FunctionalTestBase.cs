@@ -119,21 +119,21 @@ public class FunctionalTestBase
         AssertHasLog(LogLevel.Information, "RpcConnectionError", $"Error status code '{statusCode}' with detail '{detail}' raised.");
     }
 
-    protected void AssertHasLog(LogLevel logLevel, string name, string message, Func<Exception, bool>? exceptionMatch = null)
+    protected void AssertHasLog(LogLevel logLevel, string name, string? message = null, Func<Exception, bool>? exceptionMatch = null)
     {
         if (HasLog(logLevel, name, message, exceptionMatch))
         {
             return;
         }
 
-        Assert.Fail($"No match. Log level = {logLevel}, name = {name}, message = '{message}'.");
+        Assert.Fail($"No match. Log level = {logLevel}, name = {name}, message = '{message ?? "(null)"}'.");
     }
 
-    protected bool HasLog(LogLevel logLevel, string name, string message, Func<Exception, bool>? exceptionMatch = null)
+    protected bool HasLog(LogLevel logLevel, string name, string? message = null, Func<Exception, bool>? exceptionMatch = null)
     {
         return Logs.Any(r =>
         {
-            var match = r.LogLevel == logLevel && r.EventId.Name == name && r.Message == message;
+            var match = r.LogLevel == logLevel && r.EventId.Name == name && (r.Message == message || message == null);
             if (exceptionMatch != null)
             {
                 match = match && r.Exception != null && exceptionMatch(r.Exception);
