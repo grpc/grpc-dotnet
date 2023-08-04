@@ -184,6 +184,18 @@ public sealed class GrpcChannel : ChannelBase, IDisposable
         {
             Log.AddressPathUnused(Logger, Address.OriginalString);
         }
+
+        // Validate the Windows version can support WinHttpHandler.
+        const int WinServer2022BuildVersion = 20348;
+        if (HttpHandlerType == HttpHandlerType.WinHttpHandler &&
+            OperatingSystem.IsWindows &&
+            OperatingSystem.OSVersion.Build < WinServer2022BuildVersion)
+        {
+            throw new InvalidOperationException("The channel configuration isn't valid on this operating system. " +
+                "The channel is configured to use WinHttpHandler and the current version of Windows " +
+                "doesn't support HTTP/2 features required by gRPC. Windows Server 2022 or Windows 11 or later is required. " +
+                "For more information, see https://aka.ms/aspnet/grpc/netframework.");
+        }
     }
 
     private void ResolveCredentials(GrpcChannelOptions channelOptions, out bool isSecure, out List<CallCredentials>? callCredentials)

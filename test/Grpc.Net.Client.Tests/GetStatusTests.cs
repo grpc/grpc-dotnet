@@ -1,4 +1,4 @@
-﻿#region Copyright notice and license
+#region Copyright notice and license
 
 // Copyright 2019 The gRPC Authors
 //
@@ -214,6 +214,8 @@ public class GetStatusTests
     {
         public bool IsBrowser { get; set; }
         public bool IsAndroid { get; set; }
+        public bool IsWindows { get; set; }
+        public Version OSVersion { get; set; } = new Version(1, 2, 3, 4);
     }
 
     [Test]
