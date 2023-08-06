@@ -141,8 +141,9 @@ public class ConnectionTests : FunctionalTestBase
         await ExceptionAssert.ThrowsAsync<OperationCanceledException>(() => connectTask).DefaultTimeout();
     }
 
-    [Test]
-    public async Task Active_UnaryCall_ConnectionIdleTimeout_SocketRecreated()
+    [TestCase(0)] // TimeSpan.Zero
+    [TestCase(1000)] // 1 second
+    public async Task Active_UnaryCall_ConnectionIdleTimeout_SocketRecreated(int milliseconds)
     {
         // Ignore errors
         SetExpectedErrorsFilter(writeContext =>
@@ -158,7 +159,7 @@ public class ConnectionTests : FunctionalTestBase
         // Arrange
         using var endpoint = BalancerHelpers.CreateGrpcEndpoint<HelloRequest, HelloReply>(50051, UnaryMethod, nameof(UnaryMethod), loggerFactory: LoggerFactory);
 
-        var connectionIdleTimeout = TimeSpan.FromSeconds(1);
+        var connectionIdleTimeout = TimeSpan.FromMilliseconds(milliseconds);
         var channel = await BalancerHelpers.CreateChannel(
             LoggerFactory,
             new PickFirstConfig(),
@@ -168,7 +169,8 @@ public class ConnectionTests : FunctionalTestBase
         Logger.LogInformation("Connecting channel.");
         await channel.ConnectAsync();
 
-        await Task.Delay(connectionIdleTimeout);
+        // Wait for timeout plus a little extra to avoid issues from imprecise timers.
+        await Task.Delay(connectionIdleTimeout + TimeSpan.FromMilliseconds(50));
 
         var client = TestClientFactory.Create(channel, endpoint.Method);
         var response = await client.UnaryCall(new HelloRequest { Name = "Test!" }).ResponseAsync.DefaultTimeout();
@@ -176,8 +178,41 @@ public class ConnectionTests : FunctionalTestBase
         // Assert
         Assert.AreEqual("Test!", response.Message);
 
-        AssertHasLog(LogLevel.Debug, "ClosingSocketFromIdleTimeoutOnCreateStream", "Subchannel id '1' socket 127.0.0.1:50051 is being closed because it exceeds the idle timeout of 00:00:01.");
+        AssertHasLog(LogLevel.Debug, "ClosingSocketFromIdleTimeoutOnCreateStream");
         AssertHasLog(LogLevel.Trace, "ConnectingOnCreateStream", "Subchannel id '1' doesn't have a connected socket available. Connecting new stream socket for 127.0.0.1:50051.");
+    }
+
+    public async Task Active_UnaryCall_InfiniteConnectionIdleTimeout_SocketNotClosed()
+    {
+        SetExpectedErrorsFilter(writeContext =>
+        {
+            return true;
+        });
+
+        Task<HelloReply> UnaryMethod(HelloRequest request, ServerCallContext context)
+        {
+            return Task.FromResult(new HelloReply { Message = request.Name });
+        }
+
+        // Arrange
+        using var endpoint = BalancerHelpers.CreateGrpcEndpoint<HelloRequest, HelloReply>(50051, UnaryMethod, nameof(UnaryMethod), loggerFactory: LoggerFactory);
+
+        var channel = await BalancerHelpers.CreateChannel(
+            LoggerFactory,
+            new PickFirstConfig(),
+            new[] { endpoint.Address },
+            connectionIdleTimeout: Timeout.InfiniteTimeSpan).DefaultTimeout();
+
+        Logger.LogInformation("Connecting channel.");
+        await channel.ConnectAsync();
+
+        var client = TestClientFactory.Create(channel, endpoint.Method);
+        var response = await client.UnaryCall(new HelloRequest { Name = "Test!" }).ResponseAsync.DefaultTimeout();
+
+        // Assert
+        Assert.AreEqual("Test!", response.Message);
+
+        Assert.IsFalse(Logs.Any(l => l.EventId.Name == "ClosingSocketFromIdleTimeoutOnCreateStream"), "Shouldn't have a ClosingSocketFromIdleTimeoutOnCreateStream log.");
     }
 
     [Test]

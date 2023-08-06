@@ -222,17 +222,35 @@ public class GrpcChannelTests
         Assert.AreEqual(TimeSpan.FromSeconds(1), channel.ConnectTimeout);
     }
 
-    [Test]
-    public void Build_ConnectionIdleTimeout_ReadFromSocketsHttpHandler()
+    [TestCase(-1, -1, -1)]
+    [TestCase(0, 0, 0)]
+    [TestCase(0, -1, 0)]
+    [TestCase(-1, 0, 0)]
+    [TestCase(1000, -1, 1000)]
+    [TestCase(-1, 1000, 1000)]
+    [TestCase(500, 1000, 1000)]
+    [TestCase(1000, 500, 1000)]
+    public void Build_ConnectionIdleTimeout_ReadFromSocketsHttpHandler(
+        int? pooledConnectionIdleTimeoutMs,
+        int? pooledConnectionLifetimeMs,
+        int expectedConnectionIdleTimeoutMs)
     {
-        // Arrange & Act
-        var channel = GrpcChannel.ForAddress("https://localhost", CreateGrpcChannelOptions(o => o.HttpHandler = new SocketsHttpHandler
+        // Arrange
+        var handler = new SocketsHttpHandler();
+        if (pooledConnectionIdleTimeoutMs != null)
         {
-            PooledConnectionIdleTimeout = TimeSpan.FromSeconds(1)
-        }));
+            handler.PooledConnectionIdleTimeout = TimeSpan.FromMilliseconds(pooledConnectionIdleTimeoutMs.Value);
+        }
+        if (pooledConnectionLifetimeMs != null)
+        {
+            handler.PooledConnectionLifetime = TimeSpan.FromMilliseconds(pooledConnectionLifetimeMs.Value);
+        }
+
+        // Act
+        var channel = GrpcChannel.ForAddress("https://localhost", CreateGrpcChannelOptions(o => o.HttpHandler = handler));
 
         // Assert
-        Assert.AreEqual(TimeSpan.FromSeconds(1), channel.ConnectionIdleTimeout);
+        Assert.AreEqual(TimeSpan.FromMilliseconds(expectedConnectionIdleTimeoutMs), channel.ConnectionIdleTimeout);
     }
 #endif
 

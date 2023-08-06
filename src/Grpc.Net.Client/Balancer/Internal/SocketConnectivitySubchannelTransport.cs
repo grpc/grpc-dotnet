@@ -332,7 +332,7 @@ internal class SocketConnectivitySubchannelTransport : ISubchannelTransport, IDi
 
             var closeSocket = false;
 
-            if (DateTime.UtcNow > socketCreatedTime.Value.Add(_socketIdleTimeout))
+            if (_socketIdleTimeout != Timeout.InfiniteTimeSpan && DateTime.UtcNow > socketCreatedTime.Value.Add(_socketIdleTimeout))
             {
                 SocketConnectivitySubchannelTransportLog.ClosingSocketFromIdleTimeoutOnCreateStream(_logger, _subchannel.Id, address, _socketIdleTimeout);
                 closeSocket = true;
