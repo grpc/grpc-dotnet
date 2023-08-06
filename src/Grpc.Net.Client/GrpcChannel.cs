@@ -255,7 +255,7 @@ public sealed class GrpcChannel : ChannelBase, IDisposable
 
             type = HttpHandlerType.SocketsHttpHandler;
             connectTimeout = socketsHttpHandler.ConnectTimeout;
-            connectionIdleTimeout = socketsHttpHandler.PooledConnectionIdleTimeout;
+            connectionIdleTimeout = GetConnectionIdleTimeout(socketsHttpHandler);
 
             // Check if the SocketsHttpHandler is being shared by channels.
             // It has already been setup by another channel (i.e. ConnectCallback is set) then
@@ -300,6 +300,27 @@ public sealed class GrpcChannel : ChannelBase, IDisposable
         }
 
         return new HttpHandlerContext(HttpHandlerType.Custom);
+
+#if NET5_0_OR_GREATER
+        static TimeSpan? GetConnectionIdleTimeout(SocketsHttpHandler socketsHttpHandler)
+        {
+            // Check if either TimeSpan is InfiniteTimeSpan, and return the other one.
+            if (socketsHttpHandler.PooledConnectionIdleTimeout == Timeout.InfiniteTimeSpan)
+            {
+                return socketsHttpHandler.PooledConnectionLifetime;
+            }
+
+            if (socketsHttpHandler.PooledConnectionLifetime == Timeout.InfiniteTimeSpan)
+            {
+                return socketsHttpHandler.PooledConnectionIdleTimeout;
+            }
+
+            // Return the bigger TimeSpan.
+            return socketsHttpHandler.PooledConnectionIdleTimeout > socketsHttpHandler.PooledConnectionLifetime
+                ? socketsHttpHandler.PooledConnectionIdleTimeout
+                : socketsHttpHandler.PooledConnectionLifetime;
+        }
+#endif
     }
 
 #if NET5_0_OR_GREATER
