@@ -169,7 +169,8 @@ public class ConnectionTests : FunctionalTestBase
         Logger.LogInformation("Connecting channel.");
         await channel.ConnectAsync();
 
-        await Task.Delay(connectionIdleTimeout);
+        // Wait for timeout plus a little extra to avoid issues from imprecise timers.
+        await Task.Delay(connectionIdleTimeout + TimeSpan.FromMilliseconds(50));
 
         var client = TestClientFactory.Create(channel, endpoint.Method);
         var response = await client.UnaryCall(new HelloRequest { Name = "Test!" }).ResponseAsync.DefaultTimeout();
