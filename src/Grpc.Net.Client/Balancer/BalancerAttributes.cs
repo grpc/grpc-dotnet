@@ -20,6 +20,7 @@
 using System.Collections;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 
 namespace Grpc.Net.Client.Balancer;
@@ -30,6 +31,8 @@ namespace Grpc.Net.Client.Balancer;
 /// Note: Experimental API that can change or be removed without any prior notice.
 /// </para>
 /// </summary>
+[DebuggerDisplay("{DebuggerToString(),nq}")]
+[DebuggerTypeProxy(typeof(BalancerAttributesDebugView))]
 public sealed class BalancerAttributes : IDictionary<string, object?>, IReadOnlyDictionary<string, object?>
 {
     /// <summary>
@@ -133,6 +136,24 @@ public sealed class BalancerAttributes : IDictionary<string, object?>, IReadOnly
     public bool Remove<TValue>(BalancerAttributesKey<TValue> key)
     {
         return _attributes.Remove(key.Key);
+    }
+
+    internal string DebuggerToString()
+    {
+        return $"Count = {_attributes.Count}";
+    }
+
+    private sealed class BalancerAttributesDebugView
+    {
+        private readonly BalancerAttributes _collection;
+
+        public BalancerAttributesDebugView(BalancerAttributes collection)
+        {
+            _collection = collection;
+        }
+
+        [DebuggerBrowsable(DebuggerBrowsableState.RootHidden)]
+        public KeyValuePair<string, object?>[] Items => _collection.Select(pair => new KeyValuePair<string, object?>(pair.Key, pair.Value)).ToArray();
     }
 }
 #endif
