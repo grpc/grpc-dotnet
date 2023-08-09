@@ -24,10 +24,6 @@ using Grpc.Shared;
 using Microsoft.Extensions.Logging;
 using Log = Grpc.Net.Client.Internal.Retry.RetryCallBaseLog;
 
-#if NETSTANDARD2_0 || NET462
-using ValueTask = System.Threading.Tasks.Task;
-#endif
-
 namespace Grpc.Net.Client.Internal.Retry;
 
 internal abstract partial class RetryCallBase<TRequest, TResponse> : IGrpcCall<TRequest, TResponse>
@@ -185,7 +181,7 @@ internal abstract partial class RetryCallBase<TRequest, TResponse> : IGrpcCall<T
             ? new PushUnaryContent<TRequest, TResponse>(request, WriteAsync)
             : new WinHttpUnaryContent<TRequest, TResponse>(request, WriteAsync, call);
 
-        ValueTask WriteAsync(TRequest request, Stream stream)
+        Task WriteAsync(TRequest request, Stream stream)
         {
             return WriteNewMessage(call, stream, call.Options, request);
         }
@@ -195,18 +191,14 @@ internal abstract partial class RetryCallBase<TRequest, TResponse> : IGrpcCall<T
     {
         return new PushStreamContent<TRequest, TResponse>(clientStreamWriter, async requestStream =>
         {
-            ValueTask writeTask;
+            Task writeTask;
             lock (Lock)
             {
                 Log.SendingBufferedMessages(Logger, BufferedMessages.Count);
 
                 if (BufferedMessages.Count == 0)
                 {
-#if NETSTANDARD2_0 || NET462
                     writeTask = Task.CompletedTask;
-#else
-                    writeTask = default;
-#endif
                 }
                 else
                 {
@@ -225,7 +217,7 @@ internal abstract partial class RetryCallBase<TRequest, TResponse> : IGrpcCall<T
         });
     }
 
-    private async ValueTask WriteBufferedMessages(GrpcCall<TRequest, TResponse> call, Stream requestStream, ReadOnlyMemory<byte>[] bufferedMessages)
+    private async Task WriteBufferedMessages(GrpcCall<TRequest, TResponse> call, Stream requestStream, ReadOnlyMemory<byte>[] bufferedMessages)
     {
         for (var i = 0; i < bufferedMessages.Length; i++)
         {
@@ -304,7 +296,7 @@ internal abstract partial class RetryCallBase<TRequest, TResponse> : IGrpcCall<T
         }
     }
 
-    protected async ValueTask WriteNewMessage(GrpcCall<TRequest, TResponse> call, Stream writeStream, CallOptions callOptions, TRequest message)
+    protected async Task WriteNewMessage(GrpcCall<TRequest, TResponse> call, Stream writeStream, CallOptions callOptions, TRequest message)
     {
         // Serialize current message and add to the buffer.
         ReadOnlyMemory<byte> messageData;
@@ -402,7 +394,7 @@ internal abstract partial class RetryCallBase<TRequest, TResponse> : IGrpcCall<T
         }
     }
 
-    Task IGrpcCall<TRequest, TResponse>.WriteClientStreamAsync<TState>(Func<GrpcCall<TRequest, TResponse>, Stream, CallOptions, TState, ValueTask> writeFunc, TState state, CancellationToken cancellationTokens)
+    Task IGrpcCall<TRequest, TResponse>.WriteClientStreamAsync<TState>(Func<GrpcCall<TRequest, TResponse>, Stream, CallOptions, TState, Task> writeFunc, TState state, CancellationToken cancellationTokens)
     {
         throw new NotSupportedException();
     }
