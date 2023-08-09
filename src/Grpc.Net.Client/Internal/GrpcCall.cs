@@ -19,17 +19,13 @@
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
+using System.Runtime.ExceptionServices;
 using Grpc.Core;
 using Grpc.Net.Client.Internal.Http;
 using Grpc.Shared;
 using Microsoft.Extensions.Logging;
-using System.Runtime.ExceptionServices;
 #if SUPPORT_LOAD_BALANCING
 using Grpc.Net.Client.Balancer.Internal;
-#endif
-
-#if NETSTANDARD2_0 || NET462
-using ValueTask = System.Threading.Tasks.Task;
 #endif
 
 namespace Grpc.Net.Client.Internal;
@@ -129,7 +125,7 @@ internal sealed partial class GrpcCall<TRequest, TResponse> : GrpcCall, IGrpcCal
             ? new PushUnaryContent<TRequest, TResponse>(request, WriteAsync)
             : new WinHttpUnaryContent<TRequest, TResponse>(request, WriteAsync, this);
 
-        ValueTask WriteAsync(TRequest request, Stream stream)
+        Task WriteAsync(TRequest request, Stream stream)
         {
             return WriteMessageAsync(stream, request, Options);
         }
@@ -1091,7 +1087,7 @@ internal sealed partial class GrpcCall<TRequest, TResponse> : GrpcCall, IGrpcCal
         CancelCall(new Status(StatusCode.DeadlineExceeded, string.Empty));
     }
 
-    internal ValueTask WriteMessageAsync(
+    internal Task WriteMessageAsync(
         Stream stream,
         ReadOnlyMemory<byte> message,
         CancellationToken cancellationToken)
@@ -1103,7 +1099,7 @@ internal sealed partial class GrpcCall<TRequest, TResponse> : GrpcCall, IGrpcCal
             cancellationToken);
     }
 
-    internal ValueTask WriteMessageAsync(
+    internal Task WriteMessageAsync(
         Stream stream,
         TRequest message,
         CallOptions callOptions)
@@ -1140,7 +1136,7 @@ internal sealed partial class GrpcCall<TRequest, TResponse> : GrpcCall, IGrpcCal
         return message;
     }
 
-    public Task WriteClientStreamAsync<TState>(Func<GrpcCall<TRequest, TResponse>, Stream, CallOptions, TState, ValueTask> writeFunc, TState state, CancellationToken cancellationToken)
+    public Task WriteClientStreamAsync<TState>(Func<GrpcCall<TRequest, TResponse>, Stream, CallOptions, TState, Task> writeFunc, TState state, CancellationToken cancellationToken)
     {
         return ClientStreamWriter!.WriteAsync(writeFunc, state, cancellationToken);
     }
