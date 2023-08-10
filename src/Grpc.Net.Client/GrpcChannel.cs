@@ -185,7 +185,15 @@ public sealed class GrpcChannel : ChannelBase, IDisposable
             Log.AddressPathUnused(Logger, Address.OriginalString);
         }
 
-        // Validate the Windows version can support WinHttpHandler.
+        // Grpc.Net.Client + .NET Framework + WinHttpHandler requires features in WinHTTP, shipped in Windows, to work correctly.
+        // This scenario is supported in these versions of Windows or later:
+        // -Windows Server 2022 has partial support.
+        //    -Unary and server streaming methods are supported.
+        //    -Client and bidi streaming methods aren't supported.
+        // -Windows 11 has full support.
+        //
+        // GrpcChannel validates the Windows version is WinServer2022 or later. Win11 version number is greater than WinServer2022.
+        // Note that this doesn't block using unsupported client and bidi streaming methods on WinServer2022.
         const int WinServer2022BuildVersion = 20348;
         if (HttpHandlerType == HttpHandlerType.WinHttpHandler &&
             OperatingSystem.IsWindows &&
