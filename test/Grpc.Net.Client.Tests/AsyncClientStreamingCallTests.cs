@@ -24,6 +24,7 @@ using Grpc.Net.Client.Internal;
 using Grpc.Net.Client.Internal.Http;
 using Grpc.Net.Client.Tests.Infrastructure;
 using Grpc.Tests.Shared;
+using Microsoft.Extensions.Logging.Testing;
 using NUnit.Framework;
 
 namespace Grpc.Net.Client.Tests;
@@ -158,6 +159,49 @@ public class AsyncClientStreamingCallTests
         var ex = await ExceptionAssert.ThrowsAsync<InvalidOperationException>(() => writeTask2).DefaultTimeout();
 
         Assert.AreEqual("Can't write the message because the previous write is in progress.", ex.Message);
+    }
+
+    [Test]
+    public async Task ClientStreamWriter_DisposeWhilePendingWrite_NoReadMessageError()
+    {
+        // Arrange
+        var testSink = new TestSink();
+        var loggerFactory = new TestLoggerFactory(testSink, true);
+        PushStreamContent<HelloRequest, HelloReply>? content = null;
+
+        var responseTcs = new TaskCompletionSource<HttpResponseMessage>(TaskCreationOptions.RunContinuationsAsynchronously);
+        var httpClient = ClientTestHelpers.CreateTestClient(request =>
+        {
+            content = (PushStreamContent<HelloRequest, HelloReply>)request.Content!;
+            return responseTcs.Task;
+        });
+        var invoker = HttpClientCallInvokerFactory.Create(httpClient, loggerFactory: loggerFactory);
+
+        // Act
+        var call = invoker.AsyncClientStreamingCall<HelloRequest, HelloReply>(ClientTestHelpers.ServiceMethod, string.Empty, new CallOptions());
+
+        // Assert
+        var writeTask1 = call.RequestStream.WriteAsync(new HelloRequest { Name = "1" });
+
+        var writeSyncPoint = new SyncPoint(runContinuationsAsynchronously: true);
+        var testStream = new TestStream(writeSyncPoint);
+        var serializeToStreamTask = content!.SerializeToStreamAsync(testStream);
+
+        Assert.IsFalse(writeTask1.IsCompleted);
+        await writeSyncPoint.WaitForSyncPoint().DefaultTimeout();
+
+        call.Dispose();
+        writeSyncPoint.Continue();
+
+        var ex1 = await ExceptionAssert.ThrowsAsync<RpcException>(() => call.ResponseAsync).DefaultTimeout();
+        Assert.AreEqual(StatusCode.Cancelled, ex1.StatusCode);
+        Assert.AreEqual(StatusCode.Cancelled, call.GetStatus().StatusCode);
+        Assert.AreEqual("gRPC call disposed.", call.GetStatus().Detail);
+
+        var ex2 = await ExceptionAssert.ThrowsAsync<RpcException>(() => writeTask1).DefaultTimeout();
+        Assert.AreEqual(StatusCode.Cancelled, ex2.StatusCode);
+
+        Assert.IsFalse(testSink.Writes.Any(w => w.EventId.Name == "ErrorSendingMessage"), "ErrorSendingMessage shouldn't be logged on dispose.");
     }
 
     [Test]

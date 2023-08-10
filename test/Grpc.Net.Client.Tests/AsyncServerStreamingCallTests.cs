@@ -1,4 +1,4 @@
-﻿#region Copyright notice and license
+#region Copyright notice and license
 
 // Copyright 2019 The gRPC Authors
 //
@@ -23,6 +23,7 @@ using Grpc.Net.Client.Internal;
 using Grpc.Net.Client.Tests.Infrastructure;
 using Grpc.Shared;
 using Grpc.Tests.Shared;
+using Microsoft.Extensions.Logging.Testing;
 using NUnit.Framework;
 
 namespace Grpc.Net.Client.Tests;
@@ -275,6 +276,42 @@ public class AsyncServerStreamingCallTests
         Assert.AreEqual(StatusCode.Cancelled, ex.StatusCode);
         Assert.AreEqual(StatusCode.Cancelled, call.GetStatus().StatusCode);
         Assert.AreEqual("gRPC call disposed.", call.GetStatus().Detail);
+    }
+
+    [Test]
+    public async Task AsyncServerStreamingCall_DisposeDuringPendingRead_NoReadMessageError()
+    {
+        // Arrange
+        var testSink = new TestSink();
+        var loggerFactory = new TestLoggerFactory(testSink, true);
+
+        var streamContent = new SyncPointMemoryStream();
+
+        var httpClient = ClientTestHelpers.CreateTestClient(request =>
+        {
+            return Task.FromResult(ResponseUtils.CreateResponse(HttpStatusCode.OK, new StreamContent(streamContent)));
+        });
+        var invoker = HttpClientCallInvokerFactory.Create(httpClient, loggerFactory: loggerFactory);
+
+        // Act
+        var call = invoker.AsyncServerStreamingCall<HelloRequest, HelloReply>(ClientTestHelpers.ServiceMethod, string.Empty, new CallOptions(), new HelloRequest());
+
+        var responseStream = call.ResponseStream;
+
+        // Assert
+        Assert.IsNull(responseStream.Current);
+
+        var moveNextTask1 = responseStream.MoveNext(CancellationToken.None);
+        Assert.IsFalse(moveNextTask1.IsCompleted);
+
+        call.Dispose();
+
+        var ex = await ExceptionAssert.ThrowsAsync<RpcException>(() => moveNextTask1).DefaultTimeout();
+        Assert.AreEqual(StatusCode.Cancelled, ex.StatusCode);
+        Assert.AreEqual(StatusCode.Cancelled, call.GetStatus().StatusCode);
+        Assert.AreEqual("gRPC call disposed.", call.GetStatus().Detail);
+
+        Assert.IsFalse(testSink.Writes.Any(w => w.EventId.Name == "ErrorReadingMessage"), "ErrorReadingMessage shouldn't be logged on dispose.");
     }
 
     [Test]
