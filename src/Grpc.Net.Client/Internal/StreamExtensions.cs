@@ -313,7 +313,11 @@ internal static partial class StreamExtensions
         }
         catch (Exception ex)
         {
-            GrpcCallLog.ErrorSendingMessage(call.Logger, ex);
+            if (!IsCancellationException(ex))
+            {
+                // Don't write error when user cancels write
+                GrpcCallLog.ErrorSendingMessage(call.Logger, ex);
+            }
 
             if (TryCreateCallCompleteException(ex, call, out var statusException))
             {
@@ -346,7 +350,11 @@ internal static partial class StreamExtensions
         }
         catch (Exception ex)
         {
-            GrpcCallLog.ErrorSendingMessage(call.Logger, ex);
+            if (!IsCancellationException(ex))
+            {
+                // Don't write error when user cancels write
+                GrpcCallLog.ErrorSendingMessage(call.Logger, ex);
+            }
 
             if (TryCreateCallCompleteException(ex, call, out var statusException))
             {
@@ -357,6 +365,8 @@ internal static partial class StreamExtensions
         }
     }
 
+    private static bool IsCancellationException(Exception ex) => ex is OperationCanceledException or ObjectDisposedException;
+
     private static bool TryCreateCallCompleteException(Exception originalException, GrpcCall call, [NotNullWhen(true)] out Exception? exception)
     {
         // The call may have been completed while WriteAsync was running and caused WriteAsync to throw.
@@ -365,7 +375,7 @@ internal static partial class StreamExtensions
         // Replace exception with the status error if:
         // 1. The original exception is one Stream.WriteAsync throws if the call was completed during a write, and
         // 2. The call has already been successfully completed.
-        if (originalException is OperationCanceledException or ObjectDisposedException &&
+        if (IsCancellationException(originalException) &&
             call.CallTask.IsCompletedSuccessfully())
         {
             exception = call.CreateFailureStatusException(call.CallTask.Result);
