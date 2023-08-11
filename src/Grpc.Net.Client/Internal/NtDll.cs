@@ -22,6 +22,9 @@ using System.Runtime.InteropServices;
 
 namespace Grpc.Net.Client.Internal;
 
+/// <summary>
+/// Types for calling RtlGetVersion. See https://www.pinvoke.net/default.aspx/ntdll/RtlGetVersion.html
+/// </summary>
 internal static class NtDll
 {
     [DllImport("ntdll.dll", SetLastError = true, CharSet = CharSet.Unicode)]
