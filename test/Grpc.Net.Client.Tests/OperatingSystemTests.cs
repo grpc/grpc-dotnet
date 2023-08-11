@@ -16,6 +16,8 @@
 
 #endregion
 
+using System.Runtime.InteropServices;
+using Grpc.Net.Client.Internal;
 using NUnit.Framework;
 using OperatingSystem = Grpc.Net.Client.Internal.OperatingSystem;
 
@@ -23,6 +25,17 @@ namespace Grpc.Net.Client.Tests;
 
 public class OperatingSystemTests
 {
+#if !NET5_0_OR_GREATER
+    [Test]
+    public void DetectWindowsVersion_Windows_MatchesEnvironment()
+    {
+        if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+        {
+            Assert.AreEqual(Environment.OSVersion.Version, NtDll.DetectWindowsVersion());
+        }
+    }
+#endif
+
 #if NET5_0_OR_GREATER
     [Test]
     public void OSVersion_ModernDotNet_MatchesEnvironment()
