@@ -29,19 +29,19 @@ public class OperatingSystemTests
     [Test]
     public void DetectWindowsVersion_Windows_MatchesEnvironment()
     {
+        // Test only works on Windows where ntdll.dll is present.
         if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
         {
+            // It is safe to compare Environment.OSVersion.Version on netfx because tests have no compatibilty setting.
             Assert.AreEqual(Environment.OSVersion.Version, NtDll.DetectWindowsVersion());
         }
     }
 #endif
 
-#if NET5_0_OR_GREATER
     [Test]
     public void OSVersion_ModernDotNet_MatchesEnvironment()
     {
-        // Environment.OSVersion and OperatingSystem.OSVersion should match in .NET 5 and greater.
+        // It is safe to compare Environment.OSVersion.Version on netfx because tests have no compatibilty setting.
         Assert.AreEqual(Environment.OSVersion.Version, OperatingSystem.Instance.OSVersion);
     }
-#endif
 }
