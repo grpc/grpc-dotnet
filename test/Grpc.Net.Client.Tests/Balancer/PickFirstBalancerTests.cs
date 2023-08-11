@@ -58,7 +58,7 @@ public class PickFirstBalancerTests
         services.AddSingleton<ResolverFactory>(new TestResolverFactory(resolver));
         services.AddSingleton<ISubchannelTransportFactory>(new TestSubchannelTransportFactory());
         var serviceProvider = services.BuildServiceProvider();
-        var logger = serviceProvider.GetRequiredService<ILoggerProvider>().CreateLogger(GetType().FullName);
+        var logger = serviceProvider.GetRequiredService<ILoggerProvider>().CreateLogger(GetType().FullName!);
 
         var handler = new TestHttpMessageHandler((r, ct) => default!);
         var channelOptions = new GrpcChannelOptions
@@ -163,7 +163,7 @@ public class PickFirstBalancerTests
         services.AddSingleton<ResolverFactory>(new TestResolverFactory(resolver));
         services.AddSingleton<ISubchannelTransportFactory>(transportFactory);
         var serviceProvider = services.BuildServiceProvider();
-        var logger = serviceProvider.GetRequiredService<ILoggerProvider>().CreateLogger(GetType().FullName);
+        var logger = serviceProvider.GetRequiredService<ILoggerProvider>().CreateLogger(GetType().FullName!);
 
         var handler = new TestHttpMessageHandler((r, ct) => default!);
         var channelOptions = new GrpcChannelOptions
@@ -375,7 +375,7 @@ public class PickFirstBalancerTests
         services.AddSingleton<ResolverFactory>(new TestResolverFactory(resolver));
         services.AddSingleton<ISubchannelTransportFactory>(transportFactory);
         var serviceProvider = services.BuildServiceProvider();
-        var logger = serviceProvider.GetRequiredService<ILoggerProvider>().CreateLogger(GetType().FullName);
+        var logger = serviceProvider.GetRequiredService<ILoggerProvider>().CreateLogger(GetType().FullName!);
 
         var handler = new TestHttpMessageHandler((r, ct) => default!);
         var channelOptions = new GrpcChannelOptions
@@ -433,7 +433,7 @@ public class PickFirstBalancerTests
         {
             transportConnectCount++;
 
-            logger.LogInformation("Connect count: " + transportConnectCount);
+            logger!.LogInformation("Connect count: " + transportConnectCount);
             if (transportConnectCount == 2)
             {
                 tcs.SetResult(null);
@@ -495,7 +495,7 @@ public class PickFirstBalancerTests
         {
             transportConnectCount++;
 
-            logger.LogInformation("Connect count: " + transportConnectCount);
+            logger!.LogInformation("Connect count: " + transportConnectCount);
             if (transportConnectCount == 2)
             {
                 tcs.SetResult(null);

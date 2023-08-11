@@ -220,7 +220,7 @@ public class RoundRobinBalancerTests
 
         var transportFactory = new TestSubchannelTransportFactory((s, c) =>
         {
-            logger.LogInformation($"Transport factory returning state: {connectState}");
+            logger!.LogInformation($"Transport factory returning state: {connectState}");
             return Task.FromResult(new TryConnectResult(connectState));
         });
         services.AddSingleton<TestResolver>(s =>
@@ -229,10 +229,10 @@ public class RoundRobinBalancerTests
                 s.GetRequiredService<ILoggerFactory>(),
                 async () =>
                 {
-                    logger.LogInformation("Resolver waiting to continue.");
+                    logger!.LogInformation("Resolver waiting to continue.");
                     await syncPoint.WaitToContinue().DefaultTimeout();
 
-                    logger.LogInformation("Resolver creating new sync point.");
+                    logger!.LogInformation("Resolver creating new sync point.");
                     syncPoint = new SyncPoint(runContinuationsAsynchronously: true);
                 });
         });
