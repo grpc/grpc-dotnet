@@ -23,7 +23,7 @@ using Grpc.Net.Client.Tests.Infrastructure;
 using Grpc.Tests.Shared;
 using NUnit.Framework;
 
-#if !NET472
+#if !NET462
 
 namespace Grpc.Net.Client.Tests;
 

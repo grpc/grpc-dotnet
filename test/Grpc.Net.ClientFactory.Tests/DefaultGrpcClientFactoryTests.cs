@@ -167,7 +167,7 @@ public class DefaultGrpcClientFactoryTests
         Assert.AreEqual("The ConfigureHttpClient method is not supported when creating gRPC clients. Unable to create client with name 'TestGreeterClient'.", ex.Message);
     }
 
-#if NET472
+#if NET462
     [Test]
     public void CreateClient_NoPrimaryHandlerNetStandard_ThrowError()
     {

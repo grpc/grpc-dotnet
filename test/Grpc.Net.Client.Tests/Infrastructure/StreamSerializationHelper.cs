@@ -46,7 +46,7 @@ internal static class StreamSerializationHelper
 
         var task = responseStream.ReadMessageAsync(tempCall, deserializer, grpcEncoding, singleMessage, cancellationToken);
 
-#if !NET472
+#if !NET462
         return task.AsTask();
 #else
         return task;

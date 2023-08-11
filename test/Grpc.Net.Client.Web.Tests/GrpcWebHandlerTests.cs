@@ -217,7 +217,7 @@ public class GrpcWebHandlerTests
         Assert.AreEqual("0", trailingHeaders.GetValues("grpc-status").Single());
     }
 
-#if NET472
+#if NET462
     [Test]
     public async Task HttpVersion_UnsetOnNetFramework_HttpRequestMessageVersion11()
     {

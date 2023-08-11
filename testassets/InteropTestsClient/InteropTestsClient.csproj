@@ -2,7 +2,7 @@
 
   <PropertyGroup>
     <OutputType>Exe</OutputType>
-    <TargetFrameworks Condition="'$(LatestFramework)'!='true'">net8.0;net7.0;net6.0;net472</TargetFrameworks>
+    <TargetFrameworks Condition="'$(LatestFramework)'!='true'">net8.0;net7.0;net6.0;net462</TargetFrameworks>
     <TargetFrameworks Condition="'$(LatestFramework)'=='true'">net8.0</TargetFrameworks>
   </PropertyGroup>
 

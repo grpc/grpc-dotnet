@@ -128,7 +128,7 @@ public class Base64RequestStreamTests
 
     private static Task WriteAsync(Stream stream, Memory<byte> data, CancellationToken cancellationToken = default)
     {
-#if NET472
+#if NET462
         var success = MemoryMarshal.TryGetArray<byte>(data, out var segment);
         Debug.Assert(success);
         return stream.WriteAsync(segment.Array, segment.Offset, segment.Count, cancellationToken);

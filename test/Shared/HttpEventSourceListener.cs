@@ -94,7 +94,7 @@ public abstract class EventSourceListenerBase : EventListener
             _messageBuilder.Append(" - ");
             _messageBuilder.Append(eventData.EventName);
             _messageBuilder.Append(" : ");
-#if !NET472
+#if !NET462
             _messageBuilder.AppendJoin(',', eventData.Payload!);
 #else
             _messageBuilder.Append(string.Join(",", eventData.Payload!.ToArray()));

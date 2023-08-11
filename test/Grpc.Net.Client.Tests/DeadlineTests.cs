@@ -466,7 +466,7 @@ public class DeadlineTests
         Assert.AreEqual("Deadline timer triggered but 00:00:00.2000000 remaining before deadline exceeded. Deadline timer rescheduled.", write.Message);
     }
 
-#if !NET472
+#if !NET462
     [Test]
     public async Task AsyncUnaryCall_ServerResetsCancelCodeBeforeDeadline_CancelStatus()
     {
