@@ -26,7 +26,7 @@ public class OperatingSystemTests
 {
 #if !NET5_0_OR_GREATER
     [Test]
-    [Platform("Windows", Reason = "Only runs on Windows where ntdll.dll is present.")]
+    [Platform("Win", Reason = "Only runs on Windows where ntdll.dll is present.")]
     public void DetectWindowsVersion_Windows_MatchesEnvironment()
     {
         // It is safe to compare Environment.OSVersion.Version on netfx because tests have no compatibilty setting.
