@@ -16,7 +16,6 @@
 
 #endregion
 
-using System.Runtime.InteropServices;
 using Grpc.Net.Client.Internal;
 using NUnit.Framework;
 using OperatingSystem = Grpc.Net.Client.Internal.OperatingSystem;
@@ -27,14 +26,11 @@ public class OperatingSystemTests
 {
 #if !NET5_0_OR_GREATER
     [Test]
+    [Platform("Windows", Reason = "Only runs on Windows where ntdll.dll is present.")]
     public void DetectWindowsVersion_Windows_MatchesEnvironment()
     {
-        // Test only works on Windows where ntdll.dll is present.
-        if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
-        {
-            // It is safe to compare Environment.OSVersion.Version on netfx because tests have no compatibilty setting.
-            Assert.AreEqual(Environment.OSVersion.Version, NtDll.DetectWindowsVersion());
-        }
+        // It is safe to compare Environment.OSVersion.Version on netfx because tests have no compatibilty setting.
+        Assert.AreEqual(Environment.OSVersion.Version, NtDll.DetectWindowsVersion());
     }
 #endif
 
