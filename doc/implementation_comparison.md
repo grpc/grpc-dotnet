@@ -168,7 +168,7 @@ https://github.com/grpc/grpc/blob/master/doc/keepalive.md
 
 Grpc.Core: supported, provided by C-core
 
-grpc-dotnet: supported
+grpc-dotnet: Supported on .NET 5 or later
 
 https://github.com/grpc/grpc/blob/master/doc/wait-for-ready.md
 
