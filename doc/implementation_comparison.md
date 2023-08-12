@@ -144,7 +144,7 @@ https://github.com/grpc/grpc/blob/master/doc/compression_cookbook.md
 
 Grpc.Core: supported (exposed publicly on Channel), provided by C-Core
 
-grpc-dotnet: supported
+grpc-dotnet: Supported on .NET 5 or later
 
 https://github.com/grpc/grpc/blob/master/doc/connectivity-semantics-and-api.md
 
