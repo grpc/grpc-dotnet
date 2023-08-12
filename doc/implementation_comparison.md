@@ -93,7 +93,7 @@ Both implementations fully support gRPC over HTTP/2 in both TLS and plaintext.
 
 Grpc.Core gets support for other transports supported by C-Core for free. Some (minor) integration work might be required to actually use these transports with gRPC C#.
 
-grpc-dotnet [supports interprocess communication (IPC)](https://learn.microsoft.com/aspnet/core/grpc/interprocess) using named pipes and Unix domain sockets.
+grpc-dotnet supports other transports in .NET 5 or later. For example, grpc-dotnet [supports interprocess communication (IPC)](https://learn.microsoft.com/aspnet/core/grpc/interprocess) using named pipes and Unix domain sockets.
 
 Notes:
 
