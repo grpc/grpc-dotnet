@@ -234,6 +234,6 @@ gRPC can still be used to call services.
 
 grpc-dotnet supports the [gRPC-Web protocol](https://github.com/grpc/grpc/blob/master/doc/PROTOCOL-WEB.md).
 
-gRPC-Web allows browser JavaScript and Blazor apps to call gRPC services. It's not possible to call an HTTP/2 gRPC service from a browser-based app. gRPC services hosted in ASP.NET Core can be configured to support gRPC-Web alongside HTTP/2 gRPC.
+gRPC-Web allows browser JavaScript and Blazor apps to call gRPC services. It's not possible to call a gRPC service over HTTP/2 from a browser-based app. gRPC services hosted in ASP.NET Core can be configured to support gRPC-Web alongside gRPC over HTTP/2.
 
 https://learn.microsoft.com/aspnet/core/grpc/grpcweb
