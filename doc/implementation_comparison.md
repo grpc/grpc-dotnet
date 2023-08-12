@@ -176,7 +176,7 @@ https://github.com/grpc/grpc/blob/master/doc/wait-for-ready.md
 
 Grpc.Core: conforms with the spec thanks to the C-core dependency. It is currently not possible to provide custom C# resolvers via resolver API (the APIs are in C core and aren't exposed in the C# layer).
 
-grpc-dotnet: Resolving is fully supported, and also provides an [API to write custom resolvers](https://learn.microsoft.com/aspnet/core/grpc/loadbalancingwrite-custom-resolvers-and-load-balancers).
+grpc-dotnet: Resolving is fully supported on .NET 5 or later. grpc-dotnet also provides an [API to write custom resolvers](https://learn.microsoft.com/aspnet/core/grpc/loadbalancingwrite-custom-resolvers-and-load-balancers).
 
 https://github.com/grpc/grpc/blob/master/doc/naming.md
 
