@@ -27,7 +27,7 @@ Here are some key points in which the two implementation differ:
 
 Grpc.Core supports a wide range of .NET versions, including some very old ones. A more detailed overview is [here]( https://github.com/grpc/grpc/tree/master/src/csharp#supported-platforms)
 
-grpc-dotnet is design for modern .NET versions. A detailed summary of .NET versions supported by grpc-dotnet is [here](https://docs.microsoft.com/aspnet/core/grpc/supported-platforms). There is limited support for [grpc-dotnet client support on
+grpc-dotnet uses features only available in modern .NET releases. It doesn't support some older versions of .NET. A detailed summary of .NET versions supported by grpc-dotnet is [here](https://docs.microsoft.com/aspnet/core/grpc/supported-platforms). There is limited support for [grpc-dotnet client support on
 legacy .NET Framework](https://docs.microsoft.com/aspnet/core/grpc/netstandard).
 
 ## Comparison of supported features 
