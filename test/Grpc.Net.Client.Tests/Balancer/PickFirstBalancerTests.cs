@@ -425,7 +425,7 @@ public class PickFirstBalancerTests
         var resolver = new TestResolver();
         resolver.UpdateAddresses(new List<BalancerAddress> { new BalancerAddress("localhost", 80) });
 
-        ILogger? logger = null;
+        ILogger logger = null!;
 
         var tcs = new TaskCompletionSource<object?>(TaskCreationOptions.RunContinuationsAsynchronously);
         var transportConnectCount = 0;
@@ -433,7 +433,7 @@ public class PickFirstBalancerTests
         {
             transportConnectCount++;
 
-            logger!.LogInformation("Connect count: " + transportConnectCount);
+            logger.LogInformation("Connect count: " + transportConnectCount);
             if (transportConnectCount == 2)
             {
                 tcs.SetResult(null);
@@ -487,7 +487,7 @@ public class PickFirstBalancerTests
         var resolver = new TestResolver();
         resolver.UpdateAddresses(new List<BalancerAddress> { new BalancerAddress("localhost", 80) });
 
-        ILogger? logger = null;
+        ILogger logger = null!;
 
         var tcs = new TaskCompletionSource<object?>(TaskCreationOptions.RunContinuationsAsynchronously);
         var transportConnectCount = 0;
@@ -495,7 +495,7 @@ public class PickFirstBalancerTests
         {
             transportConnectCount++;
 
-            logger!.LogInformation("Connect count: " + transportConnectCount);
+            logger.LogInformation("Connect count: " + transportConnectCount);
             if (transportConnectCount == 2)
             {
                 tcs.SetResult(null);
