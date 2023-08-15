@@ -811,14 +811,17 @@ internal sealed partial class GrpcCall<TRequest, TResponse> : GrpcCall, IGrpcCal
         // 1. Diagnostic source is enabled
         // 2. Logging is enabled
         // 3. There is an existing activity (to enable activity propagation)
-        if (diagnosticSourceEnabled || Logger.IsEnabled(LogLevel.Critical) || Activity.Current != null)
+        // 4. ActivitySource has listeners
+        if (diagnosticSourceEnabled || Logger.IsEnabled(LogLevel.Critical) || Activity.Current != null || GrpcDiagnostics.ActivitySource.HasListeners())
         {
-            activity = GrpcDiagnostics.ActivitySource.CreateActivity(GrpcDiagnostics.ActivityName, ActivityKind.Internal);
-            if (activity != null)
-            {
-                activity.AddTag(GrpcDiagnostics.GrpcMethodTagName, Method.FullName);
-                activity.Start();
-            }
+            activity = GrpcDiagnostics.ActivitySource.CreateActivity(GrpcDiagnostics.ActivityName, ActivityKind.Client);
+
+            // ActivitySource only returns an activity if someone is listening.
+            // We always want there to be an activity so fallback to creating the activity manually.
+            activity ??= new Activity(GrpcDiagnostics.ActivityName);
+
+            activity.AddTag(GrpcDiagnostics.GrpcMethodTagName, Method.FullName);
+            activity.Start();
 
             if (diagnosticSourceEnabled)
             {
@@ -897,10 +900,6 @@ internal sealed partial class GrpcCall<TRequest, TResponse> : GrpcCall, IGrpcCal
             }
 
             activity.Stop();
-        }
-        else if (diagnosticSourceEnabled)
-        {
-            WriteDiagnosticEvent(GrpcDiagnostics.DiagnosticListener, GrpcDiagnostics.ActivityStopKey, new ActivityStopData(HttpResponse, request));
         }
 
         return true;

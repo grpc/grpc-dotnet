@@ -164,11 +164,47 @@ public class DiagnosticsTests
         };
 
         // Act
-        using (var activityListener = new ActivityListener())
         using (GrpcDiagnostics.DiagnosticListener.Subscribe(new ActionObserver<KeyValuePair<string, object?>>(onDiagnosticMessage)))
+        {
+            var c = invoker.AsyncDuplexStreamingCall<HelloRequest, HelloReply>(ClientTestHelpers.ServiceMethod, string.Empty, new CallOptions());
+            c.Dispose();
+        }
+
+        // Assert
+        Assert.AreEqual(GrpcDiagnostics.ActivityName, activityName);
+        Assert.IsNotNull(activityDurationOnStop);
+        Assert.AreNotEqual(TimeSpan.Zero, activityDurationOnStop);
+    }
+
+    [Test]
+    public void DiagnosticsSource_MakeCall_ActivityHasNameAndDuration()
+    {
+        // Arrange
+        var httpClient = ClientTestHelpers.CreateTestClient(async request =>
+        {
+            var streamContent = await ClientTestHelpers.CreateResponseContent(new HelloReply()).DefaultTimeout();
+            var responseMessage = ResponseUtils.CreateResponse(HttpStatusCode.OK, streamContent, grpcStatusCode: StatusCode.Aborted);
+            responseMessage.TrailingHeaders().Add(GrpcProtocolConstants.MessageTrailer, "value");
+            return responseMessage;
+        });
+        var invoker = HttpClientCallInvokerFactory.Create(httpClient);
+
+        string? activityName = null;
+        TimeSpan? activityDurationOnStop = null;
+
+        // Act
+        using (var activityListener = new ActivityListener())
         {
             activityListener.ShouldListenTo = activitySource => activitySource == GrpcDiagnostics.ActivitySource;
             activityListener.Sample = (ref ActivityCreationOptions<ActivityContext> _) => ActivitySamplingResult.AllData;
+            activityListener.ActivityStarted = activity =>
+            {
+                activityName = activity.OperationName;
+            };
+            activityListener.ActivityStopped = activity =>
+            {
+                activityDurationOnStop = activity.Duration;
+            };
 
             ActivitySource.AddActivityListener(activityListener);
 
