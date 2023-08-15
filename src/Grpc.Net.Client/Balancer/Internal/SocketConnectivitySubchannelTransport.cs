@@ -17,17 +17,9 @@
 #endregion
 
 #if SUPPORT_LOAD_BALANCING
-using System;
-using System.Buffers;
-using System.Collections.Generic;
 using System.Diagnostics;
-using System.IO;
-using System.Linq;
 using System.Net;
-using System.Net.Http;
 using System.Net.Sockets;
-using System.Threading;
-using System.Threading.Tasks;
 using Grpc.Core;
 using Grpc.Shared;
 using Microsoft.Extensions.Logging;

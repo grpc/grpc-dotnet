@@ -813,9 +813,12 @@ internal sealed partial class GrpcCall<TRequest, TResponse> : GrpcCall, IGrpcCal
         // 3. There is an existing activity (to enable activity propagation)
         if (diagnosticSourceEnabled || Logger.IsEnabled(LogLevel.Critical) || Activity.Current != null)
         {
-            activity = new Activity(GrpcDiagnostics.ActivityName);
-            activity.AddTag(GrpcDiagnostics.GrpcMethodTagName, Method.FullName);
-            activity.Start();
+            activity = GrpcDiagnostics.ActivitySource.CreateActivity(GrpcDiagnostics.ActivityName, ActivityKind.Internal);
+            if (activity != null)
+            {
+                activity.AddTag(GrpcDiagnostics.GrpcMethodTagName, Method.FullName);
+                activity.Start();
+            }
 
             if (diagnosticSourceEnabled)
             {
