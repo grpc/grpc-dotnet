@@ -898,6 +898,10 @@ internal sealed partial class GrpcCall<TRequest, TResponse> : GrpcCall, IGrpcCal
 
             activity.Stop();
         }
+        else if (diagnosticSourceEnabled)
+        {
+            WriteDiagnosticEvent(GrpcDiagnostics.DiagnosticListener, GrpcDiagnostics.ActivityStopKey, new ActivityStopData(HttpResponse, request));
+        }
 
         return true;
     }

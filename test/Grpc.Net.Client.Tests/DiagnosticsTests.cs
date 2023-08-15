@@ -164,8 +164,14 @@ public class DiagnosticsTests
         };
 
         // Act
+        using (var activityListener = new ActivityListener())
         using (GrpcDiagnostics.DiagnosticListener.Subscribe(new ActionObserver<KeyValuePair<string, object?>>(onDiagnosticMessage)))
         {
+            activityListener.ShouldListenTo = activitySource => activitySource == GrpcDiagnostics.ActivitySource;
+            activityListener.Sample = (ref ActivityCreationOptions<ActivityContext> _) => ActivitySamplingResult.AllData;
+
+            ActivitySource.AddActivityListener(activityListener);
+
             var c = invoker.AsyncDuplexStreamingCall<HelloRequest, HelloReply>(ClientTestHelpers.ServiceMethod, string.Empty, new CallOptions());
             c.Dispose();
         }
