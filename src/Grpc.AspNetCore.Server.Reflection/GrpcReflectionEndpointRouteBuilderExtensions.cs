@@ -1,4 +1,4 @@
-﻿#region Copyright notice and license
+#region Copyright notice and license
 
 // Copyright 2019 The gRPC Authors
 //
@@ -17,6 +17,7 @@
 #endregion
 
 using Grpc.Reflection;
+using Grpc.Shared;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -35,10 +36,7 @@ public static class GrpcReflectionEndpointRouteBuilderExtensions
     /// <returns>An <see cref="IEndpointConventionBuilder"/> for endpoints associated with the service.</returns>
     public static IEndpointConventionBuilder MapGrpcReflectionService(this IEndpointRouteBuilder builder)
     {
-        if (builder == null)
-        {
-            throw new ArgumentNullException(nameof(builder));
-        }
+        ArgumentNullThrowHelper.ThrowIfNull(builder);
 
         ValidateServicesRegistered(builder.ServiceProvider);
 

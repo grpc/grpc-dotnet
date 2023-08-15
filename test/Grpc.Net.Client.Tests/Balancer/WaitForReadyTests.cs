@@ -1,4 +1,4 @@
-﻿#region Copyright notice and license
+#region Copyright notice and license
 
 // Copyright 2019 The gRPC Authors
 //
@@ -18,7 +18,6 @@
 
 #if SUPPORT_LOAD_BALANCING
 using System;
-using System.Net.Http;
 using System.Threading;
 using System.Threading.Tasks;
 using Greet;

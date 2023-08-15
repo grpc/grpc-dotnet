@@ -396,7 +396,7 @@ public class AsyncClientStreamingCallTests
             throw new NotImplementedException();
         }
 
-#if !NET472_OR_GREATER
+#if !NET462_OR_GREATER
         public override async ValueTask WriteAsync(ReadOnlyMemory<byte> buffer, CancellationToken cancellationToken = default)
         {
             await _writeSyncPoint.WaitToContinue();

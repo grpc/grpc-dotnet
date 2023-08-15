@@ -19,14 +19,14 @@
 using Greet;
 using Grpc.Core;
 using Grpc.Net.Client.Configuration;
+using Grpc.Net.Client.Internal;
 using Grpc.Net.Client.Tests.Infrastructure;
+using Grpc.Net.Client.Web;
 using Grpc.Tests.Shared;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Testing;
 using NUnit.Framework;
-using Grpc.Net.Client.Internal;
-using Grpc.Net.Client.Web;
 #if SUPPORT_LOAD_BALANCING
 using Grpc.Net.Client.Balancer;
 using Grpc.Net.Client.Balancer.Internal;
@@ -189,7 +189,7 @@ public class GrpcChannelTests
     private static GrpcChannelOptions CreateGrpcChannelOptions(Action<GrpcChannelOptions>? func = null)
     {
         var o = new GrpcChannelOptions();
-#if NET472
+#if NET462
         // An error is thrown if no handler is specified by .NET Standard 2.0 target.
         o.HttpHandler = new NullHttpHandler();
 #endif
@@ -312,7 +312,7 @@ public class GrpcChannelTests
 
         // Assert
         Assert.NotNull(channel);
-#if NET472
+#if NET462
         Assert.AreEqual(HttpHandlerType.WinHttpHandler, channel.HttpHandlerType);
 #else
         Assert.AreEqual(HttpHandlerType.SocketsHttpHandler, channel.HttpHandlerType);
@@ -351,7 +351,7 @@ public class GrpcChannelTests
         Assert.IsFalse(channel.Disposed);
     }
 
-#if !NET472
+#if !NET462
     [Test]
     public void Dispose_Called_Disposed()
     {

@@ -1,4 +1,4 @@
-﻿#region Copyright notice and license
+#region Copyright notice and license
 
 // Copyright 2019 The gRPC Authors
 //
@@ -19,6 +19,7 @@
 using System.Collections.Concurrent;
 using Grpc.Core;
 using Grpc.Net.Client;
+using Grpc.Shared;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Http;
 using Microsoft.Extensions.Logging;
@@ -46,10 +47,7 @@ internal class GrpcCallInvokerFactory
         IOptionsMonitor<HttpClientFactoryOptions> httpClientFactoryOptionsMonitor,
         IHttpMessageHandlerFactory messageHandlerFactory)
     {
-        if (loggerFactory == null)
-        {
-            throw new ArgumentNullException(nameof(loggerFactory));
-        }
+        ArgumentNullThrowHelper.ThrowIfNull(loggerFactory);
 
         _loggerFactory = loggerFactory;
         _grpcClientFactoryOptionsMonitor = grpcClientFactoryOptionsMonitor;

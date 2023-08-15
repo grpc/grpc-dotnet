@@ -1,4 +1,4 @@
-﻿#region Copyright notice and license
+#region Copyright notice and license
 
 // Copyright 2019 The gRPC Authors
 //
@@ -48,7 +48,7 @@ public class DynamicGrpcServiceRegistry
 
         AddServiceCore(c =>
         {
-            c.AddUnaryMethod(method, new List<object>(), new UnaryServerMethod<DynamicService, TRequest, TResponse>((service, request, context) => callHandler(request, context)));
+            c.AddUnaryMethod(method, CreateMetadata(), new UnaryServerMethod<DynamicService, TRequest, TResponse>((service, request, context) => callHandler(request, context)));
         });
 
         return method;
@@ -62,7 +62,7 @@ public class DynamicGrpcServiceRegistry
 
         AddServiceCore(c =>
         {
-            c.AddServerStreamingMethod(method, new List<object>(), new ServerStreamingServerMethod<DynamicService, TRequest, TResponse>((service, request, stream, context) => callHandler(request, stream, context)));
+            c.AddServerStreamingMethod(method, CreateMetadata(), new ServerStreamingServerMethod<DynamicService, TRequest, TResponse>((service, request, stream, context) => callHandler(request, stream, context)));
         });
 
         return method;
@@ -76,7 +76,7 @@ public class DynamicGrpcServiceRegistry
 
         AddServiceCore(c =>
         {
-            c.AddClientStreamingMethod(method, new List<object>(), new ClientStreamingServerMethod<DynamicService, TRequest, TResponse>((service, stream, context) => callHandler(stream, context)));
+            c.AddClientStreamingMethod(method, CreateMetadata(), new ClientStreamingServerMethod<DynamicService, TRequest, TResponse>((service, stream, context) => callHandler(stream, context)));
         });
 
         return method;
@@ -90,10 +90,19 @@ public class DynamicGrpcServiceRegistry
 
         AddServiceCore(c =>
         {
-            c.AddDuplexStreamingMethod(method, new List<object>(), new DuplexStreamingServerMethod<DynamicService, TRequest, TResponse>((service, input, output, context) => callHandler(input, output, context)));
+            c.AddDuplexStreamingMethod(method, CreateMetadata(), new DuplexStreamingServerMethod<DynamicService, TRequest, TResponse>((service, input, output, context) => callHandler(input, output, context)));
         });
 
         return method;
+    }
+
+    private static List<object> CreateMetadata()
+    {
+        var metadata = new List<object>
+        {
+            new HttpMethodMetadata(new[] { "POST" }, acceptCorsPreflight: true)
+        };
+        return metadata;
     }
 
     private void AddServiceCore(Action<ServiceMethodProviderContext<DynamicService>> action)

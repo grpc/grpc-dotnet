@@ -1,4 +1,4 @@
-﻿#region Copyright notice and license
+#region Copyright notice and license
 
 // Copyright 2019 The gRPC Authors
 //
@@ -17,6 +17,7 @@
 #endregion
 
 using Grpc.AspNetCore.Web.Internal;
+using Grpc.Shared;
 using Microsoft.Extensions.Options;
 
 namespace Microsoft.AspNetCore.Builder;
@@ -44,15 +45,8 @@ public static class GrpcWebApplicationBuilderExtensions
     /// <returns>A reference to this instance after the operation has completed.</returns>
     public static IApplicationBuilder UseGrpcWeb(this IApplicationBuilder builder, GrpcWebOptions options)
     {
-        if (builder == null)
-        {
-            throw new ArgumentNullException(nameof(builder));
-        }
-
-        if (options == null)
-        {
-            throw new ArgumentNullException(nameof(options));
-        }
+        ArgumentNullThrowHelper.ThrowIfNull(builder);
+        ArgumentNullThrowHelper.ThrowIfNull(options);
 
         return builder.UseMiddleware<GrpcWebMiddleware>(Options.Create(options));
     }

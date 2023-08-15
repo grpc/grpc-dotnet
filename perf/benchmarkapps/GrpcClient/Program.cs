@@ -63,6 +63,7 @@ class Program
     {
         var urlOption = new Option<Uri>(new string[] { "-u", "--url" }, "The server url to request") { IsRequired = true };
         var udsFileNameOption = new Option<string>(new string[] { "--udsFileName" }, "The Unix Domain Socket file name");
+        var namedPipeNameOption = new Option<string>(new string[] { "--namedPipeName" }, "The Named Pipe name");
         var connectionsOption = new Option<int>(new string[] { "-c", "--connections" }, () => 1, "Total number of connections to keep open");
         var warmupOption = new Option<int>(new string[] { "-w", "--warmup" }, () => 5, "Duration of the warmup in seconds");
         var durationOption = new Option<int>(new string[] { "-d", "--duration" }, () => 10, "Duration of the test in seconds");
@@ -81,6 +82,7 @@ class Program
         var rootCommand = new RootCommand();
         rootCommand.AddOption(urlOption);
         rootCommand.AddOption(udsFileNameOption);
+        rootCommand.AddOption(namedPipeNameOption);
         rootCommand.AddOption(connectionsOption);
         rootCommand.AddOption(warmupOption);
         rootCommand.AddOption(durationOption);
@@ -101,6 +103,7 @@ class Program
             _options = new ClientOptions();
             _options.Url = context.ParseResult.GetValueForOption(urlOption);
             _options.UdsFileName = context.ParseResult.GetValueForOption(udsFileNameOption);
+            _options.NamedPipeName = context.ParseResult.GetValueForOption(namedPipeNameOption);
             _options.Connections = context.ParseResult.GetValueForOption(connectionsOption);
             _options.Warmup = context.ParseResult.GetValueForOption(warmupOption);
             _options.Duration = context.ParseResult.GetValueForOption(durationOption);
@@ -483,6 +486,11 @@ class Program
                 if (!string.IsNullOrEmpty(_options.UdsFileName))
                 {
                     var connectionFactory = new UnixDomainSocketConnectionFactory(new UnixDomainSocketEndPoint(ResolveUdsPath(_options.UdsFileName)));
+                    httpClientHandler.ConnectCallback = connectionFactory.ConnectAsync;
+                }
+                else if (!string.IsNullOrEmpty(_options.NamedPipeName))
+                {
+                    var connectionFactory = new NamedPipeConnectionFactory(_options.NamedPipeName);
                     httpClientHandler.ConnectCallback = connectionFactory.ConnectAsync;
                 }
 #endif

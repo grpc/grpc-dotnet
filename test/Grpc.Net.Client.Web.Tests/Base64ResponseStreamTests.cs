@@ -71,7 +71,7 @@ public class Base64ResponseStreamTests
             _maxReadLength = maxReadLength;
         }
 
-#if NET472
+#if NET462
         public override Task<int> ReadAsync(byte[] buffer, int offset, int count, CancellationToken cancellationToken)
         {
             return base.ReadAsync(buffer, offset, Math.Min(count, _maxReadLength), cancellationToken);
@@ -345,7 +345,7 @@ public class Base64ResponseStreamTests
 
     private static Task<int> ReadAsync(Stream stream, Memory<byte> data, CancellationToken cancellationToken = default)
     {
-#if NET472
+#if NET462
         var success = MemoryMarshal.TryGetArray<byte>(data, out var segment);
         Debug.Assert(success);
         return stream.ReadAsync(segment.Array, segment.Offset, segment.Count, cancellationToken);

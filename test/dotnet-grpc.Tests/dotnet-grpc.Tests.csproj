@@ -1,8 +1,8 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <!-- MSBuild has issues with testing frameworks other than the one referenced in global.json -->
-    <TargetFrameworks>net7.0</TargetFrameworks>
+    <TargetFrameworks>net8.0</TargetFrameworks>
     <IsPackable>false</IsPackable>
     <RootNamespace>Grpc.Dotnet.Cli.Tests</RootNamespace>
   </PropertyGroup>

@@ -73,7 +73,7 @@ internal class TestSubchannelTransport : ISubchannelTransport
     }
 
     public async
-#if !NET472
+#if !NET462
         ValueTask<ConnectResult>
 #else
         Task<ConnectResult>

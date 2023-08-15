@@ -1,4 +1,4 @@
-﻿#region Copyright notice and license
+#region Copyright notice and license
 
 // Copyright 2019 The gRPC Authors
 //
@@ -67,18 +67,9 @@ public class Program
                 {
                     var endPoint = config.CreateIPEndPoint();
                     var udsFileName = config["udsFileName"];
+                    var namedPipeName = config["namedPipeName"];
 
-                    if (string.IsNullOrEmpty(udsFileName))
-                    {
-                        // ListenAnyIP will work with IPv4 and IPv6.
-                        // Chosen over Listen+IPAddress.Loopback, which would have a 2 second delay when
-                        // creating a connection on a local Windows machine.
-                        options.ListenAnyIP(endPoint.Port, listenOptions =>
-                        {
-                            ConfigureListenOptions(listenOptions, config, endPoint);
-                        });
-                    }
-                    else
+                    if (!string.IsNullOrEmpty(udsFileName))
                     {
                         var socketPath = ResolveUdsPath(udsFileName);
                         if (File.Exists(socketPath))
@@ -89,6 +80,24 @@ public class Program
                         Console.WriteLine($"Socket path: {socketPath}");
 
                         options.ListenUnixSocket(socketPath, listenOptions =>
+                        {
+                            ConfigureListenOptions(listenOptions, config, endPoint);
+                        });
+                    }
+                    else if (!string.IsNullOrEmpty(namedPipeName))
+                    {
+                        Console.WriteLine($"Named pipe name: {namedPipeName}");
+                        options.ListenNamedPipe(namedPipeName, listenOptions =>
+                        {
+                            ConfigureListenOptions(listenOptions, config, endPoint);
+                        });
+                    }
+                    else
+                    {
+                        // ListenAnyIP will work with IPv4 and IPv6.
+                        // Chosen over Listen+IPAddress.Loopback, which would have a 2 second delay when
+                        // creating a connection on a local Windows machine.
+                        options.ListenAnyIP(endPoint.Port, listenOptions =>
                         {
                             ConfigureListenOptions(listenOptions, config, endPoint);
                         });
@@ -157,9 +166,7 @@ public class Program
 #if NET6_0_OR_GREATER
         else if (protocol.Equals("h3", StringComparison.OrdinalIgnoreCase))
         {
-#pragma warning disable CA2252 // This API requires opting into preview features
             listenOptions.Protocols = HttpProtocols.Http1AndHttp2AndHttp3;
-#pragma warning restore CA2252 // This API requires opting into preview features
 
             listenOptions.UseHttps(certPath, "1111", httpsOptions =>
             {

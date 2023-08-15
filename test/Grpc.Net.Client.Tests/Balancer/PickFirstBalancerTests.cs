@@ -22,7 +22,6 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Net;
-using System.Net.Http;
 using System.Threading;
 using System.Threading.Tasks;
 using Greet;
@@ -59,7 +58,7 @@ public class PickFirstBalancerTests
         services.AddSingleton<ResolverFactory>(new TestResolverFactory(resolver));
         services.AddSingleton<ISubchannelTransportFactory>(new TestSubchannelTransportFactory());
         var serviceProvider = services.BuildServiceProvider();
-        var logger = serviceProvider.GetRequiredService<ILoggerProvider>().CreateLogger(GetType().FullName);
+        var logger = serviceProvider.GetRequiredService<ILoggerProvider>().CreateLogger(GetType().FullName!);
 
         var handler = new TestHttpMessageHandler((r, ct) => default!);
         var channelOptions = new GrpcChannelOptions
@@ -164,7 +163,7 @@ public class PickFirstBalancerTests
         services.AddSingleton<ResolverFactory>(new TestResolverFactory(resolver));
         services.AddSingleton<ISubchannelTransportFactory>(transportFactory);
         var serviceProvider = services.BuildServiceProvider();
-        var logger = serviceProvider.GetRequiredService<ILoggerProvider>().CreateLogger(GetType().FullName);
+        var logger = serviceProvider.GetRequiredService<ILoggerProvider>().CreateLogger(GetType().FullName!);
 
         var handler = new TestHttpMessageHandler((r, ct) => default!);
         var channelOptions = new GrpcChannelOptions
@@ -376,7 +375,7 @@ public class PickFirstBalancerTests
         services.AddSingleton<ResolverFactory>(new TestResolverFactory(resolver));
         services.AddSingleton<ISubchannelTransportFactory>(transportFactory);
         var serviceProvider = services.BuildServiceProvider();
-        var logger = serviceProvider.GetRequiredService<ILoggerProvider>().CreateLogger(GetType().FullName);
+        var logger = serviceProvider.GetRequiredService<ILoggerProvider>().CreateLogger(GetType().FullName!);
 
         var handler = new TestHttpMessageHandler((r, ct) => default!);
         var channelOptions = new GrpcChannelOptions
@@ -426,7 +425,7 @@ public class PickFirstBalancerTests
         var resolver = new TestResolver();
         resolver.UpdateAddresses(new List<BalancerAddress> { new BalancerAddress("localhost", 80) });
 
-        ILogger? logger = null;
+        ILogger logger = null!;
 
         var tcs = new TaskCompletionSource<object?>(TaskCreationOptions.RunContinuationsAsynchronously);
         var transportConnectCount = 0;
@@ -488,7 +487,7 @@ public class PickFirstBalancerTests
         var resolver = new TestResolver();
         resolver.UpdateAddresses(new List<BalancerAddress> { new BalancerAddress("localhost", 80) });
 
-        ILogger? logger = null;
+        ILogger logger = null!;
 
         var tcs = new TaskCompletionSource<object?>(TaskCreationOptions.RunContinuationsAsynchronously);
         var transportConnectCount = 0;
