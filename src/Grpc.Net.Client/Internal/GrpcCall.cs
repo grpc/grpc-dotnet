@@ -246,10 +246,7 @@ internal sealed partial class GrpcCall<TRequest, TResponse> : GrpcCall, IGrpcCal
 
     public void EnsureNotDisposed()
     {
-        if (Disposed)
-        {
-            throw new ObjectDisposedException(nameof(GrpcCall<TRequest, TResponse>));
-        }
+        ObjectDisposedThrowHelper.ThrowIf(Disposed, typeof(GrpcCall<TRequest, TResponse>));
     }
 
     private void FinishResponseAndCleanUp(Status status)

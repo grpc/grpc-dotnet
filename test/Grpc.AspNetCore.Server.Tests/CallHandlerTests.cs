@@ -1,4 +1,4 @@
-﻿#region Copyright notice and license
+#region Copyright notice and license
 
 // Copyright 2019 The gRPC Authors
 //
@@ -22,7 +22,11 @@ using Grpc.AspNetCore.Server.Tests.TestObjects;
 using Grpc.Core;
 using Grpc.Shared.Server;
 using Grpc.Tests.Shared;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.Features;
+#if NET8_0_OR_GREATER
+using Microsoft.AspNetCore.Http.Timeouts;
+#endif
 using Microsoft.AspNetCore.Server.Kestrel.Core.Features;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
@@ -164,6 +168,58 @@ public class CallHandlerTests
         // Assert
         var log = testSink.Writes.SingleOrDefault(w => w.EventId.Name == "UnsupportedRequestProtocol");
         Assert.IsNull(log);
+    }
+#endif
+
+#if NET8_0_OR_GREATER
+    [TestCase(MethodType.Unary, false)]
+    [TestCase(MethodType.ClientStreaming, true)]
+    [TestCase(MethodType.ServerStreaming, true)]
+    [TestCase(MethodType.DuplexStreaming, true)]
+    public async Task RequestTimeoutFeature_Global_DisableWhenStreaming(MethodType methodType, bool expectedTimeoutDisabled)
+    {
+        // Arrange
+        var timeoutFeature = new TestHttpRequestTimeoutFeature();
+        var httpContext = HttpContextHelpers.CreateContext();
+        httpContext.Features.Set<IHttpRequestTimeoutFeature>(timeoutFeature);
+        var call = CreateHandler(methodType);
+
+        // Act
+        await call.HandleCallAsync(httpContext).DefaultTimeout();
+
+        // Assert
+        Assert.AreEqual(expectedTimeoutDisabled, timeoutFeature.TimeoutDisabled);
+    }
+
+    [TestCase(MethodType.Unary)]
+    [TestCase(MethodType.ClientStreaming)]
+    [TestCase(MethodType.ServerStreaming)]
+    [TestCase(MethodType.DuplexStreaming)]
+    public async Task RequestTimeoutFeature_WithEndpointMetadata_NotDisabledWhenStreaming(MethodType methodType)
+    {
+        // Arrange
+        var timeoutFeature = new TestHttpRequestTimeoutFeature();
+        var httpContext = HttpContextHelpers.CreateContext();
+        httpContext.SetEndpoint(new Endpoint(c => Task.CompletedTask, new EndpointMetadataCollection(new RequestTimeoutAttribute(100)), "Test endpoint"));
+        httpContext.Features.Set<IHttpRequestTimeoutFeature>(timeoutFeature);
+        var call = CreateHandler(methodType);
+
+        // Act
+        await call.HandleCallAsync(httpContext).DefaultTimeout();
+
+        // Assert
+        Assert.False(timeoutFeature.TimeoutDisabled);
+    }
+
+    private sealed class TestHttpRequestTimeoutFeature : IHttpRequestTimeoutFeature
+    {
+        public bool TimeoutDisabled { get; private set; }
+        public CancellationToken RequestTimeoutToken { get; }
+
+        public void DisableTimeout()
+        {
+            TimeoutDisabled = true;
+        }
     }
 #endif
 

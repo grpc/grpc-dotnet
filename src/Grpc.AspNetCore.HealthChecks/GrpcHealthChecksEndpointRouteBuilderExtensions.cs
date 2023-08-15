@@ -1,4 +1,4 @@
-﻿#region Copyright notice and license
+#region Copyright notice and license
 
 // Copyright 2019 The gRPC Authors
 //
@@ -17,6 +17,7 @@
 #endregion
 
 using Grpc.AspNetCore.HealthChecks.Internal;
+using Grpc.Shared;
 using Microsoft.AspNetCore.Routing;
 
 namespace Microsoft.AspNetCore.Builder;
@@ -34,10 +35,7 @@ public static class GrpcHealthChecksEndpointRouteBuilderExtensions
     /// <returns>An <see cref="GrpcServiceEndpointConventionBuilder"/> for endpoints associated with the service.</returns>
     public static GrpcServiceEndpointConventionBuilder MapGrpcHealthChecksService(this IEndpointRouteBuilder builder)
     {
-        if (builder == null)
-        {
-            throw new ArgumentNullException(nameof(builder));
-        }
+        ArgumentNullThrowHelper.ThrowIfNull(builder);
 
         return builder.MapGrpcService<HealthServiceIntegration>();
     }

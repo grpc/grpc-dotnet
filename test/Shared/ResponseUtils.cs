@@ -1,4 +1,4 @@
-﻿#region Copyright notice and license
+#region Copyright notice and license
 
 // Copyright 2019 The gRPC Authors
 //
@@ -58,7 +58,7 @@ internal static class ResponseUtils
         };
 
         message.RequestMessage = new HttpRequestMessage();
-#if NET472
+#if NET462
         message.RequestMessage.Properties[TrailingHeadersHelpers.ResponseTrailersKey] = new ResponseTrailers();
 #endif
         message.Headers.Add(MessageEncodingHeader, grpcEncoding ?? IdentityGrpcEncoding);
@@ -105,7 +105,7 @@ internal static class ResponseUtils
         };
 
         message.RequestMessage = new HttpRequestMessage();
-#if NET472
+#if NET462
         message.RequestMessage.Properties[TrailingHeadersHelpers.ResponseTrailersKey] = new ResponseTrailers();
 #endif
         message.Headers.Add(MessageEncodingHeader, grpcEncoding ?? IdentityGrpcEncoding);
@@ -127,7 +127,7 @@ internal static class ResponseUtils
         return message;
     }
 
-#if NET472
+#if NET462
     private class ResponseTrailers : HttpHeaders
     {
     }

@@ -158,7 +158,7 @@ public class GetTrailersTests
         Assert.AreEqual("Invalid Base-64 header value.", log.Exception.Message);
     }
 
-#if NET472
+#if NET462
     [Test]
     public async Task AsyncUnaryCall_NoTrailers_ThrowsError()
     {

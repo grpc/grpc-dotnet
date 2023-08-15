@@ -179,13 +179,13 @@ public class HedgingTests
             throw new NotImplementedException();
         }
 
-#if NET472
+#if NET462
         public override async Task WriteAsync(byte[] buffer, int offset, int count, CancellationToken cancellationToken)
 #else
         public override async ValueTask WriteAsync(ReadOnlyMemory<byte> data, CancellationToken cancellationToken = default)
 #endif
         {
-#if NET472
+#if NET462
             var data = buffer.AsMemory(offset, count);
 #endif
             _currentWriteData = data.ToArray();

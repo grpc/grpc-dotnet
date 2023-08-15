@@ -75,7 +75,7 @@ internal class NUnitLogger : ILogger, IDisposable
 
     public void Log<TState>(LogLevel logLevel, EventId eventId, TState state, Exception? exception, Func<TState, Exception?, string> formatter)
     {
-#if NET472
+#if NET462
         // .NET Framework was throwing when ExecutionContext.Run was called:
         // Cannot apply a context that has been marshaled across AppDomains, that was not acquired
         // through a Capture operation or that has already been the argument to a Set call.

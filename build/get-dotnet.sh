@@ -18,7 +18,7 @@ ensure_dir() {
 # main
 
 # resolve SDK version
-sdk_version=$(jq -r .sdk.version $global_json_path)
+sdk_version="8.0.100-rc.1.23407.2"
 
 # download dotnet-install.sh
 ensure_dir $OBJDIR
@@ -35,6 +35,9 @@ $install_script_path -v 5.0.302 -i $dotnet_install_path
 
 # Install .NET 6 SDK to run 6.0 test targets
 $install_script_path -v 6.0.202 -i $dotnet_install_path
+
+# Install .NET 7 SDK to run 7.0 test targets
+$install_script_path -v 7.0.100 -i $dotnet_install_path
 
 # Install .NET version specified by global.json
 $install_script_path -v $sdk_version -i $dotnet_install_path

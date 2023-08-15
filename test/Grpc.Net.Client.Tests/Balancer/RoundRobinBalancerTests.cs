@@ -1,4 +1,4 @@
-﻿#region Copyright notice and license
+#region Copyright notice and license
 
 // Copyright 2019 The gRPC Authors
 //
@@ -21,7 +21,6 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net;
-using System.Net.Http;
 using System.Threading;
 using System.Threading.Tasks;
 using Grpc.Core;
@@ -214,7 +213,7 @@ public class RoundRobinBalancerTests
         var services = new ServiceCollection();
         services.AddNUnitLogger();
 
-        ILogger? logger = null;
+        ILogger logger = null!;
         SyncPoint? syncPoint = new SyncPoint(runContinuationsAsynchronously: true);
 
         var connectState = ConnectivityState.Ready;
