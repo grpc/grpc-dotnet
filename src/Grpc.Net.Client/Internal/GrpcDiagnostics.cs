@@ -22,7 +22,7 @@ namespace Grpc.Net.Client.Internal;
 
 internal static class GrpcDiagnostics
 {
-    // This is a static on a non-generic class so it isn't re-created once for each type argument
+    // These are static on a non-generic class. We don't want these re-created for each type argument.
     public static readonly DiagnosticListener DiagnosticListener = new DiagnosticListener("Grpc.Net.Client");
     public static readonly ActivitySource ActivitySource = new ActivitySource("Grpc.Net.Client");
 
