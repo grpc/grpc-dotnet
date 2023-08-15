@@ -12,19 +12,17 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-using Google.Protobuf;
 using Google.Protobuf.Reflection;
-using Google.Protobuf.WellKnownTypes;
 using Google.Rpc;
 
 namespace Grpc.StatusProto;
 
 /// <summary>
-/// Registry of all the expected types that can be in the "details" of a Status.
-/// See https://github.com/googleapis/googleapis/blob/master/google/rpc/error_details.proto
-/// for a list of expected messages.
+/// Registry of the <see href="https://github.com/googleapis/googleapis/blob/master/google/rpc/error_details.proto">
+/// standard set of error types</see> defined in the richer error model developed and used by Google.
+/// These can be sepcified in the <see cref="Google.Rpc.Status.Details"/>.
 /// </summary>
-public static class DetailsTypesRegistry
+public static class StandardErrorTypeRegistry
 {
     private static readonly TypeRegistry registry = TypeRegistry.FromMessages(
         new MessageDescriptor[]
@@ -45,19 +43,8 @@ public static class DetailsTypesRegistry
     /// <summary>
     /// Get the registry
     /// </summary>
-    /// <returns>the registry</returns>
-    public static TypeRegistry GetRegistry() { return registry; }
-
-    /// <summary>
-    /// Unpack the "any" message
-    /// </summary>
-    /// <param name="any">The message to unpack</param>
-    /// <returns>
-    /// The unpacked message, or null if it was not found in the
-    /// registry or could not be unpacked.
-    /// </returns>
-    public static IMessage? Unpack(Any any)
+    public static TypeRegistry Registry
     {
-        return any.Unpack(registry);
+        get => registry;
     }
 }

@@ -17,7 +17,7 @@ using Grpc.Core;
 namespace Grpc.StatusProto;
 
 /// <summary>
-/// Extensions to Grpc.Core.RpcException
+/// Extensions to <see cref="Grpc.Core.RpcException"/> for handling rich error model.
 /// </summary>
 public static class RpcExceptionExtensions
 {

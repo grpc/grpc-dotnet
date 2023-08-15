@@ -14,13 +14,10 @@
 // limitations under the License.
 #endregion
 
-using Google.Protobuf;
 using Google.Protobuf.WellKnownTypes;
 using Google.Rpc;
-using Grpc.StatusProto;
 using NUnit.Framework;
 using Grpc.Core;
-using NUnit.Framework.Constraints;
 
 namespace Grpc.StatusProto.Tests;
 
@@ -29,7 +26,8 @@ namespace Grpc.StatusProto.Tests;
 /// </summary>
 public class RpcExceptionExtensionsTest
 {
-    readonly Google.Rpc.Status status = new Google.Rpc.Status()
+    // creates a status to use in the tests
+    readonly Google.Rpc.Status status = new()
     {
         Code = (int)StatusCode.NotFound,
         Message = "Simple error message",
@@ -52,6 +50,8 @@ public class RpcExceptionExtensionsTest
     public void GetRpcStatus_OK()
     {
         RpcException exception = status.ToRpcException();
+        Assert.AreEqual(status.Code, (int)exception.StatusCode);
+        Assert.AreEqual(status.Message, exception.Status.Detail);
         var sts = exception.GetRpcStatus();
         Assert.IsNotNull(sts);
         Assert.AreEqual(status, sts);
@@ -63,5 +63,16 @@ public class RpcExceptionExtensionsTest
         RpcException exception = new RpcException(new Core.Status());
         var sts = exception.GetRpcStatus();
         Assert.IsNull(sts);
+    }
+
+    [Test]
+    public void GetRpcStatus_SetCodeAndMessage()
+    {
+        RpcException exception = status.ToRpcException(StatusCode.Aborted, "Different message");
+        Assert.AreEqual(StatusCode.Aborted, exception.StatusCode);
+        Assert.AreEqual("Different message", exception.Status.Detail);
+        var sts = exception.GetRpcStatus();
+        Assert.IsNotNull(sts);
+        Assert.AreEqual(status, sts);
     }
 }

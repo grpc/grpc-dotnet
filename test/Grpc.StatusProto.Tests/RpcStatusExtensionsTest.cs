@@ -17,12 +17,8 @@
 using Google.Protobuf;
 using Google.Protobuf.WellKnownTypes;
 using Google.Rpc;
-using Grpc.StatusProto;
 using NUnit.Framework;
 using Grpc.Core;
-using NUnit.Framework.Constraints;
-using System.Net.NetworkInformation;
-using Google.Api;
 
 namespace Grpc.StatusProto.Tests;
 
@@ -34,8 +30,8 @@ public class RpcStatusExtensionsTest
     [Test]
     public void ToRpcExcetionTest()
     {
-        Google.Rpc.Status status = CreateFullStatus();
-        RpcException ex = status.ToRpcException();
+        var status = CreateFullStatus();
+        var ex = status.ToRpcException();
         Assert.IsNotNull(ex);
 
         var grpcSts = ex.Status;
@@ -48,73 +44,189 @@ public class RpcStatusExtensionsTest
     }
 
     [Test]
-    public void GetStatusDetailsTest()
+    public void ToRpcExcetionWithParamsTest()
+    {
+        var status = CreateFullStatus();
+        var ex = status.ToRpcException(StatusCode.Cancelled, "status message");
+        Assert.IsNotNull(ex);
+
+        var grpcSts = ex.Status;
+        Assert.AreEqual(StatusCode.Cancelled, grpcSts.StatusCode);
+        Assert.AreEqual("status message", grpcSts.Detail);
+
+        var sts = ex.GetRpcStatus();
+        Assert.IsNotNull(sts);
+        Assert.AreEqual(status, sts);
+    }
+
+    [Test]
+    public void GetStatusDetailTest()
     {
         var detailsMap = new Dictionary<string, IMessage>();
-        Google.Rpc.Status status = CreateFullStatus(detailsMap);
+        var status = CreateFullStatus(detailsMap);
 
-        BadRequest? badRequest = status.GetBadRequest();
+        var badRequest = status.GetStatusDetail<BadRequest>();
         Assert.IsNotNull(badRequest);
-        IMessage expected = detailsMap["badRequest"];
+        var expected = detailsMap["badRequest"];
         Assert.AreEqual(expected, badRequest);
 
-        ErrorInfo? errorInfo = status.GetErrorInfo();
+        var errorInfo = status.GetStatusDetail<ErrorInfo>();
         Assert.IsNotNull(errorInfo);
         expected = detailsMap["errorInfo"];
         Assert.AreEqual(expected, errorInfo);
 
-        RetryInfo? retryInfo = status.GetRetryInfo();
+        var retryInfo = status.GetStatusDetail<RetryInfo>();
         Assert.IsNotNull(retryInfo);
         expected = detailsMap["retryInfo"];
         Assert.AreEqual(expected, retryInfo);
 
-        DebugInfo? debugInfo = status.GetDebugInfo();
+        var debugInfo = status.GetStatusDetail<DebugInfo>();
         Assert.IsNotNull(debugInfo);
         expected = detailsMap["debugInfo"];
         Assert.AreEqual(expected, debugInfo);
 
-        QuotaFailure? quotaFailure = status.GetQuotaFailure();
+        var quotaFailure = status.GetStatusDetail<QuotaFailure>();
         Assert.IsNotNull(quotaFailure);
         expected = detailsMap["quotaFailure"];
         Assert.AreEqual(expected, quotaFailure);
 
-        PreconditionFailure? preconditionFailure = status.GetPreconditionFailure();
+        var preconditionFailure = status.GetStatusDetail<PreconditionFailure>();
         Assert.IsNotNull(preconditionFailure);
         expected = detailsMap["preconditionFailure"];
         Assert.AreEqual(expected, preconditionFailure);
 
-        RequestInfo? requestInfo = status.GetRequestInfo();
+        var requestInfo = status.GetStatusDetail<RequestInfo>();
         Assert.IsNotNull(requestInfo);
         expected = detailsMap["requestInfo"];
         Assert.AreEqual(expected, requestInfo);
 
-        Help? help = status.GetHelp();
+        var help = status.GetStatusDetail<Help>();
         Assert.IsNotNull(help);
         expected = detailsMap["help"];
         Assert.AreEqual(expected, help);
 
-        LocalizedMessage? localizedMessage = status.GetLocalizedMessage();
+        var localizedMessage = status.GetStatusDetail<LocalizedMessage>();
         Assert.IsNotNull(localizedMessage);
         expected = detailsMap["localizedMessage"];
         Assert.AreEqual(expected, localizedMessage);
     }
 
     [Test]
-    public void GetStatusDetails_NotFound()
+    public void GetStatusDetail_NotFound()
     {
         var detailsMap = new Dictionary<string, IMessage>();
-        Google.Rpc.Status status = CreatePartialStatus(detailsMap);
+        var status = CreatePartialStatus(detailsMap);
 
-        BadRequest? badRequest = status.GetBadRequest();
+        var badRequest = status.GetStatusDetail<BadRequest>();
         Assert.IsNull(badRequest);
     }
 
-    Google.Rpc.Status CreatePartialStatus(Dictionary<string, IMessage>? detailsMap = null)
+    [Test]
+    public void UnpackDetailMessageTest()
     {
-        RetryInfo retryInfo = new RetryInfo();
-        retryInfo.RetryDelay = Duration.FromTimeSpan(new TimeSpan(0, 0, 5));
+        var detailsMap = new Dictionary<string, IMessage>();
+        var status = CreateFullStatus(detailsMap);
 
-        DebugInfo debugInfo = new DebugInfo()
+        var foundSet = new HashSet<string>();
+        foreach (var msg in status.UnpackDetailMessage())
+        {
+            switch (msg)
+            {
+                case ErrorInfo errorInfo:
+                    {
+                        var expected = detailsMap["errorInfo"];
+                        Assert.AreEqual(expected, errorInfo);
+                        foundSet.Add("errorInfo");
+                        break;
+                    }
+                    
+                case BadRequest badRequest:
+                    {
+                        var expected = detailsMap["badRequest"];
+                        Assert.AreEqual(expected, badRequest);
+                        foundSet.Add("badRequest");
+                        break;
+                    }
+
+                case RetryInfo retryInfo:
+                    {
+                        var expected = detailsMap["retryInfo"];
+                        Assert.AreEqual(expected, retryInfo);
+                        foundSet.Add("retryInfo");
+                        break;
+                    }
+
+                case DebugInfo debugInfo:
+                    {
+                        var expected = detailsMap["debugInfo"];
+                        Assert.AreEqual(expected, debugInfo);
+                        foundSet.Add("debugInfo");
+                        break;
+                    }
+
+                case QuotaFailure quotaFailure:
+                    {
+                        var expected = detailsMap["quotaFailure"];
+                        Assert.AreEqual(expected, quotaFailure);
+                        foundSet.Add("quotaFailure");
+                        break;
+                    }
+
+                case PreconditionFailure preconditionFailure:
+                    {
+                        var expected = detailsMap["preconditionFailure"];
+                        Assert.AreEqual(expected, preconditionFailure);
+                        foundSet.Add("preconditionFailure");
+                        break;
+                    }
+
+                case RequestInfo requestInfo:
+                    {
+                        var expected = detailsMap["requestInfo"];
+                        Assert.AreEqual(expected, requestInfo);
+                        foundSet.Add("requestInfo");
+                        break;
+                    }
+
+                case ResourceInfo resourceInfo:
+                    {
+                        var expected = detailsMap["resourceInfo"];
+                        Assert.AreEqual(expected, resourceInfo);
+                        foundSet.Add("resourceInfo");
+                        break;
+                    }
+
+                case Help help:
+                    {
+                        var expected = detailsMap["help"];
+                        Assert.AreEqual(expected, help);
+                        foundSet.Add("help");
+                        break;
+                    }
+
+                case LocalizedMessage localizedMessage:
+                    {
+                        var expected = detailsMap["localizedMessage"];
+                        Assert.AreEqual(expected, localizedMessage);
+                        foundSet.Add("localizedMessage");
+                        break;
+                    }
+            }
+        }
+
+        // check everything was returned
+        Assert.AreEqual(detailsMap.Count, foundSet.Count);
+
+    }
+
+    private static Google.Rpc.Status CreatePartialStatus(Dictionary<string, IMessage>? detailsMap = null)
+    {
+        var retryInfo = new RetryInfo
+        {
+            RetryDelay = Duration.FromTimeSpan(new TimeSpan(0, 0, 5))
+        };
+
+        var debugInfo = new DebugInfo()
         {
             StackEntries = { "stack1", "stack2" },
             Detail = "detail"
@@ -128,7 +240,7 @@ public class RpcStatusExtensionsTest
             detailsMap.Add("debugInfo", debugInfo);
         }
 
-        Google.Rpc.Status status = new Google.Rpc.Status()
+        var status = new Google.Rpc.Status()
         {
             Code = (int)StatusCode.Unavailable,
             Message = "partial status",
@@ -142,9 +254,9 @@ public class RpcStatusExtensionsTest
         return status;
     }
 
-    Google.Rpc.Status CreateFullStatus(Dictionary<string, IMessage>? detailsMap = null)
+    static Google.Rpc.Status CreateFullStatus(Dictionary<string, IMessage>? detailsMap = null)
     {
-        ErrorInfo errorInfo = new ErrorInfo()
+        var errorInfo = new ErrorInfo()
         {
             Domain = "Rich Error Model Demo",
             Reason = "Full error requested in the demo",
@@ -155,7 +267,7 @@ public class RpcStatusExtensionsTest
                 }
         };
 
-        BadRequest badRequest = new BadRequest()
+        var badRequest = new BadRequest()
         {
             FieldViolations =
             {
@@ -166,16 +278,18 @@ public class RpcStatusExtensionsTest
             }
         };
 
-        RetryInfo retryInfo = new RetryInfo();
-        retryInfo.RetryDelay = Duration.FromTimeSpan(new TimeSpan(0, 0, 5));
+        var retryInfo = new RetryInfo
+        {
+            RetryDelay = Duration.FromTimeSpan(new TimeSpan(0, 0, 5))
+        };
 
-        DebugInfo debugInfo = new DebugInfo()
+        var debugInfo = new DebugInfo()
         {
             StackEntries = { "stack1", "stack2" },
             Detail = "detail"
         };
 
-        QuotaFailure quotaFailure = new QuotaFailure()
+        var quotaFailure = new QuotaFailure()
         {
             Violations =
             {
@@ -187,7 +301,7 @@ public class RpcStatusExtensionsTest
             }
         };
 
-        PreconditionFailure preconditionFailure = new PreconditionFailure()
+        var preconditionFailure = new PreconditionFailure()
         {
             Violations =
             {
@@ -198,13 +312,13 @@ public class RpcStatusExtensionsTest
             }
         };
 
-        RequestInfo requestInfo = new RequestInfo()
+        var requestInfo = new RequestInfo()
         {
             RequestId = "reqId",
             ServingData = "data"
         };
 
-        ResourceInfo resourceInfo = new ResourceInfo()
+        var resourceInfo = new ResourceInfo()
         {
             ResourceType = "type",
             ResourceName = "name",
@@ -212,7 +326,7 @@ public class RpcStatusExtensionsTest
             Description = "description"
         };
 
-        Help help = new Help()
+        var help = new Help()
         {
             Links =
             {
@@ -221,7 +335,7 @@ public class RpcStatusExtensionsTest
             }
         };
 
-        LocalizedMessage localizedMessage = new LocalizedMessage()
+        var localizedMessage = new LocalizedMessage()
         {
             Locale = "en-GB",
             Message = "Example localised error message"
@@ -243,7 +357,7 @@ public class RpcStatusExtensionsTest
             detailsMap.Add("localizedMessage", localizedMessage);
         }
 
-        Google.Rpc.Status status = new Google.Rpc.Status()
+        var status = new Google.Rpc.Status()
         {
             Code = (int)StatusCode.ResourceExhausted,
             Message = "Test",

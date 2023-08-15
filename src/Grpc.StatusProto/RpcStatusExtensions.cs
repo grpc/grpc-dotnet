@@ -13,8 +13,8 @@
 // limitations under the License.
 
 using Google.Protobuf;
+using Google.Protobuf.Reflection;
 using Google.Protobuf.WellKnownTypes;
-using Google.Rpc;
 using Grpc.Core;
 
 namespace Grpc.StatusProto;
@@ -30,6 +30,17 @@ public static class RpcStatusExtensions
     /// Retrieves the error details of type <typeparamref name="T"/> from the <see cref="Google.Rpc.Status"/>
     /// message.
     /// </summary>
+    /// <remarks>
+    /// <example>
+    /// For example, to retrieve any <see cref="Google.Rpc.ErrorInfo"/> that might be in the status details:
+    /// <code>
+    ///   var errorInfo = status.GetStatusDetail&lt;ErrorInfo&gt;();
+    ///   if (errorInfo is not null) {
+    ///      // ...
+    ///   }
+    /// </code>
+    /// </example>
+    /// </remarks>
     /// <typeparam name="T">The message type to decode from within the error details.</typeparam>
     /// <param name="status">The RPC status to retrieve details from. Must not be null.</param>
     /// <returns>The first error details of type <typeparamref name="T"/> found, or null if not present</returns>
@@ -45,96 +56,150 @@ public static class RpcStatusExtensions
     }
 
     /// <summary>
-    /// Retrieves the <see cref="BadRequest"/> message containing extended error information
-    /// from the <see cref="Google.Rpc.Status"/>, if present.
+    /// Create a <see cref="RpcException"/> from the <see cref="Google.Rpc.Status"/>
     /// </summary>
-    /// <param name="status">The RPC Status to retrieve details from. Must not be null.</param>
-    /// <returns>The <see cref="BadRequest"/> message specified in the exception, or null if not found.</returns>
-    public static BadRequest? GetBadRequest(this Google.Rpc.Status status) => GetStatusDetail<BadRequest>(status);
-
-    /// <summary>
-    /// Retrieves the <see cref="ErrorInfo"/> message containing extended error information
-    /// from the <see cref="Google.Rpc.Status"/>, if present.
-    /// </summary>
-    /// <param name="status">The RPC status to retrieve details from. Must not be null.</param>
-    /// <returns>The <see cref="ErrorInfo"/> message specified in the exception, or null if not found.</returns>
-    public static ErrorInfo? GetErrorInfo(this Google.Rpc.Status status) => GetStatusDetail<ErrorInfo>(status);
-
-    /// <summary>
-    /// Retrieves the <see cref="RetryInfo"/> message containing extended error information
-    /// from the <see cref="Google.Rpc.Status"/>, if present.
-    /// </summary>
-    /// <param name="status">The RPC status to retrieve details from. Must not be null.</param>
-    /// <returns>The <see cref="RetryInfo"/> message specified in the exception, or null if not found.</returns>
-    public static RetryInfo? GetRetryInfo(this Google.Rpc.Status status) => GetStatusDetail<RetryInfo>(status);
-
-    /// <summary>
-    /// Retrieves the <see cref="DebugInfo"/> message containing extended error information
-    /// from the <see cref="Google.Rpc.Status"/>, if present.
-    /// </summary>
-    /// <param name="status">The RPC status to retrieve details from. Must not be null.</param>
-    /// <returns>The <see cref="DebugInfo"/> message specified in the exception, or null if not found.</returns>
-    public static DebugInfo? GetDebugInfo(this Google.Rpc.Status status) => GetStatusDetail<DebugInfo>(status);
-
-    /// <summary>
-    /// Retrieves the <see cref="QuotaFailure"/> message containing extended error information
-    /// from the <see cref="Google.Rpc.Status"/>, if present.
-    /// </summary>
-    /// <param name="status">The RPC status to retrieve details from. Must not be null.</param>
-    /// <returns>The <see cref="QuotaFailure"/> message specified in the exception, or null if not found.</returns>
-    public static QuotaFailure? GetQuotaFailure(this Google.Rpc.Status status) => GetStatusDetail<QuotaFailure>(status);
-
-    /// <summary>
-    /// Retrieves the <see cref="PreconditionFailure"/> message containing extended error information
-    /// from the <see cref="Google.Rpc.Status"/>, if present.
-    /// </summary>
-    /// <param name="status">The RPC status to retrieve details from. Must not be null.</param>
-    /// <returns>The <see cref="PreconditionFailure"/> message specified in the exception, or null if not found.</returns>
-    public static PreconditionFailure? GetPreconditionFailure(this Google.Rpc.Status status) => GetStatusDetail<PreconditionFailure>(status);
-
-    /// <summary>
-    /// Retrieves the <see cref="RequestInfo"/> message containing extended error information
-    /// from the <see cref="Google.Rpc.Status"/>, if present.
-    /// </summary>
-    /// <param name="status">The RPC status to retrieve details from. Must not be null.</param>
-    /// <returns>The <see cref="RequestInfo"/> message specified in the exception, or null if not found.</returns>
-    public static RequestInfo? GetRequestInfo(this Google.Rpc.Status status) => GetStatusDetail<RequestInfo>(status);
-
-    /// <summary>
-    /// Retrieves the <see cref="ResourceInfo"/> message containing extended error information
-    /// from the <see cref="Google.Rpc.Status"/>, if present.
-    /// </summary>
-    /// <param name="status">The RPC status to retrieve details from. Must not be null.</param>
-    /// <returns>The <see cref="ResourceInfo"/> message specified in the exception, or null if not found.</returns>
-    public static ResourceInfo? GetResourceInfo(this Google.Rpc.Status status) => GetStatusDetail<ResourceInfo>(status);
-
-    /// <summary>
-    /// Retrieves the <see cref="Help"/> message containing extended error information
-    /// from the <see cref="Google.Rpc.Status"/>, if present.
-    /// </summary>
-    /// <param name="status">The RPC status to retrieve details from. Must not be null.</param>
-    /// <returns>The <see cref="Help"/> message specified in the exception, or null if not found.</returns>
-    public static Help? GetHelp(this Google.Rpc.Status status) => GetStatusDetail<Help>(status);
-
-    /// <summary>
-    /// Retrieves the <see cref="LocalizedMessage"/> message containing extended error information
-    /// from the <see cref="Google.Rpc.Status"/>, if present.
-    /// </summary>
-    /// <param name="status">The RPC status to retrieve details from. Must not be null.</param>
-    /// <returns>The <see cref="LocalizedMessage"/> message specified in the exception, or null if not found.</returns>
-    public static LocalizedMessage? GetLocalizedMessage(this Google.Rpc.Status status) => GetStatusDetail<LocalizedMessage>(status);
-
-    /// <summary>
-    /// Create a <see cref="Grpc.Core.RpcException"/> from the <see cref="Google.Rpc.Status"/>
-    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// The <see cref="Grpc.Core.Status.StatusCode"/> and <see cref="Grpc.Core.Status.Detail"/> in the
+    /// <see cref="Grpc.Core.Status"/> within the exception are populated from the details in the
+    /// <see cref="Google.Rpc.Status"/>
+    /// </para>
+    /// <para>
+    /// <example>
+    /// Example:
+    /// <code>
+    /// throw new Google.Rpc.Status {
+    ///   Code = (int) StatusCode.NotFound,
+    ///   Message = "Simple error message",
+    ///   Details = {
+    ///     Any.Pack(new ErrorInfo { Domain = "example", Reason = "some reason" })
+    ///   }
+    /// }.ToRpcException();
+    /// </code>
+    /// </example>
+    /// </para>
+    /// </remarks>
     /// <param name="status">The RPC status. Must not be null</param>
-    /// <returns>A <see cref="Grpc.Core.RpcException"/> populated with the details from the status.</returns>
+    /// <returns>A <see cref="RpcException"/> populated with the details from the status.</returns>
     public static RpcException ToRpcException(this Google.Rpc.Status status)
+    {
+        return status.ToRpcException((StatusCode)status.Code, status.Message);
+    }
+
+    /// <summary>
+    /// Create a <see cref="RpcException"/> from the <see cref="Google.Rpc.Status"/>
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// The <see cref="Grpc.Core.Status.StatusCode"/> and <see cref="Grpc.Core.Status.Detail"/> in the
+    /// <see cref="Grpc.Core.Status"/> within the exception are populated from the details in the
+    /// <see cref="Google.Rpc.Status"/>
+    /// </para>
+    /// <para>
+    /// <example>
+    /// Example:
+    /// <code>
+    /// throw new Google.Rpc.Status {
+    ///   Code = (int) StatusCode.NotFound,
+    ///   Message = "Simple error message",
+    ///   Details = {
+    ///     Any.Pack(new ErrorInfo { Domain = "example", Reason = "some reason" })
+    ///   }
+    /// }.ToRpcException(StatusCode.NotFound, "status message");
+    /// </code>
+    /// </example>
+    /// </para>
+    /// </remarks>
+    /// <param name="status"></param>
+    /// <param name="statusCode">The status to set in the contained <see cref="Grpc.Core.Status"/></param>
+    /// <param name="message">The details to set in the contained <see cref="Grpc.Core.Status"/></param>
+    /// <returns></returns>
+    public static RpcException ToRpcException(this Google.Rpc.Status status, StatusCode statusCode, string message)
     {
         var metadata = new Metadata();
         metadata.SetRpcStatus(status);
         return new RpcException(
-             new Grpc.Core.Status((StatusCode)status.Code, status.Message),
+             new Grpc.Core.Status(statusCode, message),
              metadata);
+    }
+
+    /// <summary>
+    /// Iterate over all the messages in the <see cref="Google.Rpc.Status.Details"/>
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// Iterate over the messages in the <see cref="Google.Rpc.Status.Details"/> that are messages
+    /// in the <see href="https://github.com/googleapis/googleapis/blob/master/google/rpc/error_details.proto">
+    /// standard set of error types</see> defined in the richer error model. Any other messages found in
+    /// the Details are ignored and not returned.
+    /// </para>
+    /// <para>
+    /// <example>
+    /// Example:
+    /// <code>
+    /// foreach (var msg in status.UnpackDetailMessage()) {
+    ///   switch (msg) {
+    ///     case ErrorInfo errorInfo:
+    ///          // Handle errorInfo ...
+    ///          break;
+    ///     // Other cases ...
+    ///   }
+    /// }
+    /// </code>
+    /// </example>
+    /// </para>
+    /// </remarks>
+    /// <param name="status"></param>
+    /// <returns></returns>
+    public static IEnumerable<IMessage> UnpackDetailMessage(this Google.Rpc.Status status)
+    {
+        return status.UnpackDetailMessage(StandardErrorTypeRegistry.Registry);
+    }
+
+    /// <summary>
+    /// Iterate over all the messages in the <see cref="Google.Rpc.Status.Details"/> that match types
+    /// in the given <see cref="TypeRegistry"/>
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// Iterate over the messages in the <see cref="Google.Rpc.Status.Details"/> that are messages
+    /// in the given <see cref="TypeRegistry"/>. Any other messages found in the Details are ignored
+    /// and not returned.  This allows iterating over custom messages if you are not using the
+    /// standard set of error types defined in the rich error model.
+    /// </para>
+    /// <para>
+    /// <example>
+    /// Example:
+    /// <code>
+    /// TypeRegistry myTypes = TypeRegistry.FromMessages(
+    ///   new MessageDescriptor[] {
+    ///     FooMessage.Descriptor, BarMessage.Descriptor
+    ///   });
+    ///   
+    /// foreach (var msg in status.UnpackDetailMessage(myTypes)) {
+    ///   switch (msg) {
+    ///     case FooMessage foo:
+    ///          // Handle foo ...
+    ///          break;
+    ///     // Other cases ...
+    ///   }
+    /// }
+    /// </code>
+    /// </example>
+    /// </para>
+    /// </remarks>
+    /// <param name="status"></param>
+    /// <param name="registry"></param>
+    /// <returns></returns>
+    public static IEnumerable<IMessage> UnpackDetailMessage(this Google.Rpc.Status status, TypeRegistry registry)
+    {
+        foreach (var any in status.Details)
+        {
+            var msg = any.Unpack(registry);
+            if (msg is not null)
+            {
+                yield return msg;
+            }
+        }
     }
 }

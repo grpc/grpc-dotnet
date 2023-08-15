@@ -14,13 +14,10 @@
 // limitations under the License.
 #endregion
 
-using Google.Protobuf;
 using Google.Protobuf.WellKnownTypes;
 using Google.Rpc;
-using Grpc.StatusProto;
 using NUnit.Framework;
 using Grpc.Core;
-using NUnit.Framework.Constraints;
 
 namespace Grpc.StatusProto.Tests;
 
@@ -29,6 +26,7 @@ namespace Grpc.StatusProto.Tests;
 /// </summary>
 public class MetadataExtensionsTest
 {
+    // creates a status to use in the tests
     readonly Google.Rpc.Status status = new()
     {
         Code = (int)StatusCode.NotFound,
@@ -61,6 +59,40 @@ public class MetadataExtensionsTest
     }
 
     [Test]
+    public void SetRpcStatus_MultipleTimes()
+    {
+        Google.Rpc.Status status1 = new()
+        {
+            Code = (int)StatusCode.NotFound,
+            Message = "first"
+        };
+
+        Google.Rpc.Status status2 = new()
+        {
+            Code = (int)StatusCode.NotFound,
+            Message = "second"
+        };
+
+        Google.Rpc.Status status3 = new()
+        {
+            Code = (int)StatusCode.NotFound,
+            Message = "third"
+        };
+        var metadata = new Metadata();
+
+        metadata.SetRpcStatus(status1);
+        metadata.SetRpcStatus(status2);
+        metadata.SetRpcStatus(status3);
+
+        Assert.AreEqual(1, metadata.Count);
+
+        var entry = metadata.Get(MetadataExtensions.StatusDetailsTrailerName);
+        Assert.IsNotNull(entry);
+        var sts = Google.Rpc.Status.Parser.ParseFrom(entry!.ValueBytes);
+        Assert.AreEqual(status3, sts);
+    }
+
+    [Test]
     public void GetRpcStatus_OK()
     {
         var metadata = new Metadata();
@@ -83,8 +115,10 @@ public class MetadataExtensionsTest
     [Test]
     public void GetRpcStatus_BadEncoding()
     {
-        var metadata = new Metadata();
-        metadata.Add(MetadataExtensions.StatusDetailsTrailerName, new byte[] {1,2,3});
+        var metadata = new Metadata
+        {
+            { MetadataExtensions.StatusDetailsTrailerName, new byte[] { 1, 2, 3 } }
+        };
 
         var sts = metadata.GetRpcStatus();
         Assert.IsNull(sts);
