@@ -184,6 +184,26 @@ public sealed class GrpcChannel : ChannelBase, IDisposable
         {
             Log.AddressPathUnused(Logger, Address.OriginalString);
         }
+
+        // Grpc.Net.Client + .NET Framework + WinHttpHandler requires features in WinHTTP, shipped in Windows, to work correctly.
+        // This scenario is supported in these versions of Windows or later:
+        // -Windows Server 2022 has partial support.
+        //    -Unary and server streaming methods are supported.
+        //    -Client and bidi streaming methods aren't supported.
+        // -Windows 11 has full support.
+        //
+        // GrpcChannel validates the Windows version is WinServer2022 or later. Win11 version number is greater than WinServer2022.
+        // Note that this doesn't block using unsupported client and bidi streaming methods on WinServer2022.
+        const int WinServer2022BuildVersion = 20348;
+        if (HttpHandlerType == HttpHandlerType.WinHttpHandler &&
+            OperatingSystem.IsWindows &&
+            OperatingSystem.OSVersion.Build < WinServer2022BuildVersion)
+        {
+            throw new InvalidOperationException("The channel configuration isn't valid on this operating system. " +
+                "The channel is configured to use WinHttpHandler and the current version of Windows " +
+                "doesn't support HTTP/2 features required by gRPC. Windows Server 2022 or Windows 11 or later is required. " +
+                "For more information, see https://aka.ms/aspnet/grpc/netframework.");
+        }
     }
 
     private void ResolveCredentials(GrpcChannelOptions channelOptions, out bool isSecure, out List<CallCredentials>? callCredentials)
