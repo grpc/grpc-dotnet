@@ -817,7 +817,7 @@ internal sealed partial class GrpcCall<TRequest, TResponse> : GrpcCall, IGrpcCal
             activity = GrpcDiagnostics.ActivitySource.CreateActivity(GrpcDiagnostics.ActivityName, ActivityKind.Client);
 
             // ActivitySource only returns an activity if someone is listening.
-            // We always want there to be an activity so fallback to creating the activity manually.
+            // If we're at this point then we always want there to be an activity. Create the activity manually.
             activity ??= new Activity(GrpcDiagnostics.ActivityName);
 
             activity.AddTag(GrpcDiagnostics.GrpcMethodTagName, Method.FullName);
