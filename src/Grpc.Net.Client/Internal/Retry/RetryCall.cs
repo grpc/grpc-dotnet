@@ -162,7 +162,8 @@ internal sealed class RetryCall<TRequest, TResponse> : RetryCallBase<TRequest, T
                     // Headers were returned. We're commited.
                     CommitCall(currentCall, CommitReason.ResponseHeadersReceived);
 
-                    responseStatus = await currentCall.CallTask.ConfigureAwait(false);
+                    // Force yield here to prevent continuation running with any locks.
+                    responseStatus = await CompatibilityHelpers.AwaitWithYieldAsync(currentCall.CallTask).ConfigureAwait(false);
                     if (responseStatus.Value.StatusCode == StatusCode.OK)
                     {
                         RetryAttemptCallSuccess();
@@ -252,7 +253,8 @@ internal sealed class RetryCall<TRequest, TResponse> : RetryCallBase<TRequest, T
                 if (CommitedCallTask.Result is GrpcCall<TRequest, TResponse> call)
                 {
                     // Wait until the commited call is finished and then clean up retry call.
-                    await call.CallTask.ConfigureAwait(false);
+                    // Force yield here to prevent continuation running with any locks.
+                    await CompatibilityHelpers.AwaitWithYieldAsync(call.CallTask).ConfigureAwait(false);
                     Cleanup();
                 }
             }
