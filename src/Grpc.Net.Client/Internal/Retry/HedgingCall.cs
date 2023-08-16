@@ -129,7 +129,8 @@ internal sealed partial class HedgingCall<TRequest, TResponse> : RetryCallBase<T
 
                 // Wait until the call has finished and then check its status code
                 // to update retry throttling tokens.
-                var status = await call.CallTask.ConfigureAwait(false);
+                // Force yield here to prevent continuation running with any locks.
+                var status = await CompatibilityHelpers.AwaitWithYieldAsync(call.CallTask).ConfigureAwait(false);
                 if (status.StatusCode == StatusCode.OK)
                 {
                     RetryAttemptCallSuccess();
@@ -202,7 +203,8 @@ internal sealed partial class HedgingCall<TRequest, TResponse> : RetryCallBase<T
             if (CommitedCallTask.IsCompletedSuccessfully() && CommitedCallTask.Result == call)
             {
                 // Wait until the commited call is finished and then clean up hedging call.
-                await call.CallTask.ConfigureAwait(false);
+                // Force yield here to prevent continuation running with any locks.
+                await CompatibilityHelpers.AwaitWithYieldAsync(call.CallTask).ConfigureAwait(false);
                 Cleanup();
             }
         }
