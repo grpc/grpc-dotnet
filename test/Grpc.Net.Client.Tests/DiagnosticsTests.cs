@@ -177,7 +177,7 @@ public class DiagnosticsTests
     }
 
     [Test]
-    public void DiagnosticsSource_MakeCall_ActivityHasNameAndDuration()
+    public void ActivitySource_MakeCall_ActivityHasNameAndDuration()
     {
         // Arrange
         var httpClient = ClientTestHelpers.CreateTestClient(async request =>
