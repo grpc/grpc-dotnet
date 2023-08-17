@@ -28,7 +28,7 @@
     <ProtobufNetGrpcPackageVersion>1.0.140</ProtobufNetGrpcPackageVersion>
     <SystemCommandLinePackageVersion>2.0.0-beta4.22272.1</SystemCommandLinePackageVersion>
     <SystemCommandLineRenderingPackageVersion>0.4.0-alpha.22272.1</SystemCommandLineRenderingPackageVersion>
-    <SystemDiagnosticsDiagnosticSourcePackageVersion>4.5.1</SystemDiagnosticsDiagnosticSourcePackageVersion>
+    <SystemDiagnosticsDiagnosticSourcePackageVersion>6.0.1</SystemDiagnosticsDiagnosticSourcePackageVersion>
     <SystemIOPipelinesPackageVersion>5.0.1</SystemIOPipelinesPackageVersion>
     <SystemMemoryPackageVersion>4.5.3</SystemMemoryPackageVersion>
     <SystemNetHttpWinHttpHandlerPackageVersion>7.0.0</SystemNetHttpWinHttpHandlerPackageVersion>
