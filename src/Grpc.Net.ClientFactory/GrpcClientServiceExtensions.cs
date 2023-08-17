@@ -335,9 +335,6 @@ public static class GrpcClientServiceExtensions
                         socketsHttpHandler.PooledConnectionLifetime = options.HandlerLifetime;
                     }
 #endif
-#if NET5_0
-                    handler = HttpHandlerFactory.EnsureTelemetryHandler(handler);
-#endif
 
                     builder.PrimaryHandler = handler;
                 }

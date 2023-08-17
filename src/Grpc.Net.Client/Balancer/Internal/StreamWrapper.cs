@@ -17,12 +17,6 @@
 #endregion
 
 #if SUPPORT_LOAD_BALANCING
-using System;
-using System.Diagnostics;
-using System.IO;
-using System.Threading;
-using System.Threading.Tasks;
-
 namespace Grpc.Net.Client.Balancer.Internal;
 
 internal sealed class StreamWrapper : Stream

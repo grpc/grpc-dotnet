@@ -508,10 +508,6 @@ public sealed class GrpcChannel : ChannelBase, IDisposable
             }
         }
 
-#if NET5_0
-        handler = HttpHandlerFactory.EnsureTelemetryHandler(handler);
-#endif
-
 #if SUPPORT_LOAD_BALANCING
         BalancerHttpHandler balancerHttpHandler;
         handler = balancerHttpHandler = new BalancerHttpHandler(handler, ConnectionManager);
