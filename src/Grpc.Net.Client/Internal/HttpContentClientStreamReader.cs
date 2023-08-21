@@ -156,6 +156,10 @@ internal class HttpContentClientStreamReader<TRequest, TResponse> : IAsyncStream
 
             CompatibilityHelpers.Assert(_grpcEncoding != null, "Encoding should have been calculated from response.");
 
+            // Clear current before moving next. This prevents rooting the previous value while getting the next one.
+            // In a long running stream this can allow the previous value to be GCed.
+            Current = null!;
+
             var readMessage = await _call.ReadMessageAsync(
                 _responseStream,
                 _grpcEncoding,
