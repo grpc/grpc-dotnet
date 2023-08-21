@@ -126,6 +126,9 @@ public class AsyncServerStreamingCallTests
         var moveNextTask2 = responseStream.MoveNext(CancellationToken.None);
         Assert.IsFalse(moveNextTask2.IsCompleted);
 
+        // Current is cleared after MoveNext is called.
+        Assert.IsNull(responseStream.Current);
+
         await streamContent.AddDataAndWait(await ClientTestHelpers.GetResponseDataAsync(new HelloReply
         {
             Message = "Hello world 2"
