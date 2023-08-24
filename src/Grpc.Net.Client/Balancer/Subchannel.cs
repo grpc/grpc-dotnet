@@ -40,7 +40,7 @@ public sealed class Subchannel : IDisposable
     internal readonly List<BalancerAddress> _addresses;
     internal readonly object Lock;
     internal ISubchannelTransport Transport => _transport;
-    internal int Id { get; }
+    internal string Id { get; }
 
     /// <summary>
     /// Connectivity state is internal rather than public because it can be updated by multiple threads while
@@ -445,58 +445,58 @@ public sealed class Subchannel : IDisposable
 
 internal static class SubchannelLog
 {
-    private static readonly Action<ILogger, int, string, Exception?> _subchannelCreated =
-        LoggerMessage.Define<int, string>(LogLevel.Debug, new EventId(1, "SubchannelCreated"), "Subchannel id '{SubchannelId}' created with addresses: {Addresses}");
+    private static readonly Action<ILogger, string, string, Exception?> _subchannelCreated =
+        LoggerMessage.Define<string, string>(LogLevel.Debug, new EventId(1, "SubchannelCreated"), "Subchannel id '{SubchannelId}' created with addresses: {Addresses}");
 
-    private static readonly Action<ILogger, int, Exception?> _addressesUpdatedWhileConnecting =
-        LoggerMessage.Define<int>(LogLevel.Debug, new EventId(2, "AddressesUpdatedWhileConnecting"), "Subchannel id '{SubchannelId}' is connecting when its addresses are updated. Restarting connect.");
+    private static readonly Action<ILogger, string, Exception?> _addressesUpdatedWhileConnecting =
+        LoggerMessage.Define<string>(LogLevel.Debug, new EventId(2, "AddressesUpdatedWhileConnecting"), "Subchannel id '{SubchannelId}' is connecting when its addresses are updated. Restarting connect.");
 
-    private static readonly Action<ILogger, int, BalancerAddress, Exception?> _connectedAddressNotInUpdatedAddresses =
-        LoggerMessage.Define<int, BalancerAddress>(LogLevel.Debug, new EventId(3, "ConnectedAddressNotInUpdatedAddresses"), "Subchannel id '{SubchannelId}' current address '{CurrentAddress}' is not in the updated addresses.");
+    private static readonly Action<ILogger, string, BalancerAddress, Exception?> _connectedAddressNotInUpdatedAddresses =
+        LoggerMessage.Define<string, BalancerAddress>(LogLevel.Debug, new EventId(3, "ConnectedAddressNotInUpdatedAddresses"), "Subchannel id '{SubchannelId}' current address '{CurrentAddress}' is not in the updated addresses.");
 
-    private static readonly Action<ILogger, int, Exception?> _connectionRequested =
-        LoggerMessage.Define<int>(LogLevel.Trace, new EventId(4, "ConnectionRequested"), "Subchannel id '{SubchannelId}' connection requested.");
+    private static readonly Action<ILogger, string, Exception?> _connectionRequested =
+        LoggerMessage.Define<string>(LogLevel.Trace, new EventId(4, "ConnectionRequested"), "Subchannel id '{SubchannelId}' connection requested.");
 
-    private static readonly Action<ILogger, int, ConnectivityState, Exception?> _connectionRequestedInNonIdleState =
-        LoggerMessage.Define<int, ConnectivityState>(LogLevel.Debug, new EventId(5, "ConnectionRequestedInNonIdleState"), "Subchannel id '{SubchannelId}' connection requested in non-idle state of {State}.");
+    private static readonly Action<ILogger, string, ConnectivityState, Exception?> _connectionRequestedInNonIdleState =
+        LoggerMessage.Define<string, ConnectivityState>(LogLevel.Debug, new EventId(5, "ConnectionRequestedInNonIdleState"), "Subchannel id '{SubchannelId}' connection requested in non-idle state of {State}.");
 
-    private static readonly Action<ILogger, int, Exception?> _connectingTransport =
-        LoggerMessage.Define<int>(LogLevel.Trace, new EventId(6, "ConnectingTransport"), "Subchannel id '{SubchannelId}' connecting to transport.");
+    private static readonly Action<ILogger, string, Exception?> _connectingTransport =
+        LoggerMessage.Define<string>(LogLevel.Trace, new EventId(6, "ConnectingTransport"), "Subchannel id '{SubchannelId}' connecting to transport.");
 
-    private static readonly Action<ILogger, int, TimeSpan, Exception?> _startingConnectBackoff =
-        LoggerMessage.Define<int, TimeSpan>(LogLevel.Trace, new EventId(7, "StartingConnectBackoff"), "Subchannel id '{SubchannelId}' starting connect backoff of {BackoffDuration}.");
+    private static readonly Action<ILogger, string, TimeSpan, Exception?> _startingConnectBackoff =
+        LoggerMessage.Define<string, TimeSpan>(LogLevel.Trace, new EventId(7, "StartingConnectBackoff"), "Subchannel id '{SubchannelId}' starting connect backoff of {BackoffDuration}.");
 
-    private static readonly Action<ILogger, int, Exception?> _connectBackoffInterrupted =
-        LoggerMessage.Define<int>(LogLevel.Trace, new EventId(8, "ConnectBackoffInterrupted"), "Subchannel id '{SubchannelId}' connect backoff interrupted.");
+    private static readonly Action<ILogger, string, Exception?> _connectBackoffInterrupted =
+        LoggerMessage.Define<string>(LogLevel.Trace, new EventId(8, "ConnectBackoffInterrupted"), "Subchannel id '{SubchannelId}' connect backoff interrupted.");
 
-    private static readonly Action<ILogger, int, Exception?> _connectCanceled =
-        LoggerMessage.Define<int>(LogLevel.Trace, new EventId(9, "ConnectCanceled"), "Subchannel id '{SubchannelId}' connect canceled.");
+    private static readonly Action<ILogger, string, Exception?> _connectCanceled =
+        LoggerMessage.Define<string>(LogLevel.Trace, new EventId(9, "ConnectCanceled"), "Subchannel id '{SubchannelId}' connect canceled.");
 
-    private static readonly Action<ILogger, int, Exception?> _connectError =
-        LoggerMessage.Define<int>(LogLevel.Error, new EventId(10, "ConnectError"), "Subchannel id '{SubchannelId}' unexpected error while connecting to transport.");
+    private static readonly Action<ILogger, string, Exception?> _connectError =
+        LoggerMessage.Define<string>(LogLevel.Error, new EventId(10, "ConnectError"), "Subchannel id '{SubchannelId}' unexpected error while connecting to transport.");
 
-    private static readonly Action<ILogger, int, ConnectivityState, string, Exception?> _subchannelStateChanged =
-        LoggerMessage.Define<int, ConnectivityState, string>(LogLevel.Debug, new EventId(11, "SubchannelStateChanged"), "Subchannel id '{SubchannelId}' state changed to {State}. Detail: '{Detail}'.");
+    private static readonly Action<ILogger, string, ConnectivityState, string, Exception?> _subchannelStateChanged =
+        LoggerMessage.Define<string, ConnectivityState, string>(LogLevel.Debug, new EventId(11, "SubchannelStateChanged"), "Subchannel id '{SubchannelId}' state changed to {State}. Detail: '{Detail}'.");
 
-    private static readonly Action<ILogger, int, string, Exception?> _stateChangedRegistrationCreated =
-        LoggerMessage.Define<int, string>(LogLevel.Trace, new EventId(12, "StateChangedRegistrationCreated"), "Subchannel id '{SubchannelId}' state changed registration '{RegistrationId}' created.");
+    private static readonly Action<ILogger, string, string, Exception?> _stateChangedRegistrationCreated =
+        LoggerMessage.Define<string, string>(LogLevel.Trace, new EventId(12, "StateChangedRegistrationCreated"), "Subchannel id '{SubchannelId}' state changed registration '{RegistrationId}' created.");
 
-    private static readonly Action<ILogger, int, string, Exception?> _stateChangedRegistrationRemoved =
-        LoggerMessage.Define<int, string>(LogLevel.Trace, new EventId(13, "StateChangedRegistrationRemoved"), "Subchannel id '{SubchannelId}' state changed registration '{RegistrationId}' removed.");
+    private static readonly Action<ILogger, string, string, Exception?> _stateChangedRegistrationRemoved =
+        LoggerMessage.Define<string, string>(LogLevel.Trace, new EventId(13, "StateChangedRegistrationRemoved"), "Subchannel id '{SubchannelId}' state changed registration '{RegistrationId}' removed.");
 
-    private static readonly Action<ILogger, int, string, Exception?> _executingStateChangedRegistration =
-        LoggerMessage.Define<int, string>(LogLevel.Trace, new EventId(14, "ExecutingStateChangedRegistration"), "Subchannel id '{SubchannelId}' executing state changed registration '{RegistrationId}'.");
+    private static readonly Action<ILogger, string, string, Exception?> _executingStateChangedRegistration =
+        LoggerMessage.Define<string, string>(LogLevel.Trace, new EventId(14, "ExecutingStateChangedRegistration"), "Subchannel id '{SubchannelId}' executing state changed registration '{RegistrationId}'.");
 
-    private static readonly Action<ILogger, int, Exception?> _noStateChangedRegistrations =
-        LoggerMessage.Define<int>(LogLevel.Trace, new EventId(15, "NoStateChangedRegistrations"), "Subchannel id '{SubchannelId}' has no state changed registrations.");
+    private static readonly Action<ILogger, string, Exception?> _noStateChangedRegistrations =
+        LoggerMessage.Define<string>(LogLevel.Trace, new EventId(15, "NoStateChangedRegistrations"), "Subchannel id '{SubchannelId}' has no state changed registrations.");
 
-    private static readonly Action<ILogger, int, BalancerAddress, Exception?> _subchannelPreserved =
-        LoggerMessage.Define<int, BalancerAddress>(LogLevel.Trace, new EventId(16, "SubchannelPreserved"), "Subchannel id '{SubchannelId}' matches address '{Address}' and is preserved.");
+    private static readonly Action<ILogger, string, BalancerAddress, Exception?> _subchannelPreserved =
+        LoggerMessage.Define<string, BalancerAddress>(LogLevel.Trace, new EventId(16, "SubchannelPreserved"), "Subchannel id '{SubchannelId}' matches address '{Address}' and is preserved.");
 
-    private static readonly Action<ILogger, int, Exception?> _cancelingConnect =
-        LoggerMessage.Define<int>(LogLevel.Debug, new EventId(17, "CancelingConnect"), "Subchannel id '{SubchannelId}' canceling connect.");
+    private static readonly Action<ILogger, string, Exception?> _cancelingConnect =
+        LoggerMessage.Define<string>(LogLevel.Debug, new EventId(17, "CancelingConnect"), "Subchannel id '{SubchannelId}' canceling connect.");
 
-    public static void SubchannelCreated(ILogger logger, int subchannelId, IReadOnlyList<BalancerAddress> addresses)
+    public static void SubchannelCreated(ILogger logger, string subchannelId, IReadOnlyList<BalancerAddress> addresses)
     {
         if (logger.IsEnabled(LogLevel.Debug))
         {
@@ -505,82 +505,82 @@ internal static class SubchannelLog
         }
     }
 
-    public static void AddressesUpdatedWhileConnecting(ILogger logger, int subchannelId)
+    public static void AddressesUpdatedWhileConnecting(ILogger logger, string subchannelId)
     {
         _addressesUpdatedWhileConnecting(logger, subchannelId, null);
     }
 
-    public static void ConnectedAddressNotInUpdatedAddresses(ILogger logger, int subchannelId, BalancerAddress currentAddress)
+    public static void ConnectedAddressNotInUpdatedAddresses(ILogger logger, string subchannelId, BalancerAddress currentAddress)
     {
         _connectedAddressNotInUpdatedAddresses(logger, subchannelId, currentAddress, null);
     }
 
-    public static void ConnectionRequested(ILogger logger, int subchannelId)
+    public static void ConnectionRequested(ILogger logger, string subchannelId)
     {
         _connectionRequested(logger, subchannelId, null);
     }
 
-    public static void ConnectionRequestedInNonIdleState(ILogger logger, int subchannelId, ConnectivityState state)
+    public static void ConnectionRequestedInNonIdleState(ILogger logger, string subchannelId, ConnectivityState state)
     {
         _connectionRequestedInNonIdleState(logger, subchannelId, state, null);
     }
 
-    public static void ConnectingTransport(ILogger logger, int subchannelId)
+    public static void ConnectingTransport(ILogger logger, string subchannelId)
     {
         _connectingTransport(logger, subchannelId, null);
     }
 
-    public static void StartingConnectBackoff(ILogger logger, int subchannelId, TimeSpan delay)
+    public static void StartingConnectBackoff(ILogger logger, string subchannelId, TimeSpan delay)
     {
         _startingConnectBackoff(logger, subchannelId, delay, null);
     }
 
-    public static void ConnectBackoffInterrupted(ILogger logger, int subchannelId)
+    public static void ConnectBackoffInterrupted(ILogger logger, string subchannelId)
     {
         _connectBackoffInterrupted(logger, subchannelId, null);
     }
 
-    public static void ConnectCanceled(ILogger logger, int subchannelId)
+    public static void ConnectCanceled(ILogger logger, string subchannelId)
     {
         _connectCanceled(logger, subchannelId, null);
     }
 
-    public static void ConnectError(ILogger logger, int subchannelId, Exception ex)
+    public static void ConnectError(ILogger logger, string subchannelId, Exception ex)
     {
         _connectError(logger, subchannelId, ex);
     }
 
-    public static void SubchannelStateChanged(ILogger logger, int subchannelId, ConnectivityState state, Status status)
+    public static void SubchannelStateChanged(ILogger logger, string subchannelId, ConnectivityState state, Status status)
     {
         _subchannelStateChanged(logger, subchannelId, state, status.Detail, status.DebugException);
     }
 
-    public static void ExecutingStateChangedRegistration(ILogger logger, int subchannelId, string registrationId)
+    public static void ExecutingStateChangedRegistration(ILogger logger, string subchannelId, string registrationId)
     {
         _executingStateChangedRegistration(logger, subchannelId, registrationId, null);
     }
 
-    public static void NoStateChangedRegistrations(ILogger logger, int subchannelId)
+    public static void NoStateChangedRegistrations(ILogger logger, string subchannelId)
     {
         _noStateChangedRegistrations(logger, subchannelId, null);
     }
 
-    public static void StateChangedRegistrationCreated(ILogger logger, int subchannelId, string registrationId)
+    public static void StateChangedRegistrationCreated(ILogger logger, string subchannelId, string registrationId)
     {
         _stateChangedRegistrationCreated(logger, subchannelId, registrationId, null);
     }
 
-    public static void StateChangedRegistrationRemoved(ILogger logger, int subchannelId, string registrationId)
+    public static void StateChangedRegistrationRemoved(ILogger logger, string subchannelId, string registrationId)
     {
         _stateChangedRegistrationRemoved(logger, subchannelId, registrationId, null);
     }
 
-    public static void SubchannelPreserved(ILogger logger, int subchannelId, BalancerAddress address)
+    public static void SubchannelPreserved(ILogger logger, string subchannelId, BalancerAddress address)
     {
         _subchannelPreserved(logger, subchannelId, address, null);
     }
 
-    public static void CancelingConnect(ILogger logger, int subchannelId)
+    public static void CancelingConnect(ILogger logger, string subchannelId)
     {
         _cancelingConnect(logger, subchannelId, null);
     }
