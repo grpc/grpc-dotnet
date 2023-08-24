@@ -28,7 +28,7 @@ namespace Grpc.Net.Client.Balancer.Internal;
 internal sealed class ConnectionManager : IDisposable, IChannelControlHelper
 {
     public static readonly BalancerAttributesKey<string> HostOverrideKey = new BalancerAttributesKey<string>("HostOverride");
-    private static int _currentChannelId;
+    private static readonly ChannelIdProvider _channelIdProvider = new ChannelIdProvider();
 
     private readonly object _lock;
     internal readonly Resolver _resolver;
@@ -36,7 +36,7 @@ internal sealed class ConnectionManager : IDisposable, IChannelControlHelper
     private readonly List<Subchannel> _subchannels;
     private readonly List<StateWatcher> _stateWatchers;
     private readonly TaskCompletionSource<object?> _resolverStartedTcs;
-    private readonly int _channelId;
+    private readonly long _channelId;
 
     // Internal for testing
     internal LoadBalancer? _balancer;
@@ -59,7 +59,7 @@ internal sealed class ConnectionManager : IDisposable, IChannelControlHelper
         _lock = new object();
         _nextPickerTcs = new TaskCompletionSource<SubchannelPicker>(TaskCreationOptions.RunContinuationsAsynchronously);
         _resolverStartedTcs = new TaskCompletionSource<object?>(TaskCreationOptions.RunContinuationsAsynchronously);
-        _channelId = GetNextChannelId();
+        _channelId = _channelIdProvider.GetNextChannelId();
 
         Logger = loggerFactory.CreateLogger<ConnectionManager>();
         LoggerFactory = loggerFactory;
@@ -78,8 +78,6 @@ internal sealed class ConnectionManager : IDisposable, IChannelControlHelper
     public IBackoffPolicyFactory BackoffPolicyFactory { get; }
     public bool DisableResolverServiceConfig { get; }
     public LoadBalancerFactory[] LoadBalancerFactories { get; }
-
-    private static int GetNextChannelId() => Interlocked.Increment(ref _currentChannelId);
 
     // For unit tests.
     internal IReadOnlyList<Subchannel> GetSubchannels()
