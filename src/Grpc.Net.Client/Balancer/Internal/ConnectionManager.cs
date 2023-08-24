@@ -28,6 +28,7 @@ namespace Grpc.Net.Client.Balancer.Internal;
 internal sealed class ConnectionManager : IDisposable, IChannelControlHelper
 {
     public static readonly BalancerAttributesKey<string> HostOverrideKey = new BalancerAttributesKey<string>("HostOverride");
+    private static readonly ChannelIdProvider _channelIdProvider = new ChannelIdProvider();
 
     private readonly object _lock;
     internal readonly Resolver _resolver;
@@ -35,6 +36,7 @@ internal sealed class ConnectionManager : IDisposable, IChannelControlHelper
     private readonly List<Subchannel> _subchannels;
     private readonly List<StateWatcher> _stateWatchers;
     private readonly TaskCompletionSource<object?> _resolverStartedTcs;
+    private readonly long _channelId;
 
     // Internal for testing
     internal LoadBalancer? _balancer;
@@ -57,6 +59,7 @@ internal sealed class ConnectionManager : IDisposable, IChannelControlHelper
         _lock = new object();
         _nextPickerTcs = new TaskCompletionSource<SubchannelPicker>(TaskCreationOptions.RunContinuationsAsynchronously);
         _resolverStartedTcs = new TaskCompletionSource<object?>(TaskCreationOptions.RunContinuationsAsynchronously);
+        _channelId = _channelIdProvider.GetNextChannelId();
 
         Logger = loggerFactory.CreateLogger<ConnectionManager>();
         LoggerFactory = loggerFactory;
@@ -85,9 +88,10 @@ internal sealed class ConnectionManager : IDisposable, IChannelControlHelper
         }
     }
 
-    internal int GetNextId()
+    internal string GetNextId()
     {
-        return Interlocked.Increment(ref _currentSubchannelId);
+        var nextSubchannelId = Interlocked.Increment(ref _currentSubchannelId);
+        return $"{_channelId}-{nextSubchannelId}";
     }
 
     public void ConfigureBalancer(Func<IChannelControlHelper, LoadBalancer> configure)
@@ -474,11 +478,11 @@ internal static class ConnectionManagerLog
     private static readonly Action<ILogger, Exception?> _pickStarted =
         LoggerMessage.Define(LogLevel.Trace, new EventId(5, "PickStarted"), "Pick started.");
 
-    private static readonly Action<ILogger, int, BalancerAddress, Exception?> _pickResultSuccessful =
-        LoggerMessage.Define<int, BalancerAddress>(LogLevel.Debug, new EventId(6, "PickResultSuccessful"), "Successfully picked subchannel id '{SubchannelId}' with address {CurrentAddress}.");
+    private static readonly Action<ILogger, string, BalancerAddress, Exception?> _pickResultSuccessful =
+        LoggerMessage.Define<string, BalancerAddress>(LogLevel.Debug, new EventId(6, "PickResultSuccessful"), "Successfully picked subchannel id '{SubchannelId}' with address {CurrentAddress}.");
 
-    private static readonly Action<ILogger, int, Exception?> _pickResultSubchannelNoCurrentAddress =
-        LoggerMessage.Define<int>(LogLevel.Debug, new EventId(7, "PickResultSubchannelNoCurrentAddress"), "Picked subchannel id '{SubchannelId}' doesn't have a current address.");
+    private static readonly Action<ILogger, string, Exception?> _pickResultSubchannelNoCurrentAddress =
+        LoggerMessage.Define<string>(LogLevel.Debug, new EventId(7, "PickResultSubchannelNoCurrentAddress"), "Picked subchannel id '{SubchannelId}' doesn't have a current address.");
 
     private static readonly Action<ILogger, Exception?> _pickResultQueued =
         LoggerMessage.Define(LogLevel.Debug, new EventId(8, "PickResultQueued"), "Picked queued.");
@@ -524,12 +528,12 @@ internal static class ConnectionManagerLog
         _pickStarted(logger, null);
     }
 
-    public static void PickResultSuccessful(ILogger logger, int subchannelId, BalancerAddress currentAddress)
+    public static void PickResultSuccessful(ILogger logger, string subchannelId, BalancerAddress currentAddress)
     {
         _pickResultSuccessful(logger, subchannelId, currentAddress, null);
     }
 
-    public static void PickResultSubchannelNoCurrentAddress(ILogger logger, int subchannelId)
+    public static void PickResultSubchannelNoCurrentAddress(ILogger logger, string subchannelId)
     {
         _pickResultSubchannelNoCurrentAddress(logger, subchannelId, null);
     }

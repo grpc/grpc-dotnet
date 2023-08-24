@@ -179,7 +179,7 @@ public class ConnectionTests : FunctionalTestBase
         Assert.AreEqual("Test!", response.Message);
 
         AssertHasLog(LogLevel.Debug, "ClosingSocketFromIdleTimeoutOnCreateStream");
-        AssertHasLog(LogLevel.Trace, "ConnectingOnCreateStream", "Subchannel id '1' doesn't have a connected socket available. Connecting new stream socket for 127.0.0.1:50051.");
+        AssertHasLog(LogLevel.Trace, "ConnectingOnCreateStream");
     }
 
     public async Task Active_UnaryCall_InfiniteConnectionIdleTimeout_SocketNotClosed()
