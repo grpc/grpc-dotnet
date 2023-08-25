@@ -479,7 +479,7 @@ internal static class ConnectionManagerLog
         LoggerMessage.Define(LogLevel.Trace, new EventId(5, "PickStarted"), "Pick started.");
 
     private static readonly Action<ILogger, string, BalancerAddress, TransportStatus, Exception?> _pickResultSuccessful =
-        LoggerMessage.Define<string, BalancerAddress, TransportStatus>(LogLevel.Debug, new EventId(6, "PickResultSuccessful"), "Successfully picked subchannel id '{SubchannelId}' with address {CurrentAddress}. Transport state: {TransportState}");
+        LoggerMessage.Define<string, BalancerAddress, TransportStatus>(LogLevel.Debug, new EventId(6, "PickResultSuccessful"), "Successfully picked subchannel id '{SubchannelId}' with address {CurrentAddress}. Transport status: {TransportStatus}");
 
     private static readonly Action<ILogger, string, Exception?> _pickResultSubchannelNoCurrentAddress =
         LoggerMessage.Define<string>(LogLevel.Debug, new EventId(7, "PickResultSubchannelNoCurrentAddress"), "Picked subchannel id '{SubchannelId}' doesn't have a current address.");
@@ -528,9 +528,9 @@ internal static class ConnectionManagerLog
         _pickStarted(logger, null);
     }
 
-    public static void PickResultSuccessful(ILogger logger, string subchannelId, BalancerAddress currentAddress, TransportStatus transportState)
+    public static void PickResultSuccessful(ILogger logger, string subchannelId, BalancerAddress currentAddress, TransportStatus transportStatus)
     {
-        _pickResultSuccessful(logger, subchannelId, currentAddress, transportState, null);
+        _pickResultSuccessful(logger, subchannelId, currentAddress, transportStatus, null);
     }
 
     public static void PickResultSubchannelNoCurrentAddress(ILogger logger, string subchannelId)
