@@ -235,15 +235,18 @@ internal class SocketConnectivitySubchannelTransport : ISubchannelTransport, IDi
             BalancerAddress? socketAddress;
             var closeSocket = false;
             Exception? checkException = null;
+            DateTime? socketCreatedTime;
 
             lock (Lock)
             {
                 socket = _initialSocket;
                 socketAddress = _initialSocketAddress;
+                socketCreatedTime = _initialSocketCreatedTime;
 
                 if (socket != null)
                 {
                     CompatibilityHelpers.Assert(socketAddress != null);
+                    CompatibilityHelpers.Assert(socketCreatedTime != null);
 
                     closeSocket = ShouldCloseSocket(socket, socketAddress, ref _initialSocketData, out checkException);
                 }
@@ -260,6 +263,10 @@ internal class SocketConnectivitySubchannelTransport : ISubchannelTransport, IDi
 
                     if (_initialSocket == socket)
                     {
+                        CompatibilityHelpers.Assert(socketAddress != null);
+                        CompatibilityHelpers.Assert(socketCreatedTime != null);
+
+                        SocketConnectivitySubchannelTransportLog.ClosingUnusableSocket(_logger, _subchannel.Id, socketAddress, DateTime.UtcNow - socketCreatedTime.Value);
                         DisconnectUnsynchronized();
                     }
                 }
@@ -331,7 +338,7 @@ internal class SocketConnectivitySubchannelTransport : ISubchannelTransport, IDi
             }
             else if (ShouldCloseSocket(socket, address, ref socketData, out _))
             {
-                SocketConnectivitySubchannelTransportLog.ClosingUnusableSocketOnCreateStream(_logger, _subchannel.Id, address);
+                SocketConnectivitySubchannelTransportLog.ClosingUnusableSocket(_logger, _subchannel.Id, address, DateTime.UtcNow - socketCreatedTime.Value);
                 closeSocket = true;
             }
 
@@ -563,8 +570,8 @@ internal static class SocketConnectivitySubchannelTransportLog
     private static readonly Action<ILogger, string, BalancerAddress, int, Exception?> _socketReceivingAvailable =
         LoggerMessage.Define<string, BalancerAddress, int>(LogLevel.Trace, new EventId(15, "SocketReceivingAvailable"), "Subchannel id '{SubchannelId}' socket {Address} is receiving {ReadBytesAvailableCount} available bytes.");
 
-    private static readonly Action<ILogger, string, BalancerAddress, Exception?> _closingUnusableSocketOnCreateStream =
-        LoggerMessage.Define<string, BalancerAddress>(LogLevel.Debug, new EventId(16, "ClosingUnusableSocketOnCreateStream"), "Subchannel id '{SubchannelId}' socket {Address} is being closed because it can't be used. The socket either can't receive data or it has received unexpected data.");
+    private static readonly Action<ILogger, string, BalancerAddress, TimeSpan, Exception?> _closingUnusableSocket =
+        LoggerMessage.Define<string, BalancerAddress, TimeSpan>(LogLevel.Debug, new EventId(16, "ClosingUnusableSocket"), "Subchannel id '{SubchannelId}' socket {Address} is being closed because it can't be used. Socket lifetime of {SocketLifetime}. The socket either can't receive data or it has received unexpected data.");
 
     private static readonly Action<ILogger, string, BalancerAddress, TimeSpan, Exception?> _closingSocketFromIdleTimeoutOnCreateStream =
         LoggerMessage.Define<string, BalancerAddress, TimeSpan>(LogLevel.Debug, new EventId(16, "ClosingSocketFromIdleTimeoutOnCreateStream"), "Subchannel id '{SubchannelId}' socket {Address} is being closed because it exceeds the idle timeout of {SocketIdleTimeout}.");
@@ -644,9 +651,9 @@ internal static class SocketConnectivitySubchannelTransportLog
         _socketReceivingAvailable(logger, subchannelId, address, readBytesAvailableCount, null);
     }
 
-    public static void ClosingUnusableSocketOnCreateStream(ILogger logger, string subchannelId, BalancerAddress address)
+    public static void ClosingUnusableSocket(ILogger logger, string subchannelId, BalancerAddress address, TimeSpan socketLifetime)
     {
-        _closingUnusableSocketOnCreateStream(logger, subchannelId, address, null);
+        _closingUnusableSocket(logger, subchannelId, address, socketLifetime, null);
     }
 
     public static void ClosingSocketFromIdleTimeoutOnCreateStream(ILogger logger, string subchannelId, BalancerAddress address, TimeSpan socketIdleTimeout)
