@@ -111,13 +111,32 @@ internal abstract partial class RetryCallBase<TRequest, TResponse> : IGrpcCall<T
         }
     }
 
-    public async Task<TResponse> GetResponseAsync()
+    private Task<TResponse>? _responseTask;
+    private Task<Metadata>? _responseHeadersTask;
+
+    public Task<TResponse> GetResponseAsync() => _responseTask ??= GetResponseCoreAsync();
+
+    private async Task<TResponse> GetResponseCoreAsync()
     {
         var call = await CommitedCallTask.ConfigureAwait(false);
         return await call.GetResponseAsync().ConfigureAwait(false);
     }
 
-    public async Task<Metadata> GetResponseHeadersAsync()
+    public Task<Metadata> GetResponseHeadersAsync()
+    {
+        if (_responseHeadersTask == null)
+        {
+            _responseHeadersTask = GetResponseHeadersCoreAsync();
+
+            // ResponseHeadersAsync could be called inside a client interceptor when a call is wrapped.
+            // Most people won't use the headers result. Observed exception to avoid unobserved exception event.
+            _responseHeadersTask.ObserveException();
+        }
+
+        return _responseHeadersTask;
+    }
+
+    public async Task<Metadata> GetResponseHeadersCoreAsync()
     {
         var call = await CommitedCallTask.ConfigureAwait(false);
         return await call.GetResponseHeadersAsync().ConfigureAwait(false);
@@ -431,6 +450,9 @@ internal abstract partial class RetryCallBase<TRequest, TResponse> : IGrpcCall<T
 
         if (disposing)
         {
+            _responseTask?.ObserveException();
+            _responseHeadersTask?.ObserveException();
+
             if (CommitedCallTask.IsCompletedSuccessfully())
             {
                 CommitedCallTask.Result.Dispose();
