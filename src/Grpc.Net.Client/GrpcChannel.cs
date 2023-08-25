@@ -118,7 +118,7 @@ public sealed class GrpcChannel : ChannelBase, IDisposable
         OperatingSystem = channelOptions.ResolveService<IOperatingSystem>(Internal.OperatingSystem.Instance);
         RandomGenerator = channelOptions.ResolveService<IRandomGenerator>(new RandomGenerator());
         Debugger = channelOptions.ResolveService<IDebugger>(new CachedDebugger());
-        Logger = LoggerFactory.CreateLogger<GrpcChannel>();
+        Logger = LoggerFactory.CreateLogger(typeof(GrpcChannel));
 
 #if SUPPORT_LOAD_BALANCING
         InitialReconnectBackoff = channelOptions.InitialReconnectBackoff;

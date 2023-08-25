@@ -1,4 +1,4 @@
-﻿#region Copyright notice and license
+#region Copyright notice and license
 
 // Copyright 2019 The gRPC Authors
 //
@@ -45,7 +45,7 @@ internal class BalancerHttpHandler : DelegatingHandler
         : base(innerHandler)
     {
         _manager = manager;
-        _logger = manager.LoggerFactory.CreateLogger<BalancerHttpHandler>();
+        _logger = manager.LoggerFactory.CreateLogger(typeof(BalancerHttpHandler));
     }
 
     internal static bool IsSocketsHttpHandlerSetup(SocketsHttpHandler socketsHttpHandler)

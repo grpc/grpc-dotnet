@@ -69,7 +69,7 @@ internal class SocketConnectivitySubchannelTransport : ISubchannelTransport, IDi
         ILoggerFactory loggerFactory,
         Func<Socket, DnsEndPoint, CancellationToken, ValueTask>? socketConnect)
     {
-        _logger = loggerFactory.CreateLogger<SocketConnectivitySubchannelTransport>();
+        _logger = loggerFactory.CreateLogger(typeof(SocketConnectivitySubchannelTransport));
         _subchannel = subchannel;
         _socketPingInterval = socketPingInterval;
         ConnectTimeout = connectTimeout;
