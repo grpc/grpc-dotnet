@@ -1143,10 +1143,12 @@ public class RetryTests
                             await ExceptionAssert.ThrowsAsync<RpcException>(() => call.ResponseHeadersAsync);
                             break;
                         case ResponseHandleAction.Dispose:
+                            await WaitForCallCompleteAsync(logger, call);
                             call.Dispose();
                             break;
                         default:
-                            // Do nothing.
+                            // Do nothing (but wait until call is finished)
+                            await WaitForCallCompleteAsync(logger, call);
                             break;
                     }
                 });
@@ -1158,6 +1160,22 @@ public class RetryTests
         {
             TaskScheduler.UnobservedTaskException -= onUnobservedTaskException;
         }
+    }
+
+    private static async Task WaitForCallCompleteAsync(ILogger logger, AsyncUnaryCall<HelloReply> call)
+    {
+        await TestHelpers.AssertIsTrueRetryAsync(() =>
+        {
+            try
+            {
+                call.GetStatus();
+                return true;
+            }
+            catch (InvalidOperationException)
+            {
+                return false;
+            }
+        }, "Wait for call to complete.", logger);
     }
 
     private class ClientLoggerInterceptor : Interceptor

@@ -33,6 +33,8 @@ internal abstract partial class RetryCallBase<TRequest, TResponse> : IGrpcCall<T
     private readonly TaskCompletionSource<IGrpcCall<TRequest, TResponse>> _commitedCallTcs;
     private RetryCallBaseClientStreamReader<TRequest, TResponse>? _retryBaseClientStreamReader;
     private RetryCallBaseClientStreamWriter<TRequest, TResponse>? _retryBaseClientStreamWriter;
+    private Task<TResponse>? _responseTask;
+    private Task<Metadata>? _responseHeadersTask;
 
     // Internal for unit testing.
     internal CancellationTokenRegistration? _ctsRegistration;
@@ -110,9 +112,6 @@ internal abstract partial class RetryCallBase<TRequest, TResponse> : IGrpcCall<T
             MaxRetryAttempts = retryAttempts;
         }
     }
-
-    private Task<TResponse>? _responseTask;
-    private Task<Metadata>? _responseHeadersTask;
 
     public Task<TResponse> GetResponseAsync() => _responseTask ??= GetResponseCoreAsync();
 
