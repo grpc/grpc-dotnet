@@ -135,7 +135,7 @@ internal abstract partial class RetryCallBase<TRequest, TResponse> : IGrpcCall<T
         return _responseHeadersTask;
     }
 
-    public async Task<Metadata> GetResponseHeadersCoreAsync()
+    private async Task<Metadata> GetResponseHeadersCoreAsync()
     {
         var call = await CommitedCallTask.ConfigureAwait(false);
         return await call.GetResponseHeadersAsync().ConfigureAwait(false);

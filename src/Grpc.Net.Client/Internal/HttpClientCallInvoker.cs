@@ -1,4 +1,4 @@
-﻿#region Copyright notice and license
+#region Copyright notice and license
 
 // Copyright 2019 The gRPC Authors
 //
@@ -180,7 +180,7 @@ internal sealed class HttpClientCallInvoker : CallInvoker
             // doing it here. Now the response headers are automatically available when debugging.
             //
             // Start the ResponseHeadersAsync task.
-            _ = call.GetResponseHeadersAsync();
+            call.GetResponseHeadersAsync().ObserveException();
         }
 
         // CallWrapper is set as a property because there is a circular relationship between the underlying call and the call wrapper.
