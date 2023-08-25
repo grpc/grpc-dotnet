@@ -1,4 +1,4 @@
-﻿#region Copyright notice and license
+#region Copyright notice and license
 
 // Copyright 2019 The gRPC Authors
 //
@@ -40,6 +40,7 @@ internal class TestSubchannelTransport : ISubchannelTransport
 
     public BalancerAddress? CurrentAddress { get; private set; }
     public TimeSpan? ConnectTimeout => _factory.ConnectTimeout;
+    public TransportStatus TransportStatus => TransportStatus.Passive;
 
     public Task TryConnectTask => _connectTcs.Task;
 

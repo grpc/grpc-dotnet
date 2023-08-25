@@ -44,6 +44,7 @@ internal class PassiveSubchannelTransport : ISubchannelTransport, IDisposable
 
     public BalancerAddress? CurrentAddress => _currentAddress;
     public TimeSpan? ConnectTimeout { get; }
+    public TransportStatus TransportStatus => TransportStatus.Passive;
 
     public void Disconnect()
     {
@@ -51,13 +52,7 @@ internal class PassiveSubchannelTransport : ISubchannelTransport, IDisposable
         _subchannel.UpdateConnectivityState(ConnectivityState.Idle, "Disconnected.");
     }
 
-    public
-#if !NETSTANDARD2_0 && !NET462
-        ValueTask<ConnectResult>
-#else
-        Task<ConnectResult>
-#endif
-        TryConnectAsync(ConnectContext context)
+    public ValueTask<ConnectResult> TryConnectAsync(ConnectContext context)
     {
         Debug.Assert(_subchannel._addresses.Count == 1);
         Debug.Assert(CurrentAddress == null);
@@ -68,11 +63,7 @@ internal class PassiveSubchannelTransport : ISubchannelTransport, IDisposable
         _currentAddress = currentAddress;
         _subchannel.UpdateConnectivityState(ConnectivityState.Ready, "Passively connected.");
 
-#if !NETSTANDARD2_0 && !NET462
         return new ValueTask<ConnectResult>(ConnectResult.Success);
-#else
-        return Task.FromResult(ConnectResult.Success);
-#endif
     }
 
     public void Dispose()
@@ -80,11 +71,9 @@ internal class PassiveSubchannelTransport : ISubchannelTransport, IDisposable
         _currentAddress = null;
     }
 
-#if NET5_0_OR_GREATER
     public ValueTask<Stream> GetStreamAsync(BalancerAddress address, CancellationToken cancellationToken)
     {
         throw new NotSupportedException();
     }
-#endif
 }
 #endif
