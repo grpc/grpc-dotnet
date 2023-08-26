@@ -40,7 +40,7 @@ internal interface ISubchannelTransport : IDisposable
 
 internal enum TransportStatus
 {
-    Unknown,
+    NotConnected,
     Passive,
     InitialSocket,
     ActiveStream

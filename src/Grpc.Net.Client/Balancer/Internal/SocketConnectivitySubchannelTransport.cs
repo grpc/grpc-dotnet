@@ -96,7 +96,7 @@ internal class SocketConnectivitySubchannelTransport : ISubchannelTransport, IDi
                 {
                     return TransportStatus.ActiveStream;
                 }
-                return TransportStatus.Unknown;
+                return TransportStatus.NotConnected;
             }
         }
     }
