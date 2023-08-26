@@ -1,4 +1,4 @@
-﻿#region Copyright notice and license
+#region Copyright notice and license
 
 // Copyright 2019 The gRPC Authors
 //
@@ -70,7 +70,6 @@ public class AuthorizationTests : FunctionalTestBase
 
         // Act
         await call.ResponseAsync.DefaultTimeout();
-
 
         Assert.AreEqual("Bearer token!", authorization);
     }
