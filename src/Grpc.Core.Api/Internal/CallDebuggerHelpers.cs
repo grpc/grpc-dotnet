@@ -35,7 +35,7 @@ internal static class CallDebuggerHelpers
         debugText += $"IsComplete = {((status != null) ? "true" : "false")}";
         if (status != null)
         {
-            debugText += $", Status = {status}";
+            debugText += $", StatusCode = {status.Value.StatusCode}";
         }
         return debugText;
     }
