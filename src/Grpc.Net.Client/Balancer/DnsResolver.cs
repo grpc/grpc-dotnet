@@ -59,7 +59,7 @@ internal sealed class DnsResolver : PollingResolver
         _dnsAddress = addressParsed.Host;
         _port = addressParsed.Port == -1 ? defaultPort : addressParsed.Port;
         _refreshInterval = refreshInterval;
-        _logger = loggerFactory.CreateLogger<DnsResolver>();
+        _logger = loggerFactory.CreateLogger(typeof(DnsResolver));
     }
 
     protected override void OnStarted()
