@@ -180,7 +180,7 @@ internal sealed class HttpClientCallInvoker : CallInvoker
             // doing it here. Now the response headers are automatically available when debugging.
             //
             // Start the ResponseHeadersAsync task.
-            call.GetResponseHeadersAsync().ObserveException();
+            _ = call.GetResponseHeadersAsync();
         }
 
         // CallWrapper is set as a property because there is a circular relationship between the underlying call and the call wrapper.
