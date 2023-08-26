@@ -30,19 +30,20 @@ internal interface ISubchannelTransport : IDisposable
 {
     BalancerAddress? CurrentAddress { get; }
     TimeSpan? ConnectTimeout { get; }
+    TransportStatus TransportStatus { get; }
 
-#if NET5_0_OR_GREATER
     ValueTask<Stream> GetStreamAsync(BalancerAddress address, CancellationToken cancellationToken);
-#endif
-
-#if !NETSTANDARD2_0 && !NET462
-    ValueTask<ConnectResult>
-#else
-    Task<ConnectResult>
-#endif
-        TryConnectAsync(ConnectContext context);
+    ValueTask<ConnectResult> TryConnectAsync(ConnectContext context);
 
     void Disconnect();
+}
+
+internal enum TransportStatus
+{
+    NotConnected,
+    Passive,
+    InitialSocket,
+    ActiveStream
 }
 
 internal enum ConnectResult

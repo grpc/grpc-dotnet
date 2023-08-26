@@ -316,7 +316,7 @@ internal sealed class ConnectionManager : IDisposable, IChannelControlHelper
 
                     if (address != null)
                     {
-                        ConnectionManagerLog.PickResultSuccessful(Logger, subchannel.Id, address);
+                        ConnectionManagerLog.PickResultSuccessful(Logger, subchannel.Id, address, subchannel.Transport.TransportStatus);
                         return (subchannel, address, result.SubchannelCallTracker);
                     }
                     else
@@ -478,8 +478,8 @@ internal static class ConnectionManagerLog
     private static readonly Action<ILogger, Exception?> _pickStarted =
         LoggerMessage.Define(LogLevel.Trace, new EventId(5, "PickStarted"), "Pick started.");
 
-    private static readonly Action<ILogger, string, BalancerAddress, Exception?> _pickResultSuccessful =
-        LoggerMessage.Define<string, BalancerAddress>(LogLevel.Debug, new EventId(6, "PickResultSuccessful"), "Successfully picked subchannel id '{SubchannelId}' with address {CurrentAddress}.");
+    private static readonly Action<ILogger, string, BalancerAddress, TransportStatus, Exception?> _pickResultSuccessful =
+        LoggerMessage.Define<string, BalancerAddress, TransportStatus>(LogLevel.Debug, new EventId(6, "PickResultSuccessful"), "Successfully picked subchannel id '{SubchannelId}' with address {CurrentAddress}. Transport status: {TransportStatus}");
 
     private static readonly Action<ILogger, string, Exception?> _pickResultSubchannelNoCurrentAddress =
         LoggerMessage.Define<string>(LogLevel.Debug, new EventId(7, "PickResultSubchannelNoCurrentAddress"), "Picked subchannel id '{SubchannelId}' doesn't have a current address.");
@@ -528,9 +528,9 @@ internal static class ConnectionManagerLog
         _pickStarted(logger, null);
     }
 
-    public static void PickResultSuccessful(ILogger logger, string subchannelId, BalancerAddress currentAddress)
+    public static void PickResultSuccessful(ILogger logger, string subchannelId, BalancerAddress currentAddress, TransportStatus transportStatus)
     {
-        _pickResultSuccessful(logger, subchannelId, currentAddress, null);
+        _pickResultSuccessful(logger, subchannelId, currentAddress, transportStatus, null);
     }
 
     public static void PickResultSubchannelNoCurrentAddress(ILogger logger, string subchannelId)
