@@ -82,6 +82,24 @@ internal class SocketConnectivitySubchannelTransport : ISubchannelTransport, IDi
     private object Lock => _subchannel.Lock;
     public BalancerAddress? CurrentAddress => _currentAddress;
     public TimeSpan? ConnectTimeout { get; }
+    public TransportStatus TransportStatus
+    {
+        get
+        {
+            lock (Lock)
+            {
+                if (_initialSocket != null)
+                {
+                    return TransportStatus.InitialSocket;
+                }
+                if (_activeStreams.Count > 0)
+                {
+                    return TransportStatus.ActiveStream;
+                }
+                return TransportStatus.NotConnected;
+            }
+        }
+    }
 
     // For testing. Take a copy under lock for thread-safety.
     internal IReadOnlyList<ActiveStream> GetActiveStreams()
