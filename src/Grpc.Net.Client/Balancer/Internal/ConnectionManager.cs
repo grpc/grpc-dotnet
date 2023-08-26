@@ -61,7 +61,7 @@ internal sealed class ConnectionManager : IDisposable, IChannelControlHelper
         _resolverStartedTcs = new TaskCompletionSource<object?>(TaskCreationOptions.RunContinuationsAsynchronously);
         _channelId = _channelIdProvider.GetNextChannelId();
 
-        Logger = loggerFactory.CreateLogger<ConnectionManager>();
+        Logger = loggerFactory.CreateLogger(typeof(ConnectionManager));
         LoggerFactory = loggerFactory;
         BackoffPolicyFactory = backoffPolicyFactory;
         _subchannels = new List<Subchannel>();

@@ -49,7 +49,7 @@ internal sealed class PickFirstBalancer : LoadBalancer
     public PickFirstBalancer(IChannelControlHelper controller, ILoggerFactory loggerFactory)
     {
         _controller = controller;
-        _logger = loggerFactory.CreateLogger<PickFirstBalancer>();
+        _logger = loggerFactory.CreateLogger(typeof(PickFirstBalancer));
     }
 
     private void ResolverError(Status status)

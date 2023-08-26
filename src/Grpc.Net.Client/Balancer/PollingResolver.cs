@@ -72,7 +72,7 @@ public abstract class PollingResolver : Resolver
     {
         ArgumentNullThrowHelper.ThrowIfNull(loggerFactory);
 
-        _logger = loggerFactory.CreateLogger<PollingResolver>();
+        _logger = loggerFactory.CreateLogger(typeof(PollingResolver));
         _backoffPolicyFactory = backoffPolicyFactory;
     }
 
