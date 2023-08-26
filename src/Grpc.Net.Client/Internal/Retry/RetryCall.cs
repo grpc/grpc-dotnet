@@ -252,10 +252,16 @@ internal sealed class RetryCall<TRequest, TResponse> : RetryCallBase<TRequest, T
             {
                 if (CommitedCallTask.Result is GrpcCall<TRequest, TResponse> call)
                 {
+                    // Ensure response task is created before waiting to the end.
+                    // Allows cancellation exceptions to be observed in cleanup.
+                    _ = GetResponseAsync();
+
                     // Wait until the commited call is finished and then clean up retry call.
                     // Force yield here to prevent continuation running with any locks.
-                    await CompatibilityHelpers.AwaitWithYieldAsync(call.CallTask).ConfigureAwait(false);
-                    Cleanup();
+                    var status = await CompatibilityHelpers.AwaitWithYieldAsync(call.CallTask).ConfigureAwait(false);
+
+                    var observeExceptions = status.StatusCode is StatusCode.Cancelled or StatusCode.DeadlineExceeded;
+                    Cleanup(observeExceptions);
                 }
             }
 

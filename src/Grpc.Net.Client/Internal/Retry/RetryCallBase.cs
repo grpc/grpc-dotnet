@@ -130,6 +130,11 @@ internal abstract partial class RetryCallBase<TRequest, TResponse> : IGrpcCall<T
             // ResponseHeadersAsync could be called inside a client interceptor when a call is wrapped.
             // Most people won't use the headers result. Observed exception to avoid unobserved exception event.
             _responseHeadersTask.ObserveException();
+
+            // If there was an error fetching response headers then it's likely the same error is reported
+            // by response TCS. The user is unlikely to observe both errors.
+            // Observed exception to avoid unobserved exception event.
+            _responseTask?.ObserveException();
         }
 
         return _responseHeadersTask;
@@ -387,7 +392,7 @@ internal abstract partial class RetryCallBase<TRequest, TResponse> : IGrpcCall<T
                 // A commited call that has already cleaned up is likely a StatusGrpcCall.
                 if (call.Disposed)
                 {
-                    Cleanup();
+                    Cleanup(observeExceptions: false);
                 }
             }
         }
@@ -449,19 +454,16 @@ internal abstract partial class RetryCallBase<TRequest, TResponse> : IGrpcCall<T
 
         if (disposing)
         {
-            _responseTask?.ObserveException();
-            _responseHeadersTask?.ObserveException();
-
             if (CommitedCallTask.IsCompletedSuccessfully())
             {
                 CommitedCallTask.Result.Dispose();
             }
 
-            Cleanup();
+            Cleanup(observeExceptions: true);
         }
     }
 
-    protected void Cleanup()
+    protected void Cleanup(bool observeExceptions)
     {
         Channel.FinishActiveCall(this);
 
@@ -470,6 +472,12 @@ internal abstract partial class RetryCallBase<TRequest, TResponse> : IGrpcCall<T
         CancellationTokenSource.Cancel();
 
         ClearRetryBuffer();
+
+        if (observeExceptions)
+        {
+            _responseTask?.ObserveException();
+            _responseHeadersTask?.ObserveException();
+        }
     }
 
     internal bool TryAddToRetryBuffer(ReadOnlyMemory<byte> message)

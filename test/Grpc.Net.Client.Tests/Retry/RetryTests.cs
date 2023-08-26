@@ -1072,14 +1072,35 @@ public class RetryTests
         Nothing
     }
 
-    [Test]
-    //[TestCase(0, false, ResponseHandleAction.ResponseAsync)]
-    //[TestCase(0, true, ResponseHandleAction.ResponseAsync)]
-    [TestCase(0, false, ResponseHandleAction.ResponseHeadersAsync)]
-    //[TestCase(0, false, ResponseHandleAction.Dispose)]
-    //[TestCase(1, false, ResponseHandleAction.Nothing)]
-    public async Task AsyncUnaryCall_CallFailed_NoUnobservedExceptions(int expectedUnobservedExceptions, bool addClientInterceptor, ResponseHandleAction action)
+    public static object[] NoUnobservedExceptionsCases
     {
+        get
+        {
+            var cases = new List<object[]>();
+            AddCases(0, addClientInterceptor: false, throwCancellationError: false, ResponseHandleAction.ResponseAsync);
+            AddCases(0, addClientInterceptor: true, throwCancellationError: false, ResponseHandleAction.ResponseAsync);
+            AddCases(0, addClientInterceptor: false, throwCancellationError: false, ResponseHandleAction.ResponseHeadersAsync);
+            AddCases(0, addClientInterceptor: false, throwCancellationError: false, ResponseHandleAction.Dispose);
+            AddCases(1, addClientInterceptor: false, throwCancellationError: false, ResponseHandleAction.Nothing);
+            AddCases(0, addClientInterceptor: false, throwCancellationError: true, ResponseHandleAction.Nothing);
+            return cases.ToArray();
+
+            void AddCases(int expectedUnobservedExceptions, bool addClientInterceptor, bool throwCancellationError, ResponseHandleAction action)
+            {
+                cases.Add(new object[] { expectedUnobservedExceptions, true, addClientInterceptor, throwCancellationError, action });
+                cases.Add(new object[] { expectedUnobservedExceptions, false, addClientInterceptor, throwCancellationError, action });
+            }
+        }
+    }
+
+    [TestCaseSource(nameof(NoUnobservedExceptionsCases))]
+    public async Task AsyncUnaryCall_CallFailed_NoUnobservedExceptions(int expectedUnobservedExceptions, bool isAsync, bool addClientInterceptor, bool throwCancellationError, ResponseHandleAction action)
+    {
+        // Provoke the garbage collector to find the unobserved exception.
+        GC.Collect();
+        // Wait for any failed tasks to be garbage collected
+        GC.WaitForPendingFinalizers();
+
         // Arrange
         var services = new ServiceCollection();
         services.AddNUnitLogger();
@@ -1099,9 +1120,20 @@ public class RetryTests
 
         try
         {
-            var httpClient = ClientTestHelpers.CreateTestClient(request =>
+            var httpClient = ClientTestHelpers.CreateTestClient(async request =>
             {
-                throw new Exception("Test error");
+                if (isAsync)
+                {
+                    await Task.Delay(50);
+                }
+                if (throwCancellationError)
+                {
+                    throw new OperationCanceledException();
+                }
+                else
+                {
+                    throw new Exception("Test error");
+                }
             });
             var serviceConfig = ServiceConfigHelpers.CreateRetryServiceConfig();
             CallInvoker invoker = HttpClientCallInvokerFactory.Create(httpClient, loggerFactory: loggerFactory, serviceConfig: serviceConfig);
@@ -1112,13 +1144,18 @@ public class RetryTests
 
             // Act
             logger.LogDebug("Starting call");
-            var awaitedException = await MakeGrpcCallAsync(logger, invoker, action);
+            await MakeGrpcCallAsync(logger, invoker, action);
 
             logger.LogDebug("Waiting for finalizers");
-            // Provoke the garbage collector to find the unobserved exception.
-            GC.Collect();
-            // Wait for any failed tasks to be garbage collected
-            GC.WaitForPendingFinalizers();
+            for (var i = 0; i < 5; i++)
+            {
+                // Provoke the garbage collector to find the unobserved exception.
+                GC.Collect();
+                // Wait for any failed tasks to be garbage collected
+                GC.WaitForPendingFinalizers();
+
+                await Task.Delay(10);
+            }
 
             foreach (var exception in unobservedExceptions)
             {
@@ -1126,18 +1163,9 @@ public class RetryTests
             }
 
             // Assert
-            try
-            {
-                Assert.AreEqual(expectedUnobservedExceptions, unobservedExceptions.Count);
-                logger.LogDebug("Expected number of observed exceptions");
-            }
-            catch
-            {
-                Assert.AreSame(unobservedExceptions.Single().InnerException, awaitedException);
-                logger.LogDebug("Observed exception was awaited by the test");
-            }
+            Assert.AreEqual(expectedUnobservedExceptions, unobservedExceptions.Count);
 
-            static async Task<Exception?> MakeGrpcCallAsync(ILogger logger, CallInvoker invoker, ResponseHandleAction action)
+            static async Task MakeGrpcCallAsync(ILogger logger, CallInvoker invoker, ResponseHandleAction action)
             {
                 var runTask = Task.Run(async () =>
                 {
@@ -1146,21 +1174,23 @@ public class RetryTests
                     switch (action)
                     {
                         case ResponseHandleAction.ResponseAsync:
-                            return await ExceptionAssert.ThrowsAsync<RpcException>(() => call.ResponseAsync);
+                            await ExceptionAssert.ThrowsAsync<RpcException>(() => call.ResponseAsync);
+                            break;
                         case ResponseHandleAction.ResponseHeadersAsync:
-                            return await ExceptionAssert.ThrowsAsync<RpcException>(() => call.ResponseHeadersAsync);
+                            await ExceptionAssert.ThrowsAsync<RpcException>(() => call.ResponseHeadersAsync);
+                            break;
                         case ResponseHandleAction.Dispose:
                             await WaitForCallCompleteAsync(logger, call);
                             call.Dispose();
-                            return null;
+                            break;
                         default:
                             // Do nothing (but wait until call is finished)
                             await WaitForCallCompleteAsync(logger, call);
-                            return null;
+                            break;
                     }
                 });
 
-                return await runTask;
+                await runTask;
             }
         }
         finally
