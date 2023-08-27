@@ -1085,6 +1085,7 @@ public class RetryTests
             AddCases(0, addClientInterceptor: false, throwCancellationError: true, ResponseHandleAction.Nothing);
             return cases.ToArray();
 
+            // Add a sync and async case for each.
             void AddCases(int expectedUnobservedExceptions, bool addClientInterceptor, bool throwCancellationError, ResponseHandleAction action)
             {
                 cases.Add(new object[] { expectedUnobservedExceptions, true, addClientInterceptor, throwCancellationError, action });
