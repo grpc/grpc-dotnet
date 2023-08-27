@@ -1099,7 +1099,8 @@ public class RetryTests
     {
         // Provoke the garbage collector to find the unobserved exception.
         GC.Collect();
-        // Wait for any failed tasks to be garbage collected
+        // Wait for any failed tasks to be garbage collected.
+        // Do this before running the test to clean up any pending unobserved exceptions from other tests.
         GC.WaitForPendingFinalizers();
 
         // Arrange
