@@ -344,7 +344,7 @@ public class DeadlineTests
         var tcs = new TaskCompletionSource<object?>(TaskCreationOptions.RunContinuationsAsynchronously);
         var httpClient = ClientTestHelpers.CreateTestClient(async request =>
         {
-            await tcs.Task.DefaultTimeout();
+            await tcs.Task;
             return ResponseUtils.CreateResponse(HttpStatusCode.OK);
         });
         var systemClock = new TestSystemClock(DateTime.UtcNow);
@@ -361,6 +361,8 @@ public class DeadlineTests
         var ex = await ExceptionAssert.ThrowsAsync<RpcException>(() => call.RequestStream.WriteAsync(new HelloRequest())).DefaultTimeout();
         Assert.AreEqual(StatusCode.DeadlineExceeded, ex.StatusCode);
         Assert.AreEqual(StatusCode.DeadlineExceeded, call.GetStatus().StatusCode);
+
+        tcs.TrySetResult(null);
     }
 
     [Test]
