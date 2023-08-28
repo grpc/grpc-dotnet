@@ -247,6 +247,9 @@ public class AsyncUnaryCallTests
     [TestCase(1, false, ResponseHandleAction.Nothing)]
     public async Task AsyncUnaryCall_CallFailed_NoUnobservedExceptions(int expectedUnobservedExceptions, bool addClientInterceptor, ResponseHandleAction action)
     {
+        // Do this before running the test to clean up any pending unobserved exceptions from other tests.
+        TriggerUnobservedExceptions();
+
         // Arrange
         var services = new ServiceCollection();
         services.AddNUnitLogger();
@@ -280,10 +283,12 @@ public class AsyncUnaryCallTests
             await MakeGrpcCallAsync(logger, invoker, action);
 
             logger.LogDebug("Waiting for finalizers");
-            // Provoke the garbage collector to find the unobserved exception.
-            GC.Collect();
-            // Wait for any failed tasks to be garbage collected
-            GC.WaitForPendingFinalizers();
+            logger.LogDebug("Waiting for finalizers");
+            for (var i = 0; i < 5; i++)
+            {
+                TriggerUnobservedExceptions();
+                await Task.Delay(10);
+            }
 
             // Assert
             Assert.AreEqual(expectedUnobservedExceptions, unobservedExceptions.Count);
@@ -318,5 +323,13 @@ public class AsyncUnaryCallTests
         {
             TaskScheduler.UnobservedTaskException -= onUnobservedTaskException;
         }
+    }
+
+    private static void TriggerUnobservedExceptions()
+    {
+        // Provoke the garbage collector to find the unobserved exception.
+        GC.Collect();
+        // Wait for any failed tasks to be garbage collected
+        GC.WaitForPendingFinalizers();
     }
 }
