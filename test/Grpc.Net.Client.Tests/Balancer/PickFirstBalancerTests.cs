@@ -527,7 +527,7 @@ public class PickFirstBalancerTests
         _ = invoker.Channel.ConnectAsync();
 
         // Act
-        var call = invoker.AsyncUnaryCall<HelloRequest, HelloReply>(ClientTestHelpers.ServiceMethod, string.Empty, new CallOptions(), new HelloRequest());
+        var call = invoker.AsyncUnaryCall(new HelloRequest());
         await tcs.Task.DefaultTimeout();
 
         // Assert

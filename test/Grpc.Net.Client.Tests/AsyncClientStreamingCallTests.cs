@@ -53,7 +53,7 @@ public class AsyncClientStreamingCallTests
         var invoker = HttpClientCallInvokerFactory.Create(httpClient);
 
         // Act
-        var call = invoker.AsyncClientStreamingCall<HelloRequest, HelloReply>(ClientTestHelpers.ServiceMethod, string.Empty, new CallOptions());
+        var call = invoker.AsyncClientStreamingCall();
 
         await call.RequestStream.CompleteAsync().DefaultTimeout();
 
@@ -98,7 +98,7 @@ public class AsyncClientStreamingCallTests
         var invoker = HttpClientCallInvokerFactory.Create(handler, "http://localhost");
 
         // Act
-        var call = invoker.AsyncClientStreamingCall<HelloRequest, HelloReply>(ClientTestHelpers.ServiceMethod, string.Empty, new CallOptions());
+        var call = invoker.AsyncClientStreamingCall();
         var requestContentTask = await requestContentTcs.Task.DefaultTimeout();
 
         // Assert
@@ -149,7 +149,7 @@ public class AsyncClientStreamingCallTests
         var invoker = HttpClientCallInvokerFactory.Create(httpClient);
 
         // Act
-        var call = invoker.AsyncClientStreamingCall<HelloRequest, HelloReply>(ClientTestHelpers.ServiceMethod, string.Empty, new CallOptions());
+        var call = invoker.AsyncClientStreamingCall();
 
         // Assert
         var writeTask1 = call.RequestStream.WriteAsync(new HelloRequest { Name = "1" });
@@ -178,7 +178,7 @@ public class AsyncClientStreamingCallTests
         var invoker = HttpClientCallInvokerFactory.Create(httpClient, loggerFactory: loggerFactory);
 
         // Act
-        var call = invoker.AsyncClientStreamingCall<HelloRequest, HelloReply>(ClientTestHelpers.ServiceMethod, string.Empty, new CallOptions());
+        var call = invoker.AsyncClientStreamingCall();
 
         // Assert
         var writeTask1 = call.RequestStream.WriteAsync(new HelloRequest { Name = "1" });
@@ -216,7 +216,7 @@ public class AsyncClientStreamingCallTests
         var invoker = HttpClientCallInvokerFactory.Create(httpClient);
 
         // Act
-        var call = invoker.AsyncClientStreamingCall<HelloRequest, HelloReply>(ClientTestHelpers.ServiceMethod, string.Empty, new CallOptions());
+        var call = invoker.AsyncClientStreamingCall();
 
         // Assert
         var writeTask1 = call.RequestStream.WriteAsync(new HelloRequest { Name = "1" });
@@ -240,7 +240,7 @@ public class AsyncClientStreamingCallTests
         var invoker = HttpClientCallInvokerFactory.Create(httpClient);
 
         // Act
-        var call = invoker.AsyncClientStreamingCall<HelloRequest, HelloReply>(ClientTestHelpers.ServiceMethod, string.Empty, new CallOptions());
+        var call = invoker.AsyncClientStreamingCall();
         await call.RequestStream.CompleteAsync().DefaultTimeout();
         var resultTask = call.ResponseAsync;
 
@@ -273,7 +273,7 @@ public class AsyncClientStreamingCallTests
         var invoker = HttpClientCallInvokerFactory.Create(httpClient);
 
         // Act
-        var call = invoker.AsyncClientStreamingCall<HelloRequest, HelloReply>(ClientTestHelpers.ServiceMethod, string.Empty, new CallOptions());
+        var call = invoker.AsyncClientStreamingCall();
         var writeException = await ExceptionAssert.ThrowsAsync<RpcException>(() => call.RequestStream.WriteAsync(new HelloRequest { Name = "1" })).DefaultTimeout();
         var resultException = await ExceptionAssert.ThrowsAsync<RpcException>(() => call.ResponseAsync).DefaultTimeout();
 
@@ -299,7 +299,7 @@ public class AsyncClientStreamingCallTests
         var invoker = HttpClientCallInvokerFactory.Create(httpClient);
 
         // Act
-        var call = invoker.AsyncClientStreamingCall<HelloRequest, HelloReply>(ClientTestHelpers.ServiceMethod, string.Empty, new CallOptions());
+        var call = invoker.AsyncClientStreamingCall();
         var ex = await ExceptionAssert.ThrowsAsync<RpcException>(() => call.RequestStream.WriteAsync(new HelloRequest())).DefaultTimeout();
         var result = await call.ResponseAsync.DefaultTimeout();
 
@@ -329,7 +329,7 @@ public class AsyncClientStreamingCallTests
         // Act
 
         // Client starts call
-        var call = invoker.AsyncClientStreamingCall<HelloRequest, HelloReply>(ClientTestHelpers.ServiceMethod, string.Empty, new CallOptions());
+        var call = invoker.AsyncClientStreamingCall();
         // Client starts request stream write
         var writeTask = call.RequestStream.WriteAsync(new HelloRequest());
 
@@ -422,7 +422,7 @@ public class AsyncClientStreamingCallTests
         var invoker = HttpClientCallInvokerFactory.Create(httpClient);
 
         // Act
-        var call = invoker.AsyncClientStreamingCall<HelloRequest, HelloReply>(ClientTestHelpers.ServiceMethod, string.Empty, new CallOptions(cancellationToken: new CancellationToken(true)));
+        var call = invoker.AsyncClientStreamingCall(new CallOptions(cancellationToken: new CancellationToken(true)));
 
         var ex = await ExceptionAssert.ThrowsAsync<RpcException>(() => call.RequestStream.WriteAsync(new HelloRequest())).DefaultTimeout();
 
@@ -442,7 +442,7 @@ public class AsyncClientStreamingCallTests
         var invoker = HttpClientCallInvokerFactory.Create(httpClient, configure: o => o.ThrowOperationCanceledOnCancellation = true);
 
         // Act
-        var call = invoker.AsyncClientStreamingCall<HelloRequest, HelloReply>(ClientTestHelpers.ServiceMethod, string.Empty, new CallOptions(cancellationToken: new CancellationToken(true)));
+        var call = invoker.AsyncClientStreamingCall(new CallOptions(cancellationToken: new CancellationToken(true)));
 
         await ExceptionAssert.ThrowsAsync<OperationCanceledException>(() => call.RequestStream.WriteAsync(new HelloRequest())).DefaultTimeout();
 
@@ -461,7 +461,7 @@ public class AsyncClientStreamingCallTests
         var invoker = HttpClientCallInvokerFactory.Create(httpClient);
 
         // Act
-        var call = invoker.AsyncClientStreamingCall<HelloRequest, HelloReply>(ClientTestHelpers.ServiceMethod, string.Empty, new CallOptions());
+        var call = invoker.AsyncClientStreamingCall();
         var writeException = await ExceptionAssert.ThrowsAsync<RpcException>(() => call.RequestStream.WriteAsync(new HelloRequest())).DefaultTimeout();
         var resultException = await ExceptionAssert.ThrowsAsync<RpcException>(() => call.ResponseAsync).DefaultTimeout();
 

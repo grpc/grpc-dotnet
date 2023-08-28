@@ -405,6 +405,11 @@ internal abstract partial class RetryCallBase<TRequest, TResponse> : IGrpcCall<T
         return Method.Type == MethodType.ClientStreaming || Method.Type == MethodType.DuplexStreaming;
     }
 
+    protected bool HasResponseStream()
+    {
+        return Method.Type == MethodType.ServerStreaming || Method.Type == MethodType.DuplexStreaming;
+    }
+
     protected void SetNewActiveCallUnsynchronized(IGrpcCall<TRequest, TResponse> call)
     {
         Debug.Assert(Monitor.IsEntered(Lock), "Should be called with lock.");

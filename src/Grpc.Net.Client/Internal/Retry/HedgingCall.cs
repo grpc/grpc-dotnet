@@ -204,7 +204,10 @@ internal sealed partial class HedgingCall<TRequest, TResponse> : RetryCallBase<T
             {
                 // Ensure response task is created before waiting to the end.
                 // Allows cancellation exceptions to be observed in cleanup.
-                _ = GetResponseAsync();
+                if (!HasResponseStream())
+                {
+                    _ = GetResponseAsync();
+                }
 
                 // Wait until the commited call is finished and then clean up hedging call.
                 // Force yield here to prevent continuation running with any locks.

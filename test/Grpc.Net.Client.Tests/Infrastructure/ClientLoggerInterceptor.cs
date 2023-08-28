@@ -18,6 +18,7 @@
 
 using Grpc.Core;
 using Grpc.Core.Interceptors;
+using Grpc.Net.Client.Internal;
 using Microsoft.Extensions.Logging;
 
 namespace Grpc.Net.Client.Tests.Infrastructure;
@@ -62,7 +63,10 @@ public sealed class ClientLoggerInterceptor : Interceptor
         {
             var call = continuation(request, context);
 
-            return new AsyncUnaryCall<TResponse>(HandleResponse(call.ResponseAsync), call.ResponseHeadersAsync, call.GetStatus, call.GetTrailers, call.Dispose);
+            var responseTask = HandleResponse(call.ResponseAsync);
+            responseTask.ObserveException();
+
+            return new AsyncUnaryCall<TResponse>(responseTask, call.ResponseHeadersAsync, call.GetStatus, call.GetTrailers, call.Dispose);
         }
         catch (Exception ex)
         {

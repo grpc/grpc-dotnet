@@ -58,7 +58,7 @@ public class AsyncUnaryCallTests
         var invoker = HttpClientCallInvokerFactory.Create(httpClient);
 
         // Act
-        var rs = await invoker.AsyncUnaryCall<HelloRequest, HelloReply>(ClientTestHelpers.ServiceMethod, string.Empty, new CallOptions(), new HelloRequest());
+        var rs = await invoker.AsyncUnaryCall(new HelloRequest());
 
         // Assert
         Assert.AreEqual("Hello world", rs.Message);
@@ -112,8 +112,7 @@ public class AsyncUnaryCallTests
         var invoker = HttpClientCallInvokerFactory.Create(winHttpHandler, "https://localhost");
 
         // Act
-        var rs = await invoker.AsyncUnaryCall<HelloRequest, HelloReply>(
-            ClientTestHelpers.ServiceMethod, string.Empty, new CallOptions(), new HelloRequest { Name = "Hello world" }).ResponseAsync.DefaultTimeout();
+        var rs = await invoker.AsyncUnaryCall(new HelloRequest { Name = "Hello world" }).ResponseAsync.DefaultTimeout();
 
         // Assert
         Assert.AreEqual("Hello world", rs.Message);
@@ -144,8 +143,7 @@ public class AsyncUnaryCallTests
         var invoker = HttpClientCallInvokerFactory.Create(handler, "http://localhost");
 
         // Act
-        var rs = await invoker.AsyncUnaryCall<HelloRequest, HelloReply>(
-            ClientTestHelpers.ServiceMethod, string.Empty, new CallOptions(), new HelloRequest { Name = "World" }).ResponseAsync.DefaultTimeout();
+        var rs = await invoker.AsyncUnaryCall(new HelloRequest { Name = "World" }).ResponseAsync.DefaultTimeout();
 
         // Assert
         Assert.AreEqual("Hello world", rs.Message);
@@ -177,7 +175,7 @@ public class AsyncUnaryCallTests
         var invoker = HttpClientCallInvokerFactory.Create(httpClient);
 
         // Act
-        var ex = await ExceptionAssert.ThrowsAsync<RpcException>(() => invoker.AsyncUnaryCall<HelloRequest, HelloReply>(ClientTestHelpers.ServiceMethod, string.Empty, new CallOptions(), new HelloRequest()).ResponseAsync).DefaultTimeout();
+        var ex = await ExceptionAssert.ThrowsAsync<RpcException>(() => invoker.AsyncUnaryCall(new HelloRequest()).ResponseAsync).DefaultTimeout();
 
         // Assert
         Assert.AreEqual(StatusCode.Unimplemented, ex.StatusCode);
@@ -195,7 +193,7 @@ public class AsyncUnaryCallTests
         var invoker = HttpClientCallInvokerFactory.Create(httpClient);
 
         // Act
-        var headers = await invoker.AsyncUnaryCall<HelloRequest, HelloReply>(ClientTestHelpers.ServiceMethod, string.Empty, new CallOptions(), new HelloRequest()).ResponseHeadersAsync.DefaultTimeout();
+        var headers = await invoker.AsyncUnaryCall(new HelloRequest()).ResponseHeadersAsync.DefaultTimeout();
 
         // Assert
         Assert.AreEqual("true", headers.GetValue("custom"));
@@ -214,7 +212,7 @@ public class AsyncUnaryCallTests
         var invoker = HttpClientCallInvokerFactory.Create(httpClient);
 
         // Act
-        var call = invoker.AsyncUnaryCall<HelloRequest, HelloReply>(ClientTestHelpers.ServiceMethod, string.Empty, new CallOptions(), new HelloRequest());
+        var call = invoker.AsyncUnaryCall(new HelloRequest());
         var headers = await call.ResponseHeadersAsync.DefaultTimeout();
         var ex = await ExceptionAssert.ThrowsAsync<RpcException>(() => call.ResponseAsync).DefaultTimeout();
 
@@ -294,7 +292,7 @@ public class AsyncUnaryCallTests
             {
                 var runTask = Task.Run(async () =>
                 {
-                    var call = invoker.AsyncUnaryCall(ClientTestHelpers.ServiceMethod, string.Empty, new CallOptions(), new HelloRequest());
+                    var call = invoker.AsyncUnaryCall(new HelloRequest());
 
                     switch (action)
                     {
