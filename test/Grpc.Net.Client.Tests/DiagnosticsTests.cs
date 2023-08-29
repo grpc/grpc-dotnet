@@ -51,7 +51,7 @@ public class DiagnosticsTests
 
         var call = await Task.Run(() =>
         {
-            var c = invoker.AsyncDuplexStreamingCall<HelloRequest, HelloReply>(ClientTestHelpers.ServiceMethod, string.Empty, new CallOptions());
+            var c = invoker.AsyncDuplexStreamingCall();
             Assert.AreEqual("a", Activity.Current.OperationName);
 
             return c;
@@ -98,7 +98,7 @@ public class DiagnosticsTests
 
         using (GrpcDiagnostics.DiagnosticListener.Subscribe(new ObserverToList<KeyValuePair<string, object?>>(result)))
         {
-            var c1 = invoker.AsyncDuplexStreamingCall<HelloRequest, HelloReply>(ClientTestHelpers.ServiceMethod, string.Empty, new CallOptions());
+            var c1 = invoker.AsyncDuplexStreamingCall<HelloRequest, HelloReply>(ClientTestHelpers.GetServiceMethod(MethodType.DuplexStreaming), string.Empty, new CallOptions());
             c1.Dispose();
 
             requestMessage1 = requestMessage;
@@ -166,7 +166,7 @@ public class DiagnosticsTests
         // Act
         using (GrpcDiagnostics.DiagnosticListener.Subscribe(new ActionObserver<KeyValuePair<string, object?>>(onDiagnosticMessage)))
         {
-            var c = invoker.AsyncDuplexStreamingCall<HelloRequest, HelloReply>(ClientTestHelpers.ServiceMethod, string.Empty, new CallOptions());
+            var c = invoker.AsyncDuplexStreamingCall();
             c.Dispose();
         }
 
@@ -208,7 +208,7 @@ public class DiagnosticsTests
 
             ActivitySource.AddActivityListener(activityListener);
 
-            var c = invoker.AsyncDuplexStreamingCall<HelloRequest, HelloReply>(ClientTestHelpers.ServiceMethod, string.Empty, new CallOptions());
+            var c = invoker.AsyncDuplexStreamingCall<HelloRequest, HelloReply>(ClientTestHelpers.GetServiceMethod(MethodType.DuplexStreaming), string.Empty, new CallOptions());
             c.Dispose();
         }
 

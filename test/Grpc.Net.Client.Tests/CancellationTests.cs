@@ -1,4 +1,4 @@
-﻿#region Copyright notice and license
+#region Copyright notice and license
 
 // Copyright 2019 The gRPC Authors
 //
@@ -38,7 +38,7 @@ public class CancellationTests
         var invoker = CreateTimedoutCallInvoker<HelloRequest, HelloReply>();
 
         // Act
-        var call = invoker.AsyncClientStreamingCall<HelloRequest, HelloReply>(ClientTestHelpers.ServiceMethod, string.Empty, new CallOptions(cancellationToken: cts.Token));
+        var call = invoker.AsyncClientStreamingCall(new CallOptions(cancellationToken: cts.Token));
 
         // Assert
         var responseTask = call.ResponseAsync;
@@ -60,7 +60,7 @@ public class CancellationTests
         var invoker = CreateTimedoutCallInvoker<HelloRequest, HelloReply>();
 
         // Act
-        var call = invoker.AsyncClientStreamingCall<HelloRequest, HelloReply>(ClientTestHelpers.ServiceMethod, string.Empty, new CallOptions(cancellationToken: cts.Token));
+        var call = invoker.AsyncClientStreamingCall(new CallOptions(cancellationToken: cts.Token));
 
         // Assert
         var responseHeadersTask = call.ResponseHeadersAsync;
@@ -82,7 +82,7 @@ public class CancellationTests
         var invoker = CreateTimedoutCallInvoker<HelloRequest, HelloReply>(configure: o => o.ThrowOperationCanceledOnCancellation = true);
 
         // Act
-        var call = invoker.AsyncClientStreamingCall<HelloRequest, HelloReply>(ClientTestHelpers.ServiceMethod, string.Empty, new CallOptions(cancellationToken: cts.Token));
+        var call = invoker.AsyncClientStreamingCall(new CallOptions(cancellationToken: cts.Token));
 
         // Assert
         var responseTask = call.ResponseAsync;
@@ -105,7 +105,7 @@ public class CancellationTests
         var invoker = CreateTimedoutCallInvoker<HelloRequest, HelloReply>(configure: o => o.ThrowOperationCanceledOnCancellation = true);
 
         // Act
-        var call = invoker.AsyncClientStreamingCall<HelloRequest, HelloReply>(ClientTestHelpers.ServiceMethod, string.Empty, new CallOptions(cancellationToken: cts.Token));
+        var call = invoker.AsyncClientStreamingCall(new CallOptions(cancellationToken: cts.Token));
 
         // Assert
         var responseHeadersTask = call.ResponseHeadersAsync;
@@ -126,7 +126,7 @@ public class CancellationTests
         var invoker = CreateTimedoutCallInvoker<HelloRequest, HelloReply>();
 
         // Act
-        var call = invoker.AsyncClientStreamingCall<HelloRequest, HelloReply>(ClientTestHelpers.ServiceMethod, string.Empty, new CallOptions(cancellationToken: cts.Token));
+        var call = invoker.AsyncClientStreamingCall(new CallOptions(cancellationToken: cts.Token));
 
         // Assert
         cts.Cancel();

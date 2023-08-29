@@ -57,7 +57,7 @@ public class CallCredentialTests
             return Task.FromException(expectedException);
         });
 
-        var call = invoker.AsyncUnaryCall<HelloRequest, HelloReply>(ClientTestHelpers.ServiceMethod, string.Empty, new CallOptions(credentials: callCredentials), new HelloRequest());
+        var call = invoker.AsyncUnaryCall(new HelloRequest(), new CallOptions(credentials: callCredentials));
         var ex = await ExceptionAssert.ThrowsAsync<RpcException>(() => call.ResponseAsync).DefaultTimeout();
 
         // Assert
@@ -90,7 +90,7 @@ public class CallCredentialTests
             // Set header.
             metadata.Add("authorization", "SECRET_TOKEN");
         });
-        var call = invoker.AsyncUnaryCall<HelloRequest, HelloReply>(ClientTestHelpers.ServiceMethod, string.Empty, new CallOptions(credentials: callCredentials), new HelloRequest());
+        var call = invoker.AsyncUnaryCall(new HelloRequest(), new CallOptions(credentials: callCredentials));
         var responseTask = call.ResponseAsync;
 
         await syncPoint.WaitForSyncPoint().DefaultTimeout();
@@ -133,7 +133,7 @@ public class CallCredentialTests
 
             unreachableAuthInterceptorSection = true;
         });
-        var call = invoker.AsyncUnaryCall<HelloRequest, HelloReply>(ClientTestHelpers.ServiceMethod, string.Empty, new CallOptions(credentials: callCredentials), new HelloRequest());
+        var call = invoker.AsyncUnaryCall(new HelloRequest(), new CallOptions(credentials: callCredentials));
         var responseTask = call.ResponseAsync;
 
         call.Dispose();
@@ -170,7 +170,7 @@ public class CallCredentialTests
             metadata.Add("authorization", "SECRET_TOKEN");
             return Task.CompletedTask;
         });
-        var call = invoker.AsyncUnaryCall<HelloRequest, HelloReply>(ClientTestHelpers.ServiceMethod, string.Empty, new CallOptions(credentials: callCredentials), new HelloRequest());
+        var call = invoker.AsyncUnaryCall(new HelloRequest(), new CallOptions(credentials: callCredentials));
         await call.ResponseAsync.DefaultTimeout();
 
         // Assert
@@ -204,7 +204,7 @@ public class CallCredentialTests
             await Task.Delay(50);
             metadata.Add("authorization", "SECRET_TOKEN");
         });
-        var call = invoker.AsyncUnaryCall<HelloRequest, HelloReply>(ClientTestHelpers.ServiceMethod, string.Empty, new CallOptions(credentials: callCredentials), new HelloRequest());
+        var call = invoker.AsyncUnaryCall(new HelloRequest(), new CallOptions(credentials: callCredentials));
         await call.ResponseAsync.DefaultTimeout();
 
         // Assert
@@ -239,7 +239,7 @@ public class CallCredentialTests
             });
 
         // Act
-        var call = invoker.AsyncUnaryCall<HelloRequest, HelloReply>(ClientTestHelpers.ServiceMethod, string.Empty, default, new HelloRequest());
+        var call = invoker.AsyncUnaryCall(new HelloRequest());
         await call.ResponseAsync.DefaultTimeout();
 
         // Assert
@@ -385,7 +385,7 @@ public class CallCredentialTests
 
         // Act
         var callCredentials = CallCredentials.Compose(first, second, third);
-        var call = invoker.AsyncUnaryCall<HelloRequest, HelloReply>(ClientTestHelpers.ServiceMethod, string.Empty, new CallOptions(credentials: callCredentials), new HelloRequest());
+        var call = invoker.AsyncUnaryCall(new HelloRequest(), new CallOptions(credentials: callCredentials));
         await call.ResponseAsync.DefaultTimeout();
 
         // Assert
@@ -422,7 +422,7 @@ public class CallCredentialTests
             methodName = context.MethodName;
             return Task.CompletedTask;
         });
-        var call = invoker.AsyncUnaryCall<HelloRequest, HelloReply>(ClientTestHelpers.ServiceMethod, string.Empty, new CallOptions(credentials: callCredentials), new HelloRequest());
+        var call = invoker.AsyncUnaryCall(new HelloRequest(), new CallOptions(credentials: callCredentials));
         await call.ResponseAsync.DefaultTimeout();
 
         // Assert

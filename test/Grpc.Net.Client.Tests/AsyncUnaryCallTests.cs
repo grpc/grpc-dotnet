@@ -58,7 +58,7 @@ public class AsyncUnaryCallTests
         var invoker = HttpClientCallInvokerFactory.Create(httpClient);
 
         // Act
-        var rs = await invoker.AsyncUnaryCall<HelloRequest, HelloReply>(ClientTestHelpers.ServiceMethod, string.Empty, new CallOptions(), new HelloRequest());
+        var rs = await invoker.AsyncUnaryCall(new HelloRequest());
 
         // Assert
         Assert.AreEqual("Hello world", rs.Message);
@@ -112,8 +112,7 @@ public class AsyncUnaryCallTests
         var invoker = HttpClientCallInvokerFactory.Create(winHttpHandler, "https://localhost");
 
         // Act
-        var rs = await invoker.AsyncUnaryCall<HelloRequest, HelloReply>(
-            ClientTestHelpers.ServiceMethod, string.Empty, new CallOptions(), new HelloRequest { Name = "Hello world" }).ResponseAsync.DefaultTimeout();
+        var rs = await invoker.AsyncUnaryCall(new HelloRequest { Name = "Hello world" }).ResponseAsync.DefaultTimeout();
 
         // Assert
         Assert.AreEqual("Hello world", rs.Message);
@@ -144,8 +143,7 @@ public class AsyncUnaryCallTests
         var invoker = HttpClientCallInvokerFactory.Create(handler, "http://localhost");
 
         // Act
-        var rs = await invoker.AsyncUnaryCall<HelloRequest, HelloReply>(
-            ClientTestHelpers.ServiceMethod, string.Empty, new CallOptions(), new HelloRequest { Name = "World" }).ResponseAsync.DefaultTimeout();
+        var rs = await invoker.AsyncUnaryCall(new HelloRequest { Name = "World" }).ResponseAsync.DefaultTimeout();
 
         // Assert
         Assert.AreEqual("Hello world", rs.Message);
@@ -177,7 +175,7 @@ public class AsyncUnaryCallTests
         var invoker = HttpClientCallInvokerFactory.Create(httpClient);
 
         // Act
-        var ex = await ExceptionAssert.ThrowsAsync<RpcException>(() => invoker.AsyncUnaryCall<HelloRequest, HelloReply>(ClientTestHelpers.ServiceMethod, string.Empty, new CallOptions(), new HelloRequest()).ResponseAsync).DefaultTimeout();
+        var ex = await ExceptionAssert.ThrowsAsync<RpcException>(() => invoker.AsyncUnaryCall(new HelloRequest()).ResponseAsync).DefaultTimeout();
 
         // Assert
         Assert.AreEqual(StatusCode.Unimplemented, ex.StatusCode);
@@ -195,7 +193,7 @@ public class AsyncUnaryCallTests
         var invoker = HttpClientCallInvokerFactory.Create(httpClient);
 
         // Act
-        var headers = await invoker.AsyncUnaryCall<HelloRequest, HelloReply>(ClientTestHelpers.ServiceMethod, string.Empty, new CallOptions(), new HelloRequest()).ResponseHeadersAsync.DefaultTimeout();
+        var headers = await invoker.AsyncUnaryCall(new HelloRequest()).ResponseHeadersAsync.DefaultTimeout();
 
         // Assert
         Assert.AreEqual("true", headers.GetValue("custom"));
@@ -214,7 +212,7 @@ public class AsyncUnaryCallTests
         var invoker = HttpClientCallInvokerFactory.Create(httpClient);
 
         // Act
-        var call = invoker.AsyncUnaryCall<HelloRequest, HelloReply>(ClientTestHelpers.ServiceMethod, string.Empty, new CallOptions(), new HelloRequest());
+        var call = invoker.AsyncUnaryCall(new HelloRequest());
         var headers = await call.ResponseHeadersAsync.DefaultTimeout();
         var ex = await ExceptionAssert.ThrowsAsync<RpcException>(() => call.ResponseAsync).DefaultTimeout();
 
@@ -249,6 +247,9 @@ public class AsyncUnaryCallTests
     [TestCase(1, false, ResponseHandleAction.Nothing)]
     public async Task AsyncUnaryCall_CallFailed_NoUnobservedExceptions(int expectedUnobservedExceptions, bool addClientInterceptor, ResponseHandleAction action)
     {
+        // Do this before running the test to clean up any pending unobserved exceptions from other tests.
+        TriggerUnobservedExceptions();
+
         // Arrange
         var services = new ServiceCollection();
         services.AddNUnitLogger();
@@ -282,10 +283,12 @@ public class AsyncUnaryCallTests
             await MakeGrpcCallAsync(logger, invoker, action);
 
             logger.LogDebug("Waiting for finalizers");
-            // Provoke the garbage collector to find the unobserved exception.
-            GC.Collect();
-            // Wait for any failed tasks to be garbage collected
-            GC.WaitForPendingFinalizers();
+            logger.LogDebug("Waiting for finalizers");
+            for (var i = 0; i < 5; i++)
+            {
+                TriggerUnobservedExceptions();
+                await Task.Delay(10);
+            }
 
             // Assert
             Assert.AreEqual(expectedUnobservedExceptions, unobservedExceptions.Count);
@@ -294,7 +297,7 @@ public class AsyncUnaryCallTests
             {
                 var runTask = Task.Run(async () =>
                 {
-                    var call = invoker.AsyncUnaryCall(ClientTestHelpers.ServiceMethod, string.Empty, new CallOptions(), new HelloRequest());
+                    var call = invoker.AsyncUnaryCall(new HelloRequest());
 
                     switch (action)
                     {
@@ -322,156 +325,11 @@ public class AsyncUnaryCallTests
         }
     }
 
-    private class ClientLoggerInterceptor : Interceptor
+    private static void TriggerUnobservedExceptions()
     {
-        private readonly ILogger<ClientLoggerInterceptor> _logger;
-
-        public ClientLoggerInterceptor(ILoggerFactory loggerFactory)
-        {
-            _logger = loggerFactory.CreateLogger<ClientLoggerInterceptor>();
-        }
-
-        public override TResponse BlockingUnaryCall<TRequest, TResponse>(
-            TRequest request,
-            ClientInterceptorContext<TRequest, TResponse> context,
-            BlockingUnaryCallContinuation<TRequest, TResponse> continuation)
-        {
-            LogCall(context.Method);
-            AddCallerMetadata(ref context);
-
-            try
-            {
-                return continuation(request, context);
-            }
-            catch (Exception ex)
-            {
-                LogError(ex);
-                throw;
-            }
-        }
-
-        public override AsyncUnaryCall<TResponse> AsyncUnaryCall<TRequest, TResponse>(
-            TRequest request,
-            ClientInterceptorContext<TRequest, TResponse> context,
-            AsyncUnaryCallContinuation<TRequest, TResponse> continuation)
-        {
-            LogCall(context.Method);
-            AddCallerMetadata(ref context);
-
-            try
-            {
-                var call = continuation(request, context);
-
-                return new AsyncUnaryCall<TResponse>(HandleResponse(call.ResponseAsync), call.ResponseHeadersAsync, call.GetStatus, call.GetTrailers, call.Dispose);
-            }
-            catch (Exception ex)
-            {
-                LogError(ex);
-                throw;
-            }
-        }
-
-        private async Task<TResponse> HandleResponse<TResponse>(Task<TResponse> t)
-        {
-            try
-            {
-                var response = await t;
-                _logger.LogInformation($"Response received: {response}");
-                return response;
-            }
-            catch (Exception ex)
-            {
-                LogError(ex);
-                throw;
-            }
-        }
-
-        public override AsyncClientStreamingCall<TRequest, TResponse> AsyncClientStreamingCall<TRequest, TResponse>(
-            ClientInterceptorContext<TRequest, TResponse> context,
-            AsyncClientStreamingCallContinuation<TRequest, TResponse> continuation)
-        {
-            LogCall(context.Method);
-            AddCallerMetadata(ref context);
-
-            try
-            {
-                return continuation(context);
-            }
-            catch (Exception ex)
-            {
-                LogError(ex);
-                throw;
-            }
-        }
-
-        public override AsyncServerStreamingCall<TResponse> AsyncServerStreamingCall<TRequest, TResponse>(
-            TRequest request,
-            ClientInterceptorContext<TRequest, TResponse> context,
-            AsyncServerStreamingCallContinuation<TRequest, TResponse> continuation)
-        {
-            LogCall(context.Method);
-            AddCallerMetadata(ref context);
-
-            try
-            {
-                return continuation(request, context);
-            }
-            catch (Exception ex)
-            {
-                LogError(ex);
-                throw;
-            }
-        }
-
-        public override AsyncDuplexStreamingCall<TRequest, TResponse> AsyncDuplexStreamingCall<TRequest, TResponse>(
-            ClientInterceptorContext<TRequest, TResponse> context,
-            AsyncDuplexStreamingCallContinuation<TRequest, TResponse> continuation)
-        {
-            LogCall(context.Method);
-            AddCallerMetadata(ref context);
-
-            try
-            {
-                return continuation(context);
-            }
-            catch (Exception ex)
-            {
-                LogError(ex);
-                throw;
-            }
-        }
-
-        private void LogCall<TRequest, TResponse>(Method<TRequest, TResponse> method)
-            where TRequest : class
-            where TResponse : class
-        {
-            _logger.LogInformation($"Starting call. Name: {method.Name}. Type: {method.Type}. Request: {typeof(TRequest)}. Response: {typeof(TResponse)}");
-        }
-
-        private void AddCallerMetadata<TRequest, TResponse>(ref ClientInterceptorContext<TRequest, TResponse> context)
-            where TRequest : class
-            where TResponse : class
-        {
-            var headers = context.Options.Headers;
-
-            // Call doesn't have a headers collection to add to.
-            // Need to create a new context with headers for the call.
-            if (headers == null)
-            {
-                headers = new Metadata();
-                var options = context.Options.WithHeaders(headers);
-                context = new ClientInterceptorContext<TRequest, TResponse>(context.Method, context.Host, options);
-            }
-
-            // Add caller metadata to call headers
-            headers.Add("caller-user", Environment.UserName);
-            headers.Add("caller-machine", Environment.MachineName);
-            headers.Add("caller-os", Environment.OSVersion.ToString());
-        }
-
-        private void LogError(Exception ex)
-        {
-            _logger.LogError(ex, $"Call error: {ex.Message}");
-        }
+        // Provoke the garbage collector to find the unobserved exception.
+        GC.Collect();
+        // Wait for any failed tasks to be garbage collected
+        GC.WaitForPendingFinalizers();
     }
 }

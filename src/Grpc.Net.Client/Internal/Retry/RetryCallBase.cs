@@ -33,6 +33,8 @@ internal abstract partial class RetryCallBase<TRequest, TResponse> : IGrpcCall<T
     private readonly TaskCompletionSource<IGrpcCall<TRequest, TResponse>> _commitedCallTcs;
     private RetryCallBaseClientStreamReader<TRequest, TResponse>? _retryBaseClientStreamReader;
     private RetryCallBaseClientStreamWriter<TRequest, TResponse>? _retryBaseClientStreamWriter;
+    private Task<TResponse>? _responseTask;
+    private Task<Metadata>? _responseHeadersTask;
 
     // Internal for unit testing.
     internal CancellationTokenRegistration? _ctsRegistration;
@@ -111,13 +113,34 @@ internal abstract partial class RetryCallBase<TRequest, TResponse> : IGrpcCall<T
         }
     }
 
-    public async Task<TResponse> GetResponseAsync()
+    public Task<TResponse> GetResponseAsync() => _responseTask ??= GetResponseCoreAsync();
+
+    private async Task<TResponse> GetResponseCoreAsync()
     {
         var call = await CommitedCallTask.ConfigureAwait(false);
         return await call.GetResponseAsync().ConfigureAwait(false);
     }
 
-    public async Task<Metadata> GetResponseHeadersAsync()
+    public Task<Metadata> GetResponseHeadersAsync()
+    {
+        if (_responseHeadersTask == null)
+        {
+            _responseHeadersTask = GetResponseHeadersCoreAsync();
+
+            // ResponseHeadersAsync could be called inside a client interceptor when a call is wrapped.
+            // Most people won't use the headers result. Observed exception to avoid unobserved exception event.
+            _responseHeadersTask.ObserveException();
+
+            // If there was an error fetching response headers then it's likely the same error is reported
+            // by response TCS. The user is unlikely to observe both errors.
+            // Observed exception to avoid unobserved exception event.
+            _responseTask?.ObserveException();
+        }
+
+        return _responseHeadersTask;
+    }
+
+    private async Task<Metadata> GetResponseHeadersCoreAsync()
     {
         var call = await CommitedCallTask.ConfigureAwait(false);
         return await call.GetResponseHeadersAsync().ConfigureAwait(false);
@@ -369,7 +392,7 @@ internal abstract partial class RetryCallBase<TRequest, TResponse> : IGrpcCall<T
                 // A commited call that has already cleaned up is likely a StatusGrpcCall.
                 if (call.Disposed)
                 {
-                    Cleanup();
+                    Cleanup(observeExceptions: false);
                 }
             }
         }
@@ -380,6 +403,11 @@ internal abstract partial class RetryCallBase<TRequest, TResponse> : IGrpcCall<T
     protected bool HasClientStream()
     {
         return Method.Type == MethodType.ClientStreaming || Method.Type == MethodType.DuplexStreaming;
+    }
+
+    protected bool HasResponseStream()
+    {
+        return Method.Type == MethodType.ServerStreaming || Method.Type == MethodType.DuplexStreaming;
     }
 
     protected void SetNewActiveCallUnsynchronized(IGrpcCall<TRequest, TResponse> call)
@@ -436,11 +464,11 @@ internal abstract partial class RetryCallBase<TRequest, TResponse> : IGrpcCall<T
                 CommitedCallTask.Result.Dispose();
             }
 
-            Cleanup();
+            Cleanup(observeExceptions: true);
         }
     }
 
-    protected void Cleanup()
+    protected void Cleanup(bool observeExceptions)
     {
         Channel.FinishActiveCall(this);
 
@@ -449,6 +477,12 @@ internal abstract partial class RetryCallBase<TRequest, TResponse> : IGrpcCall<T
         CancellationTokenSource.Cancel();
 
         ClearRetryBuffer();
+
+        if (observeExceptions)
+        {
+            _responseTask?.ObserveException();
+            _responseHeadersTask?.ObserveException();
+        }
     }
 
     internal bool TryAddToRetryBuffer(ReadOnlyMemory<byte> message)
