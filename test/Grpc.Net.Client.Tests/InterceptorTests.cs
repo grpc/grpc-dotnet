@@ -1,4 +1,4 @@
-﻿#region Copyright notice and license
+#region Copyright notice and license
 
 // Copyright 2019 The gRPC Authors
 //
@@ -114,7 +114,7 @@ public class ClientInterceptorTest
     public async Task Intercept_WrapClientStream_ClientStreamWrapperExecuted()
     {
         // Arrange
-        var serviceMethod = new Method<string, string>(MethodType.Unary, "ServiceName", "Unary", Marshallers.StringMarshaller, Marshallers.StringMarshaller);
+        var serviceMethod = new Method<string, string>(MethodType.ClientStreaming, "ServiceName", "Unary", Marshallers.StringMarshaller, Marshallers.StringMarshaller);
 
         var httpClient = ClientTestHelpers.CreateTestClient(async request =>
         {

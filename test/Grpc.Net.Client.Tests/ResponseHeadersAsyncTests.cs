@@ -47,7 +47,7 @@ public class ResponseHeadersAsyncTests
         var invoker = HttpClientCallInvokerFactory.Create(httpClient);
 
         // Act
-        var call = invoker.AsyncUnaryCall<HelloRequest, HelloReply>(ClientTestHelpers.ServiceMethod, string.Empty, new CallOptions(), new HelloRequest());
+        var call = invoker.AsyncUnaryCall(new HelloRequest());
         var responseHeaders1 = await call.ResponseHeadersAsync.DefaultTimeout();
         var responseHeaders2 = await call.ResponseHeadersAsync.DefaultTimeout();
 
@@ -85,7 +85,7 @@ public class ResponseHeadersAsyncTests
         var invoker = HttpClientCallInvokerFactory.Create(httpClient, configure: options => options.Credentials = ChannelCredentials.Create(new SslCredentials(), credentials));
 
         // Act
-        var call = invoker.AsyncUnaryCall<HelloRequest, HelloReply>(ClientTestHelpers.ServiceMethod, string.Empty, new CallOptions(), new HelloRequest());
+        var call = invoker.AsyncUnaryCall(new HelloRequest());
         var responseHeadersTask = call.ResponseHeadersAsync;
 
         await credentialsSyncPoint.WaitForSyncPoint().DefaultTimeout();
@@ -119,7 +119,7 @@ public class ResponseHeadersAsyncTests
         var invoker = HttpClientCallInvokerFactory.Create(httpClient, configure: options => options.Credentials = ChannelCredentials.Create(new SslCredentials(), credentials));
 
         // Act
-        var call = invoker.AsyncUnaryCall<HelloRequest, HelloReply>(ClientTestHelpers.ServiceMethod, string.Empty, new CallOptions(), new HelloRequest());
+        var call = invoker.AsyncUnaryCall(new HelloRequest());
         var responseHeadersTask = call.ResponseHeadersAsync;
 
         await credentialsSyncPoint.WaitForSyncPoint().DefaultTimeout();
@@ -145,7 +145,7 @@ public class ResponseHeadersAsyncTests
         var invoker = HttpClientCallInvokerFactory.Create(httpClient);
 
         // Act
-        var call = invoker.AsyncClientStreamingCall<HelloRequest, HelloReply>(ClientTestHelpers.ServiceMethod, string.Empty, new CallOptions());
+        var call = invoker.AsyncClientStreamingCall();
         var responseHeaders = await call.ResponseHeadersAsync.DefaultTimeout();
 
         // Assert
@@ -166,7 +166,7 @@ public class ResponseHeadersAsyncTests
         var invoker = HttpClientCallInvokerFactory.Create(httpClient);
 
         // Act
-        var call = invoker.AsyncDuplexStreamingCall<HelloRequest, HelloReply>(ClientTestHelpers.ServiceMethod, string.Empty, new CallOptions());
+        var call = invoker.AsyncDuplexStreamingCall();
         var responseHeaders = await call.ResponseHeadersAsync.DefaultTimeout();
 
         // Assert
@@ -187,7 +187,7 @@ public class ResponseHeadersAsyncTests
         var invoker = HttpClientCallInvokerFactory.Create(httpClient);
 
         // Act
-        var call = invoker.AsyncServerStreamingCall<HelloRequest, HelloReply>(ClientTestHelpers.ServiceMethod, string.Empty, new CallOptions(), new HelloRequest());
+        var call = invoker.AsyncServerStreamingCall(new HelloRequest());
         var responseHeaders = await call.ResponseHeadersAsync.DefaultTimeout();
 
         // Assert
@@ -205,7 +205,7 @@ public class ResponseHeadersAsyncTests
         var invoker = HttpClientCallInvokerFactory.Create(httpClient);
 
         // Act
-        var call = invoker.AsyncServerStreamingCall<HelloRequest, HelloReply>(ClientTestHelpers.ServiceMethod, string.Empty, new CallOptions(), new HelloRequest());
+        var call = invoker.AsyncServerStreamingCall(new HelloRequest());
         var ex = await ExceptionAssert.ThrowsAsync<RpcException>(() => call.ResponseHeadersAsync).DefaultTimeout();
 
         // Assert
@@ -232,7 +232,7 @@ public class ResponseHeadersAsyncTests
         var invoker = HttpClientCallInvokerFactory.Create(httpClient);
 
         // Act
-        var call = invoker.AsyncServerStreamingCall<HelloRequest, HelloReply>(ClientTestHelpers.ServiceMethod, string.Empty, new CallOptions(), new HelloRequest());
+        var call = invoker.AsyncServerStreamingCall(new HelloRequest());
         call.Dispose();
         tcs.TrySetResult(true);
 
@@ -260,7 +260,7 @@ public class ResponseHeadersAsyncTests
         var invoker = HttpClientCallInvokerFactory.Create(httpClient, configure: o => o.ThrowOperationCanceledOnCancellation = true);
 
         // Act
-        var call = invoker.AsyncServerStreamingCall<HelloRequest, HelloReply>(ClientTestHelpers.ServiceMethod, string.Empty, new CallOptions(), new HelloRequest());
+        var call = invoker.AsyncServerStreamingCall(new HelloRequest());
         call.Dispose();
         tcs.TrySetResult(true);
 
@@ -282,7 +282,7 @@ public class ResponseHeadersAsyncTests
         var invoker = HttpClientCallInvokerFactory.Create(httpClient);
 
         // Act
-        var call = invoker.AsyncClientStreamingCall<HelloRequest, HelloReply>(ClientTestHelpers.ServiceMethod, string.Empty, new CallOptions());
+        var call = invoker.AsyncClientStreamingCall();
         var responseHeaders = await call.ResponseHeadersAsync.DefaultTimeout();
 
         // Assert
@@ -303,7 +303,7 @@ public class ResponseHeadersAsyncTests
         var invoker = HttpClientCallInvokerFactory.Create(httpClient);
 
         // Act
-        var call = invoker.AsyncClientStreamingCall<HelloRequest, HelloReply>(ClientTestHelpers.ServiceMethod, string.Empty, new CallOptions());
+        var call = invoker.AsyncClientStreamingCall();
         var responseHeaders = await call.ResponseHeadersAsync.DefaultTimeout();
 
         // Assert

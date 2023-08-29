@@ -172,7 +172,7 @@ internal sealed class RetryCall<TRequest, TResponse> : RetryCallBase<TRequest, T
                     // Commited so exit retry loop.
                     return;
                 }
-                else if (IsSuccessfulStreamingCall(responseStatus.Value, currentCall))
+                else if (IsSuccessfulStreamingCall(responseStatus.Value))
                 {
                     // Headers were returned. We're commited.
                     CommitCall(currentCall, CommitReason.ResponseHeadersReceived);
@@ -252,10 +252,19 @@ internal sealed class RetryCall<TRequest, TResponse> : RetryCallBase<TRequest, T
             {
                 if (CommitedCallTask.Result is GrpcCall<TRequest, TResponse> call)
                 {
+                    // Ensure response task is created before waiting to the end.
+                    // Allows cancellation exceptions to be observed in cleanup.
+                    if (!HasResponseStream())
+                    {
+                        _ = GetResponseAsync();
+                    }
+
                     // Wait until the commited call is finished and then clean up retry call.
                     // Force yield here to prevent continuation running with any locks.
-                    await CompatibilityHelpers.AwaitWithYieldAsync(call.CallTask).ConfigureAwait(false);
-                    Cleanup();
+                    var status = await CompatibilityHelpers.AwaitWithYieldAsync(call.CallTask).ConfigureAwait(false);
+
+                    var observeExceptions = status.StatusCode is StatusCode.Cancelled or StatusCode.DeadlineExceeded;
+                    Cleanup(observeExceptions);
                 }
             }
 
@@ -263,14 +272,14 @@ internal sealed class RetryCall<TRequest, TResponse> : RetryCallBase<TRequest, T
         }
     }
 
-    private static bool IsSuccessfulStreamingCall(Status responseStatus, GrpcCall<TRequest, TResponse> call)
+    private bool IsSuccessfulStreamingCall(Status responseStatus)
     {
         if (responseStatus.StatusCode != StatusCode.OK)
         {
             return false;
         }
 
-        return call.Method.Type == MethodType.ServerStreaming || call.Method.Type == MethodType.DuplexStreaming;
+        return HasResponseStream();
     }
 
     protected override void OnCommitCall(IGrpcCall<TRequest, TResponse> call)

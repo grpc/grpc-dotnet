@@ -16,10 +16,12 @@
 
 #endregion
 
+using System.Diagnostics;
 using System.Globalization;
 using System.Net;
 using Greet;
 using Grpc.Core;
+using Grpc.Core.Interceptors;
 using Grpc.Net.Client.Internal;
 using Grpc.Net.Client.Internal.Http;
 using Grpc.Net.Client.Tests.Infrastructure;
@@ -77,7 +79,7 @@ public class RetryTests
         var invoker = HttpClientCallInvokerFactory.Create(httpClient, serviceConfig: serviceConfig);
 
         // Act
-        var call = invoker.AsyncUnaryCall<HelloRequest, HelloReply>(ClientTestHelpers.ServiceMethod, string.Empty, new CallOptions(), new HelloRequest { Name = "World" });
+        var call = invoker.AsyncUnaryCall(new HelloRequest { Name = "World" });
 
         // Assert
         Assert.AreEqual(2, callCount);
@@ -127,7 +129,7 @@ public class RetryTests
         var invoker = HttpClientCallInvokerFactory.Create(httpClient, loggerFactory: provider.GetRequiredService<ILoggerFactory>(), serviceConfig: serviceConfig, configure: options => options.Credentials = ChannelCredentials.Create(new SslCredentials(), credentials));
 
         // Act
-        var call = invoker.AsyncUnaryCall<HelloRequest, HelloReply>(ClientTestHelpers.ServiceMethod, string.Empty, new CallOptions(), new HelloRequest { Name = "World" });
+        var call = invoker.AsyncUnaryCall(new HelloRequest { Name = "World" });
 
         await credentialsSyncPoint.WaitForSyncPoint().DefaultTimeout();
         credentialsSyncPoint.Continue();
@@ -169,7 +171,7 @@ public class RetryTests
         var invoker = HttpClientCallInvokerFactory.Create(httpClient, loggerFactory: provider.GetRequiredService<ILoggerFactory>(), serviceConfig: serviceConfig, configure: options => options.Credentials = ChannelCredentials.Create(new SslCredentials(), credentials));
 
         // Act
-        var call = invoker.AsyncUnaryCall<HelloRequest, HelloReply>(ClientTestHelpers.ServiceMethod, string.Empty, new CallOptions(), new HelloRequest { Name = "World" });
+        var call = invoker.AsyncUnaryCall(new HelloRequest { Name = "World" });
         var responseTask = call.ResponseAsync;
         var responseHeadersTask = call.ResponseHeadersAsync;
 
@@ -226,7 +228,7 @@ public class RetryTests
         var invoker = HttpClientCallInvokerFactory.Create(httpClient, serviceConfig: serviceConfig);
 
         // Act
-        var call = invoker.AsyncUnaryCall<HelloRequest, HelloReply>(ClientTestHelpers.ServiceMethod, string.Empty, new CallOptions(), new HelloRequest { Name = "World" });
+        var call = invoker.AsyncUnaryCall(new HelloRequest { Name = "World" });
         var headersTask = call.ResponseHeadersAsync;
 
         // Wait until the first call has failed and the second is on the server
@@ -255,7 +257,7 @@ public class RetryTests
         var invoker = HttpClientCallInvokerFactory.Create(httpClient, serviceConfig: serviceConfig);
 
         // Act
-        var call = invoker.AsyncUnaryCall<HelloRequest, HelloReply>(ClientTestHelpers.ServiceMethod, string.Empty, new CallOptions(), new HelloRequest { Name = "World" });
+        var call = invoker.AsyncUnaryCall(new HelloRequest { Name = "World" });
 
         // Assert
         Assert.AreEqual(3, callCount);
@@ -280,7 +282,7 @@ public class RetryTests
         var invoker = HttpClientCallInvokerFactory.Create(httpClient, serviceConfig: serviceConfig);
 
         // Act
-        var call = invoker.AsyncUnaryCall<HelloRequest, HelloReply>(ClientTestHelpers.ServiceMethod, string.Empty, new CallOptions(), new HelloRequest { Name = "World" });
+        var call = invoker.AsyncUnaryCall(new HelloRequest { Name = "World" });
         var resultTask = call.ResponseAsync;
 
         // Test will timeout if dispose doesn't kill the timer.
@@ -309,7 +311,7 @@ public class RetryTests
         var invoker = HttpClientCallInvokerFactory.Create(httpClient, serviceConfig: serviceConfig);
 
         // Act
-        var call = invoker.AsyncUnaryCall<HelloRequest, HelloReply>(ClientTestHelpers.ServiceMethod, string.Empty, new CallOptions(), new HelloRequest { Name = "World" });
+        var call = invoker.AsyncUnaryCall(new HelloRequest { Name = "World" });
 
         // Assert
         Assert.AreEqual(1, callCount);
@@ -342,7 +344,7 @@ public class RetryTests
         var invoker = HttpClientCallInvokerFactory.Create(httpClient, serviceConfig: serviceConfig);
 
         // Act
-        var call = invoker.AsyncUnaryCall<HelloRequest, HelloReply>(ClientTestHelpers.ServiceMethod, string.Empty, new CallOptions(), new HelloRequest { Name = "World" });
+        var call = invoker.AsyncUnaryCall(new HelloRequest { Name = "World" });
 
         // Delay of 100ms will finish before second record which has a pushback delay of 200ms
         var completedTask = await Task.WhenAny(call.ResponseAsync, delayTask!).DefaultTimeout();
@@ -433,7 +435,7 @@ public class RetryTests
         var invoker = HttpClientCallInvokerFactory.Create(httpClient, serviceConfig: serviceConfig);
 
         // Act
-        var call = invoker.AsyncUnaryCall<HelloRequest, HelloReply>(ClientTestHelpers.ServiceMethod, string.Empty, new CallOptions(), new HelloRequest { Name = "World" });
+        var call = invoker.AsyncUnaryCall(new HelloRequest { Name = "World" });
 
         // Assert
         Assert.AreEqual(5, callCount);
@@ -456,7 +458,7 @@ public class RetryTests
         var invoker = HttpClientCallInvokerFactory.Create(httpClient, serviceConfig: serviceConfig);
 
         // Act
-        var call = invoker.AsyncUnaryCall<HelloRequest, HelloReply>(ClientTestHelpers.ServiceMethod, string.Empty, new CallOptions(), new HelloRequest { Name = "World" });
+        var call = invoker.AsyncUnaryCall(new HelloRequest { Name = "World" });
 
         // Assert
         Assert.AreEqual(1, callCount);
@@ -486,7 +488,7 @@ public class RetryTests
         var invoker = HttpClientCallInvokerFactory.Create(httpClient, serviceConfig: serviceConfig);
 
         // Act
-        var call = invoker.AsyncUnaryCall<HelloRequest, HelloReply>(ClientTestHelpers.ServiceMethod, string.Empty, new CallOptions(), new HelloRequest { Name = "World" });
+        var call = invoker.AsyncUnaryCall(new HelloRequest { Name = "World" });
 
         // Assert
         Assert.AreEqual(1, callCount);
@@ -524,7 +526,7 @@ public class RetryTests
         var invoker = HttpClientCallInvokerFactory.Create(httpClient, serviceConfig: serviceConfig);
 
         // Act
-        var call = invoker.AsyncClientStreamingCall<HelloRequest, HelloReply>(ClientTestHelpers.GetServiceMethod(MethodType.ClientStreaming), string.Empty, new CallOptions());
+        var call = invoker.AsyncClientStreamingCall();
 
         // Assert
         Assert.IsNotNull(call);
@@ -574,7 +576,7 @@ public class RetryTests
         var invoker = HttpClientCallInvokerFactory.Create(httpClient, serviceConfig: serviceConfig);
 
         // Act
-        var call = invoker.AsyncClientStreamingCall<HelloRequest, HelloReply>(ClientTestHelpers.GetServiceMethod(MethodType.ClientStreaming), string.Empty, new CallOptions());
+        var call = invoker.AsyncClientStreamingCall();
 
         // Assert
         var writeTask1 = call.RequestStream.WriteAsync(new HelloRequest { Name = "1" });
@@ -599,7 +601,7 @@ public class RetryTests
         var invoker = HttpClientCallInvokerFactory.Create(httpClient, serviceConfig: serviceConfig);
 
         // Act
-        var call = invoker.AsyncClientStreamingCall<HelloRequest, HelloReply>(ClientTestHelpers.GetServiceMethod(MethodType.ClientStreaming), string.Empty, new CallOptions());
+        var call = invoker.AsyncClientStreamingCall();
         await call.RequestStream.CompleteAsync().DefaultTimeout();
         var resultTask = call.ResponseAsync;
 
@@ -642,7 +644,7 @@ public class RetryTests
         var invoker = HttpClientCallInvokerFactory.Create(httpClient, serviceConfig: serviceConfig);
 
         // Act
-        var call = invoker.AsyncClientStreamingCall<HelloRequest, HelloReply>(ClientTestHelpers.GetServiceMethod(MethodType.ClientStreaming), string.Empty, new CallOptions());
+        var call = invoker.AsyncClientStreamingCall();
 
         // Assert
         var responseMessage = await call.ResponseAsync.DefaultTimeout();
@@ -678,7 +680,7 @@ public class RetryTests
         var invoker = HttpClientCallInvokerFactory.Create(httpClient, serviceConfig: serviceConfig);
 
         // Act
-        var call = invoker.AsyncClientStreamingCall<HelloRequest, HelloReply>(ClientTestHelpers.GetServiceMethod(MethodType.ClientStreaming), string.Empty, new CallOptions());
+        var call = invoker.AsyncClientStreamingCall();
 
         // Assert
         var responseMessage = await call.ResponseAsync.DefaultTimeout();
@@ -725,7 +727,7 @@ public class RetryTests
         var invoker = HttpClientCallInvokerFactory.Create(httpClient, serviceConfig: serviceConfig);
 
         // Act
-        var call = invoker.AsyncClientStreamingCall<HelloRequest, HelloReply>(ClientTestHelpers.GetServiceMethod(MethodType.ClientStreaming), string.Empty, new CallOptions());
+        var call = invoker.AsyncClientStreamingCall();
 
         // Assert
         Assert.IsNotNull(call);
@@ -780,7 +782,7 @@ public class RetryTests
         var invoker = HttpClientCallInvokerFactory.Create(httpClient, loggerFactory: provider.GetRequiredService<ILoggerFactory>(), serviceConfig: serviceConfig);
 
         // Act
-        var call = invoker.AsyncUnaryCall<HelloRequest, HelloReply>(ClientTestHelpers.GetServiceMethod(MethodType.Unary), string.Empty, new CallOptions(), new HelloRequest { Name = "World" });
+        var call = invoker.AsyncUnaryCall(new HelloRequest { Name = "World" });
         await call.ResponseAsync.DefaultTimeout();
 
         // Assert
@@ -812,7 +814,7 @@ public class RetryTests
         var invoker = HttpClientCallInvokerFactory.Create(httpClient, loggerFactory: provider.GetRequiredService<ILoggerFactory>(), serviceConfig: serviceConfig);
 
         // Act
-        var call = invoker.AsyncUnaryCall<HelloRequest, HelloReply>(ClientTestHelpers.GetServiceMethod(MethodType.Unary), string.Empty, new CallOptions(), new HelloRequest { Name = "World" });
+        var call = invoker.AsyncUnaryCall(new HelloRequest { Name = "World" });
         var ex = await ExceptionAssert.ThrowsAsync<RpcException>(() => call.ResponseAsync).DefaultTimeout();
 
         // Assert
@@ -847,7 +849,7 @@ public class RetryTests
         var invoker = HttpClientCallInvokerFactory.Create(httpClient, loggerFactory: provider.GetRequiredService<ILoggerFactory>(), serviceConfig: serviceConfig);
 
         // Act
-        var call = invoker.AsyncServerStreamingCall<HelloRequest, HelloReply>(ClientTestHelpers.GetServiceMethod(MethodType.ServerStreaming), string.Empty, new CallOptions(), new HelloRequest { Name = "World" });
+        var call = invoker.AsyncServerStreamingCall(new HelloRequest { Name = "World" });
         var moveNextTask = call.ResponseStream.MoveNext(CancellationToken.None);
 
         // Assert
@@ -891,7 +893,7 @@ public class RetryTests
         var invoker = HttpClientCallInvokerFactory.Create(httpClient, serviceConfig: serviceConfig);
 
         // Act
-        var call = invoker.AsyncServerStreamingCall<HelloRequest, HelloReply>(ClientTestHelpers.GetServiceMethod(MethodType.ServerStreaming), string.Empty, new CallOptions(), new HelloRequest { Name = "World" });
+        var call = invoker.AsyncServerStreamingCall(new HelloRequest { Name = "World" });
         var moveNextTask = call.ResponseStream.MoveNext(CancellationToken.None);
 
         // Wait until the first call has failed and the second is on the server
@@ -923,7 +925,7 @@ public class RetryTests
         var invoker = HttpClientCallInvokerFactory.Create(httpClient, serviceConfig: serviceConfig);
 
         // Act
-        var call = invoker.AsyncServerStreamingCall<HelloRequest, HelloReply>(ClientTestHelpers.ServiceMethod, string.Empty, new CallOptions(), new HelloRequest());
+        var call = invoker.AsyncServerStreamingCall(new HelloRequest());
 
         var responseStream = call.ResponseStream;
 
@@ -990,7 +992,7 @@ public class RetryTests
         var invoker = HttpClientCallInvokerFactory.Create(httpClient, serviceConfig: serviceConfig);
 
         // Act
-        var call = invoker.AsyncDuplexStreamingCall<HelloRequest, HelloReply>(ClientTestHelpers.GetServiceMethod(MethodType.DuplexStreaming), string.Empty, new CallOptions());
+        var call = invoker.AsyncDuplexStreamingCall();
         var moveNextTask = call.ResponseStream.MoveNext(CancellationToken.None);
 
         await call.RequestStream.WriteAsync(new HelloRequest { Name = "1" }).DefaultTimeout();
@@ -1027,7 +1029,7 @@ public class RetryTests
 
         // Act & Assert
         invoker.Channel.Dispose();
-        Assert.Throws<ObjectDisposedException>(() => invoker.AsyncUnaryCall<HelloRequest, HelloReply>(ClientTestHelpers.ServiceMethod, string.Empty, new CallOptions(), new HelloRequest { Name = "World" }));
+        Assert.Throws<ObjectDisposedException>(() => invoker.AsyncUnaryCall(new HelloRequest { Name = "World" }));
     }
 
     [Test]
@@ -1047,7 +1049,7 @@ public class RetryTests
         var cts = new CancellationTokenSource();
 
         // Act
-        var call = invoker.AsyncUnaryCall<HelloRequest, HelloReply>(ClientTestHelpers.ServiceMethod, string.Empty, new CallOptions(cancellationToken: cts.Token), new HelloRequest { Name = "World" });
+        var call = invoker.AsyncUnaryCall(new HelloRequest { Name = "World" }, new CallOptions(cancellationToken: cts.Token));
 
         var delayTask = Task.Delay(100);
         var completedTask = await Task.WhenAny(call.ResponseAsync, delayTask);
@@ -1060,6 +1062,295 @@ public class RetryTests
         var ex = await ExceptionAssert.ThrowsAsync<RpcException>(() => call.ResponseAsync).DefaultTimeout();
         Assert.AreEqual(StatusCode.Cancelled, ex.StatusCode);
         Assert.AreEqual("gRPC call disposed.", ex.Status.Detail);
+    }
+
+    public enum ResponseHandleAction
+    {
+        ResponseAsync,
+        ResponseHeadersAsync,
+        Dispose,
+        Nothing
+    }
+
+    public static object[] NoUnobservedExceptionsCases_Unary
+    {
+        get
+        {
+            var cases = new List<object[]>();
+            AddCases(0, addClientInterceptor: false, throwCancellationError: false, ResponseHandleAction.ResponseAsync);
+            AddCases(0, addClientInterceptor: true, throwCancellationError: false, ResponseHandleAction.ResponseAsync);
+            AddCases(0, addClientInterceptor: false, throwCancellationError: false, ResponseHandleAction.ResponseHeadersAsync);
+            AddCases(0, addClientInterceptor: false, throwCancellationError: false, ResponseHandleAction.Dispose);
+            AddCases(0, addClientInterceptor: true, throwCancellationError: false, ResponseHandleAction.Dispose);
+            AddCases(1, addClientInterceptor: false, throwCancellationError: false, ResponseHandleAction.Nothing);
+            AddCases(0, addClientInterceptor: false, throwCancellationError: true, ResponseHandleAction.Nothing);
+            return cases.ToArray();
+
+            // Add a sync and async case for each.
+            void AddCases(int expectedUnobservedExceptions, bool addClientInterceptor, bool throwCancellationError, ResponseHandleAction action)
+            {
+                cases.Add(new object[] { expectedUnobservedExceptions, true, addClientInterceptor, throwCancellationError, action });
+                cases.Add(new object[] { expectedUnobservedExceptions, false, addClientInterceptor, throwCancellationError, action });
+            }
+        }
+    }
+
+    [TestCaseSource(nameof(NoUnobservedExceptionsCases_Unary))]
+    public async Task AsyncUnaryCall_CallFailed_NoUnobservedExceptions(int expectedUnobservedExceptions, bool isAsync, bool addClientInterceptor, bool throwCancellationError, ResponseHandleAction action)
+    {
+        // Do this before running the test to clean up any pending unobserved exceptions from other tests.
+        TriggerUnobservedExceptions();
+
+        // Arrange
+        var services = new ServiceCollection();
+        services.AddNUnitLogger();
+        var loggerFactory = services.BuildServiceProvider().GetRequiredService<ILoggerFactory>();
+        var logger = loggerFactory.CreateLogger(GetType());
+
+        var unobservedExceptions = new List<Exception>();
+        EventHandler<UnobservedTaskExceptionEventArgs> onUnobservedTaskException = (sender, e) =>
+        {
+            if (!e.Observed)
+            {
+                unobservedExceptions.Add(e.Exception!);
+            }
+        };
+
+        TaskScheduler.UnobservedTaskException += onUnobservedTaskException;
+
+        try
+        {
+            var httpClient = ClientTestHelpers.CreateTestClient(async request =>
+            {
+                if (isAsync)
+                {
+                    await Task.Delay(50);
+                }
+                if (throwCancellationError)
+                {
+                    throw new OperationCanceledException();
+                }
+                else
+                {
+                    throw new Exception("Test error");
+                }
+            });
+            var serviceConfig = ServiceConfigHelpers.CreateRetryServiceConfig();
+            CallInvoker invoker = HttpClientCallInvokerFactory.Create(httpClient, loggerFactory: loggerFactory, serviceConfig: serviceConfig);
+            if (addClientInterceptor)
+            {
+                invoker = invoker.Intercept(new ClientLoggerInterceptor(loggerFactory));
+            }
+
+            // Act
+            logger.LogDebug("Starting call");
+            await MakeGrpcCallAsync(logger, invoker, action);
+
+            logger.LogDebug("Waiting for finalizers");
+            for (var i = 0; i < 5; i++)
+            {
+                TriggerUnobservedExceptions();
+                await Task.Delay(10);
+            }
+
+            foreach (var exception in unobservedExceptions)
+            {
+                logger.LogCritical(exception, "Unobserved task exception");
+            }
+
+            // Assert
+            Assert.AreEqual(expectedUnobservedExceptions, unobservedExceptions.Count);
+
+            static async Task MakeGrpcCallAsync(ILogger logger, CallInvoker invoker, ResponseHandleAction action)
+            {
+                var runTask = Task.Run(async () =>
+                {
+                    var call = invoker.AsyncUnaryCall(ClientTestHelpers.ServiceMethod, string.Empty, new CallOptions(), new HelloRequest());
+
+                    switch (action)
+                    {
+                        case ResponseHandleAction.ResponseAsync:
+                            await ExceptionAssert.ThrowsAsync<RpcException>(() => call.ResponseAsync);
+                            break;
+                        case ResponseHandleAction.ResponseHeadersAsync:
+                            await ExceptionAssert.ThrowsAsync<RpcException>(() => call.ResponseHeadersAsync);
+                            break;
+                        case ResponseHandleAction.Dispose:
+                            await WaitForCallCompleteAsync(logger, call);
+                            call.Dispose();
+                            break;
+                        default:
+                            // Do nothing (but wait until call is finished)
+                            await WaitForCallCompleteAsync(logger, call);
+                            break;
+                    }
+                });
+
+                await runTask;
+            }
+        }
+        finally
+        {
+            TaskScheduler.UnobservedTaskException -= onUnobservedTaskException;
+        }
+
+        static async Task WaitForCallCompleteAsync(ILogger logger, AsyncUnaryCall<HelloReply> call)
+        {
+            await TestHelpers.AssertIsTrueRetryAsync(() =>
+            {
+                try
+                {
+                    call.GetStatus();
+                    return true;
+                }
+                catch (InvalidOperationException)
+                {
+                    return false;
+                }
+            }, "Wait for call to complete.", logger);
+        }
+    }
+
+    public static object[] NoUnobservedExceptionsCases_Streaming
+    {
+        get
+        {
+            var cases = new List<object[]>();
+            AddCases(0, addClientInterceptor: false, throwCancellationError: false, ResponseHandleAction.ResponseHeadersAsync);
+            AddCases(0, addClientInterceptor: false, throwCancellationError: false, ResponseHandleAction.Dispose);
+            AddCases(0, addClientInterceptor: true, throwCancellationError: false, ResponseHandleAction.Dispose);
+            AddCases(0, addClientInterceptor: false, throwCancellationError: false, ResponseHandleAction.Nothing);
+            AddCases(0, addClientInterceptor: false, throwCancellationError: true, ResponseHandleAction.Nothing);
+            return cases.ToArray();
+
+            // Add a sync and async case for each.
+            void AddCases(int expectedUnobservedExceptions, bool addClientInterceptor, bool throwCancellationError, ResponseHandleAction action)
+            {
+                cases.Add(new object[] { expectedUnobservedExceptions, true, addClientInterceptor, throwCancellationError, action });
+                cases.Add(new object[] { expectedUnobservedExceptions, false, addClientInterceptor, throwCancellationError, action });
+            }
+        }
+    }
+
+    [TestCaseSource(nameof(NoUnobservedExceptionsCases_Streaming))]
+    public async Task AsyncDuplexStreamingCall_CallFailed_NoUnobservedExceptions(int expectedUnobservedExceptions, bool isAsync, bool addClientInterceptor, bool throwCancellationError, ResponseHandleAction action)
+    {
+        // Do this before running the test to clean up any pending unobserved exceptions from other tests.
+        TriggerUnobservedExceptions();
+
+        // Arrange
+        var services = new ServiceCollection();
+        services.AddNUnitLogger();
+        var loggerFactory = services.BuildServiceProvider().GetRequiredService<ILoggerFactory>();
+        var logger = loggerFactory.CreateLogger(GetType());
+
+        var unobservedExceptions = new List<Exception>();
+        EventHandler<UnobservedTaskExceptionEventArgs> onUnobservedTaskException = (sender, e) =>
+        {
+            if (!e.Observed)
+            {
+                unobservedExceptions.Add(e.Exception!);
+            }
+        };
+
+        TaskScheduler.UnobservedTaskException += onUnobservedTaskException;
+
+        try
+        {
+            var httpClient = ClientTestHelpers.CreateTestClient(async request =>
+            {
+                if (isAsync)
+                {
+                    await Task.Delay(50);
+                }
+                if (throwCancellationError)
+                {
+                    throw new OperationCanceledException();
+                }
+                else
+                {
+                    throw new Exception("Test error");
+                }
+            });
+            var serviceConfig = ServiceConfigHelpers.CreateRetryServiceConfig();
+            CallInvoker invoker = HttpClientCallInvokerFactory.Create(httpClient, loggerFactory: loggerFactory, serviceConfig: serviceConfig);
+            if (addClientInterceptor)
+            {
+                invoker = invoker.Intercept(new ClientLoggerInterceptor(loggerFactory));
+            }
+
+            // Act
+            logger.LogDebug("Starting call");
+            await MakeGrpcCallAsync(logger, invoker, action);
+
+            logger.LogDebug("Waiting for finalizers");
+            for (var i = 0; i < 5; i++)
+            {
+                TriggerUnobservedExceptions();
+                await Task.Delay(10);
+            }
+
+            foreach (var exception in unobservedExceptions)
+            {
+                logger.LogCritical(exception, "Unobserved task exception");
+            }
+
+            // Assert
+            Assert.AreEqual(expectedUnobservedExceptions, unobservedExceptions.Count);
+
+            static async Task MakeGrpcCallAsync(ILogger logger, CallInvoker invoker, ResponseHandleAction action)
+            {
+                var runTask = Task.Run(async () =>
+                {
+                    var call = invoker.AsyncDuplexStreamingCall(ClientTestHelpers.GetServiceMethod(MethodType.DuplexStreaming), string.Empty, new CallOptions());
+
+                    switch (action)
+                    {
+                        case ResponseHandleAction.ResponseHeadersAsync:
+                            await ExceptionAssert.ThrowsAsync<RpcException>(() => call.ResponseHeadersAsync);
+                            break;
+                        case ResponseHandleAction.Dispose:
+                            await WaitForCallCompleteAsync(logger, call);
+                            call.Dispose();
+                            break;
+                        default:
+                            // Do nothing (but wait until call is finished)
+                            await WaitForCallCompleteAsync(logger, call);
+                            break;
+                    }
+                });
+
+                await runTask;
+            }
+        }
+        finally
+        {
+            TaskScheduler.UnobservedTaskException -= onUnobservedTaskException;
+        }
+
+        static async Task WaitForCallCompleteAsync(ILogger logger, AsyncDuplexStreamingCall<HelloRequest, HelloReply> call)
+        {
+            await TestHelpers.AssertIsTrueRetryAsync(() =>
+            {
+                try
+                {
+                    call.GetStatus();
+                    return true;
+                }
+                catch (InvalidOperationException)
+                {
+                    return false;
+                }
+            }, "Wait for call to complete.", logger);
+        }
+    }
+
+    private static void TriggerUnobservedExceptions()
+    {
+        // Provoke the garbage collector to find the unobserved exception.
+        GC.Collect();
+        // Wait for any failed tasks to be garbage collected
+        GC.WaitForPendingFinalizers();
     }
 
     private static Task<HelloRequest?> ReadRequestMessage(Stream requestContent)

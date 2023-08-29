@@ -639,7 +639,7 @@ internal sealed partial class GrpcCall<TRequest, TResponse> : GrpcCall, IGrpcCal
                 if (_responseTcs != null)
                 {
                     _responseTcs.TrySetException(resolvedException);
-                    
+
                     // Always observe cancellation-like exceptions.
                     if (IsCancellationOrDeadlineException(ex))
                     {

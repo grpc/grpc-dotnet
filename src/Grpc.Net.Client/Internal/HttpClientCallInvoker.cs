@@ -1,4 +1,4 @@
-﻿#region Copyright notice and license
+#region Copyright notice and license
 
 // Copyright 2019 The gRPC Authors
 //
@@ -43,6 +43,8 @@ internal sealed class HttpClientCallInvoker : CallInvoker
     /// </summary>
     public override AsyncClientStreamingCall<TRequest, TResponse> AsyncClientStreamingCall<TRequest, TResponse>(Method<TRequest, TResponse> method, string? host, CallOptions options)
     {
+        AssertMethodType(method, MethodType.ClientStreaming);
+
         var call = CreateRootGrpcCall<TRequest, TResponse>(Channel, method, options);
         call.StartClientStreaming();
 
@@ -67,6 +69,8 @@ internal sealed class HttpClientCallInvoker : CallInvoker
     /// </summary>
     public override AsyncDuplexStreamingCall<TRequest, TResponse> AsyncDuplexStreamingCall<TRequest, TResponse>(Method<TRequest, TResponse> method, string? host, CallOptions options)
     {
+        AssertMethodType(method, MethodType.DuplexStreaming);
+
         var call = CreateRootGrpcCall<TRequest, TResponse>(Channel, method, options);
         call.StartDuplexStreaming();
 
@@ -90,6 +94,8 @@ internal sealed class HttpClientCallInvoker : CallInvoker
     /// </summary>
     public override AsyncServerStreamingCall<TResponse> AsyncServerStreamingCall<TRequest, TResponse>(Method<TRequest, TResponse> method, string? host, CallOptions options, TRequest request)
     {
+        AssertMethodType(method, MethodType.ServerStreaming);
+
         var call = CreateRootGrpcCall<TRequest, TResponse>(Channel, method, options);
         call.StartServerStreaming(request);
 
@@ -111,6 +117,8 @@ internal sealed class HttpClientCallInvoker : CallInvoker
     /// </summary>
     public override AsyncUnaryCall<TResponse> AsyncUnaryCall<TRequest, TResponse>(Method<TRequest, TResponse> method, string? host, CallOptions options, TRequest request)
     {
+        AssertMethodType(method, MethodType.Unary);
+
         var call = CreateRootGrpcCall<TRequest, TResponse>(Channel, method, options);
         call.StartUnary(request);
 
@@ -125,6 +133,16 @@ internal sealed class HttpClientCallInvoker : CallInvoker
         PrepareForDebugging(call, callWrapper);
 
         return callWrapper;
+    }
+
+    [Conditional("ASSERT_METHOD_TYPE")]
+    private static void AssertMethodType(IMethod method, MethodType methodType)
+    {
+        // This can be used to assert tests are passing the right method type.
+        if (method.Type != methodType)
+        {
+            throw new Exception("Expected method type: " + methodType);
+        }
     }
 
     /// <summary>
