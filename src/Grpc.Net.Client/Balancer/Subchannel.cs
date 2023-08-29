@@ -63,7 +63,21 @@ public sealed class Subchannel : IDisposable
     /// <summary>
     /// Gets the current connected address.
     /// </summary>
-    public BalancerAddress? CurrentAddress => GetAddress(_transport.CurrentEndPoint);
+    public BalancerAddress? CurrentAddress
+    {
+        get
+        {
+            if (_transport.CurrentEndPoint is { } ep)
+            {
+                lock (Lock)
+                {
+                    return GetAddressByEndpoint(_addresses, ep);
+                }
+            }
+
+            return null;
+        }
+    }
 
     /// <summary>
     /// Gets the metadata attributes.
@@ -404,19 +418,6 @@ public sealed class Subchannel : IDisposable
         {
             SubchannelLog.NoStateChangedRegistrations(_logger, Id);
         }
-    }
-
-    internal BalancerAddress? GetAddress(DnsEndPoint? endPoint)
-    {
-        if (endPoint != null)
-        {
-            lock (Lock)
-            {
-                return GetAddressByEndpoint(_addresses, endPoint);
-            }
-        }
-
-        return null;
     }
 
     private static BalancerAddress? GetAddressByEndpoint(List<BalancerAddress> addresses, DnsEndPoint endPoint)
