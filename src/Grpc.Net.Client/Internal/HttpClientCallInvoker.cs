@@ -135,15 +135,14 @@ internal sealed class HttpClientCallInvoker : CallInvoker
         return callWrapper;
     }
 
+    [Conditional("ASSERT_METHOD_TYPE")]
     private static void AssertMethodType(IMethod method, MethodType methodType)
     {
         // This can be used to assert tests are passing the right method type.
-#if ASSERT_METHOD_TYPE
         if (method.Type != methodType)
         {
             throw new Exception("Expected method type: " + methodType);
         }
-#endif
     }
 
     /// <summary>
