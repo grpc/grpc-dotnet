@@ -56,7 +56,18 @@ public class PickFirstBalancerTests
         });
 
         services.AddSingleton<ResolverFactory>(new TestResolverFactory(resolver));
-        services.AddSingleton<ISubchannelTransportFactory>(new TestSubchannelTransportFactory());
+
+        var subChannelConnections = new List<Subchannel>();
+        var transportFactory = new TestSubchannelTransportFactory((s, c) =>
+        {
+            lock (subChannelConnections)
+            {
+                subChannelConnections.Add(s);
+            }
+            return Task.FromResult(new TryConnectResult(ConnectivityState.Ready));
+        });
+        services.AddSingleton<ISubchannelTransportFactory>(transportFactory);
+
         var serviceProvider = services.BuildServiceProvider();
         var logger = serviceProvider.GetRequiredService<ILoggerProvider>().CreateLogger(GetType().FullName!);
 
@@ -95,6 +106,12 @@ public class PickFirstBalancerTests
         Assert.AreEqual(1, subchannels[0]._addresses.Count);
         Assert.AreEqual(new DnsEndPoint("localhost", 81), subchannels[0]._addresses[0].EndPoint);
         Assert.AreEqual(ConnectivityState.Ready, subchannels[0].State);
+
+        lock (subChannelConnections)
+        {
+            Assert.AreEqual(2, subChannelConnections.Count);
+            Assert.AreSame(subChannelConnections[0], subChannelConnections[1]);
+        }
     }
 
     [Test]
