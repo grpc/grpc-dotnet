@@ -94,7 +94,7 @@ internal class BalancerHttpHandler : DelegatingHandler
         }
 
         Debug.Assert(context.DnsEndPoint.Equals(currentAddress.EndPoint), "Context endpoint should equal address endpoint.");
-        return await subchannel.Transport.GetStreamAsync(currentAddress, cancellationToken).ConfigureAwait(false);
+        return await subchannel.Transport.GetStreamAsync(currentAddress.EndPoint, cancellationToken).ConfigureAwait(false);
     }
 #endif
 

@@ -371,7 +371,7 @@ public class PickFirstBalancerTests : FunctionalTestBase
         Assert.GreaterOrEqual(activeStreams.Count, 2);
         foreach (var stream in activeStreams)
         {
-            Assert.AreEqual(new DnsEndPoint("127.0.0.1", 50051), stream.Address.EndPoint);
+            Assert.AreEqual(new DnsEndPoint("127.0.0.1", 50051), stream.EndPoint);
         }
 
         tcs.SetResult(null);
@@ -385,7 +385,7 @@ public class PickFirstBalancerTests : FunctionalTestBase
         await TestHelpers.AssertIsTrueRetryAsync(() =>
         {
             activeStreams = transport.GetActiveStreams();
-            Logger.LogInformation($"Current active stream addresses: {string.Join(", ", activeStreams.Select(s => s.Address))}");
+            Logger.LogInformation($"Current active stream addresses: {string.Join(", ", activeStreams.Select(s => s.EndPoint))}");
             return activeStreams.Count == 0;
         }, "Active streams removed.", Logger).DefaultTimeout();
 
@@ -395,7 +395,7 @@ public class PickFirstBalancerTests : FunctionalTestBase
 
         activeStreams = transport.GetActiveStreams();
         Assert.AreEqual(1, activeStreams.Count);
-        Assert.AreEqual(new DnsEndPoint("127.0.0.1", 50052), activeStreams[0].Address.EndPoint);
+        Assert.AreEqual(new DnsEndPoint("127.0.0.1", 50052), activeStreams[0].EndPoint);
     }
 
     [Test]

@@ -17,6 +17,7 @@
 #endregion
 
 #if SUPPORT_LOAD_BALANCING
+using System.Net;
 using Grpc.Core;
 using Grpc.Net.Client.Balancer.Internal;
 using Microsoft.Extensions.Logging;
@@ -62,7 +63,21 @@ public sealed class Subchannel : IDisposable
     /// <summary>
     /// Gets the current connected address.
     /// </summary>
-    public BalancerAddress? CurrentAddress => _transport.CurrentAddress;
+    public BalancerAddress? CurrentAddress
+    {
+        get
+        {
+            if (_transport.CurrentEndPoint is { } ep)
+            {
+                lock (Lock)
+                {
+                    return GetAddressByEndpoint(_addresses, ep);
+                }
+            }
+
+            return null;
+        }
+    }
 
     /// <summary>
     /// Gets the metadata attributes.
@@ -173,10 +188,13 @@ public sealed class Subchannel : IDisposable
                 case ConnectivityState.Ready:
                     // Transport uses the subchannel lock but take copy in an abundance of caution.
                     var currentAddress = CurrentAddress;
-                    if (currentAddress != null && !_addresses.Contains(currentAddress))
+                    if (currentAddress != null)
                     {
-                        SubchannelLog.ConnectedAddressNotInUpdatedAddresses(_logger, Id, currentAddress);
-                        requireReconnect = true;
+                        if (GetAddressByEndpoint(_addresses, currentAddress.EndPoint) != null)
+                        {
+                            SubchannelLog.ConnectedAddressNotInUpdatedAddresses(_logger, Id, currentAddress);
+                            requireReconnect = true;
+                        }
                     }
                     break;
                 case ConnectivityState.Shutdown:
@@ -361,7 +379,7 @@ public sealed class Subchannel : IDisposable
     {
         return UpdateConnectivityState(state, new Status(StatusCode.OK, successDetail));
     }
-    
+
     internal bool UpdateConnectivityState(ConnectivityState state, Status status)
     {
         lock (Lock)
@@ -400,6 +418,19 @@ public sealed class Subchannel : IDisposable
         {
             SubchannelLog.NoStateChangedRegistrations(_logger, Id);
         }
+    }
+
+    private static BalancerAddress? GetAddressByEndpoint(List<BalancerAddress> addresses, DnsEndPoint endPoint)
+    {
+        foreach (var a in addresses)
+        {
+            if (a.EndPoint.Equals(endPoint))
+            {
+                return a;
+            }
+        }
+
+        return null;
     }
 
     /// <inheritdocs />

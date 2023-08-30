@@ -35,32 +35,32 @@ namespace Grpc.Net.Client.Balancer.Internal;
 internal class PassiveSubchannelTransport : ISubchannelTransport, IDisposable
 {
     private readonly Subchannel _subchannel;
-    private BalancerAddress? _currentAddress;
+    private DnsEndPoint? _currentEndPoint;
 
     public PassiveSubchannelTransport(Subchannel subchannel)
     {
         _subchannel = subchannel;
     }
 
-    public BalancerAddress? CurrentAddress => _currentAddress;
+    public DnsEndPoint? CurrentEndPoint => _currentEndPoint;
     public TimeSpan? ConnectTimeout { get; }
     public TransportStatus TransportStatus => TransportStatus.Passive;
 
     public void Disconnect()
     {
-        _currentAddress = null;
+        _currentEndPoint = null;
         _subchannel.UpdateConnectivityState(ConnectivityState.Idle, "Disconnected.");
     }
 
     public ValueTask<ConnectResult> TryConnectAsync(ConnectContext context)
     {
         Debug.Assert(_subchannel._addresses.Count == 1);
-        Debug.Assert(CurrentAddress == null);
+        Debug.Assert(CurrentEndPoint == null);
 
         var currentAddress = _subchannel._addresses[0];
 
         _subchannel.UpdateConnectivityState(ConnectivityState.Connecting, "Passively connecting.");
-        _currentAddress = currentAddress;
+        _currentEndPoint = currentAddress.EndPoint;
         _subchannel.UpdateConnectivityState(ConnectivityState.Ready, "Passively connected.");
 
         return new ValueTask<ConnectResult>(ConnectResult.Success);
@@ -68,10 +68,10 @@ internal class PassiveSubchannelTransport : ISubchannelTransport, IDisposable
 
     public void Dispose()
     {
-        _currentAddress = null;
+        _currentEndPoint = null;
     }
 
-    public ValueTask<Stream> GetStreamAsync(BalancerAddress address, CancellationToken cancellationToken)
+    public ValueTask<Stream> GetStreamAsync(DnsEndPoint endPoint, CancellationToken cancellationToken)
     {
         throw new NotSupportedException();
     }
