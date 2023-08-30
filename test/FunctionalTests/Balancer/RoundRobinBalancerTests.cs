@@ -381,8 +381,8 @@ public class RoundRobinBalancerTests : FunctionalTestBase
 
         var activeStreams = ((SocketConnectivitySubchannelTransport)disposedSubchannel.Transport).GetActiveStreams();
         Assert.AreEqual(1, activeStreams.Count);
-        Assert.AreEqual("127.0.0.1", activeStreams[0].Address.EndPoint.Host);
-        Assert.AreEqual(50051, activeStreams[0].Address.EndPoint.Port);
+        Assert.AreEqual("127.0.0.1", activeStreams[0].EndPoint.Host);
+        Assert.AreEqual(50051, activeStreams[0].EndPoint.Port);
 
         // Wait until connected to new endpoint
         Subchannel? newSubchannel = null;
@@ -406,15 +406,17 @@ public class RoundRobinBalancerTests : FunctionalTestBase
         Assert.AreEqual("127.0.0.1:50052", host!);
 
         // Disposed subchannel stream removed when endpoint disposed.
-        activeStreams = ((SocketConnectivitySubchannelTransport)disposedSubchannel.Transport).GetActiveStreams();
-        Assert.AreEqual(0, activeStreams.Count);
-        Assert.IsNull(((SocketConnectivitySubchannelTransport)disposedSubchannel.Transport)._initialSocket);
+        await TestHelpers.AssertIsTrueRetryAsync(() =>
+        {
+            var disposedTransport = (SocketConnectivitySubchannelTransport)disposedSubchannel.Transport;
+            return disposedTransport.GetActiveStreams().Count == 0 && disposedTransport._initialSocket == null;
+        }, "Wait for SocketsHttpHandler to react to server closing streams.").DefaultTimeout();
 
         // New subchannel stream created with request.
         activeStreams = ((SocketConnectivitySubchannelTransport)newSubchannel.Transport).GetActiveStreams();
         Assert.AreEqual(1, activeStreams.Count);
-        Assert.AreEqual("127.0.0.1", activeStreams[0].Address.EndPoint.Host);
-        Assert.AreEqual(50052, activeStreams[0].Address.EndPoint.Port);
+        Assert.AreEqual("127.0.0.1", activeStreams[0].EndPoint.Host);
+        Assert.AreEqual(50052, activeStreams[0].EndPoint.Port);
         Assert.IsNull(((SocketConnectivitySubchannelTransport)disposedSubchannel.Transport)._initialSocket);
     }
 

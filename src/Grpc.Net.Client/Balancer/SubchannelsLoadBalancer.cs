@@ -140,6 +140,14 @@ public abstract class SubchannelsLoadBalancer : LoadBalancer
                 // remaining in this collection at the end will be disposed.
                 currentSubchannels.RemoveAt(i.Value);
 
+                // Check if address attributes have changed. If they have then update the subchannel address.
+                // The new subchannel address has the same endpoint so the connection isn't impacted.
+                if (!BalancerAddressEqualityComparer.Instance.Equals(address, newOrCurrentSubchannel.Address))
+                {
+                    newOrCurrentSubchannel.Subchannel.UpdateAddresses(new[] { address });
+                    newOrCurrentSubchannel = new AddressSubchannel(newOrCurrentSubchannel.Subchannel, address);
+                }
+
                 SubchannelLog.SubchannelPreserved(_logger, newOrCurrentSubchannel.Subchannel.Id, address);
             }
             else

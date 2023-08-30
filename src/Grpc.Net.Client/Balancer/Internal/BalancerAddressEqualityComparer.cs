@@ -1,4 +1,4 @@
-﻿#region Copyright notice and license
+#region Copyright notice and license
 
 // Copyright 2019 The gRPC Authors
 //
@@ -17,8 +17,6 @@
 #endregion
 
 #if SUPPORT_LOAD_BALANCING
-using System;
-using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 
 namespace Grpc.Net.Client.Balancer.Internal;
@@ -44,7 +42,7 @@ internal class BalancerAddressEqualityComparer : IEqualityComparer<BalancerAddre
             return false;
         }
 
-        return true;
+        return BalancerAttributes.DeepEquals(x._attributes, y._attributes);
     }
 
     public int GetHashCode([DisallowNull] BalancerAddress obj)
