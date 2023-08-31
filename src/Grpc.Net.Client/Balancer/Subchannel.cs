@@ -17,6 +17,7 @@
 #endregion
 
 #if SUPPORT_LOAD_BALANCING
+using System.Diagnostics;
 using System.Net;
 using Grpc.Core;
 using Grpc.Net.Client.Balancer.Internal;
@@ -173,6 +174,10 @@ public sealed class Subchannel : IDisposable
                 return;
             }
 
+            // Get a copy of the current address before updating addresses.
+            // Updating addresses to not contain this value changes the property to return null.
+            var currentAddress = CurrentAddress;
+
             _addresses.Clear();
             _addresses.AddRange(addresses);
 
@@ -186,11 +191,11 @@ public sealed class Subchannel : IDisposable
                     requireReconnect = true;
                     break;
                 case ConnectivityState.Ready:
-                    // Transport uses the subchannel lock but take copy in an abundance of caution.
-                    var currentAddress = CurrentAddress;
+                    // Check if the subchannel is connected to an address that's not longer present.
+                    // In this situation require the subchannel to reconnect to a new address.
                     if (currentAddress != null)
                     {
-                        if (GetAddressByEndpoint(_addresses, currentAddress.EndPoint) != null)
+                        if (GetAddressByEndpoint(_addresses, currentAddress.EndPoint) is null)
                         {
                             SubchannelLog.ConnectedAddressNotInUpdatedAddresses(_logger, Id, currentAddress);
                             requireReconnect = true;
