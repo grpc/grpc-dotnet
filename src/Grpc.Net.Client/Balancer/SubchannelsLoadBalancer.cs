@@ -17,6 +17,7 @@
 #endregion
 
 #if SUPPORT_LOAD_BALANCING
+using System.Diagnostics;
 using Grpc.Core;
 using Grpc.Net.Client.Balancer.Internal;
 using Microsoft.Extensions.Logging;
@@ -144,8 +145,11 @@ public abstract class SubchannelsLoadBalancer : LoadBalancer
                 // The new subchannel address has the same endpoint so the connection isn't impacted.
                 if (!BalancerAddressEqualityComparer.Instance.Equals(address, newOrCurrentSubchannel.Address))
                 {
+                    newOrCurrentSubchannel = new AddressSubchannel(
+                        newOrCurrentSubchannel.Subchannel,
+                        address,
+                        newOrCurrentSubchannel.LastKnownState);
                     newOrCurrentSubchannel.Subchannel.UpdateAddresses(new[] { address });
-                    newOrCurrentSubchannel = new AddressSubchannel(newOrCurrentSubchannel.Subchannel, address);
                 }
 
                 SubchannelLog.SubchannelPreserved(_logger, newOrCurrentSubchannel.Subchannel.Id, address);
@@ -306,15 +310,16 @@ public abstract class SubchannelsLoadBalancer : LoadBalancer
     /// <returns>A subchannel picker.</returns>
     protected abstract SubchannelPicker CreatePicker(IReadOnlyList<Subchannel> readySubchannels);
 
+    [DebuggerDisplay("Subchannel = {Subchannel.Id}, Address = {Address}, LastKnownState = {LastKnownState}")]
     private sealed class AddressSubchannel
     {
         private ConnectivityState _lastKnownState;
 
-        public AddressSubchannel(Subchannel subchannel, BalancerAddress address)
+        public AddressSubchannel(Subchannel subchannel, BalancerAddress address, ConnectivityState lastKnownState = ConnectivityState.Idle)
         {
             Subchannel = subchannel;
             Address = address;
-            _lastKnownState = ConnectivityState.Idle;
+            _lastKnownState = lastKnownState;
         }
 
         // Track connectivity state that has been updated to load balancer.

@@ -300,7 +300,15 @@ public class RoundRobinBalancerTests
 
         var connectState = ConnectivityState.Ready;
 
-        var transportFactory = new TestSubchannelTransportFactory((s, c) => Task.FromResult(new TryConnectResult(connectState)));
+        var subChannelConnections = new List<Subchannel>();
+        var transportFactory = new TestSubchannelTransportFactory((s, c) =>
+        {
+            lock (subChannelConnections)
+            {
+                subChannelConnections.Add(s);
+            }
+            return Task.FromResult(new TryConnectResult(connectState));
+        });
         services.AddSingleton<TestResolver>(s =>
         {
             return new TestResolver(
@@ -351,8 +359,14 @@ public class RoundRobinBalancerTests
         Assert.AreEqual(new DnsEndPoint("localhost", 82), subchannels[2]._addresses[0].EndPoint);
 
         // Preserved because port 81, 82 is in both refresh results
+        var discardedSubchannel = subchannels[0];
         var preservedSubchannel1 = subchannels[1];
         var preservedSubchannel2 = subchannels[2];
+
+        await BalancerWaitHelpers.WaitForSubchannelsToBeReadyAsync(
+            serviceProvider.GetRequiredService<ILoggerFactory>().CreateLogger(GetType()),
+            channel.ConnectionManager,
+            expectedCount: 3).DefaultTimeout();
 
         var address2 = new BalancerAddress("localhost", 82);
         address2.Attributes.Set(new BalancerAttributesKey<int>("test"), 1);
@@ -364,7 +378,13 @@ public class RoundRobinBalancerTests
             new BalancerAddress("localhost", 83)
         });
 
+        await BalancerWaitHelpers.WaitForSubchannelsToBeReadyAsync(
+            serviceProvider.GetRequiredService<ILoggerFactory>().CreateLogger(GetType()),
+            channel.ConnectionManager,
+            expectedCount: 3).DefaultTimeout();
+
         subchannels = channel.ConnectionManager.GetSubchannels();
+        var newSubchannel = subchannels[2];
         Assert.AreEqual(3, subchannels.Count);
 
         Assert.AreEqual(1, subchannels[0]._addresses.Count);
@@ -379,6 +399,22 @@ public class RoundRobinBalancerTests
 
         // Test that the channel's address was updated with new attribute with new attributes.
         Assert.AreSame(preservedSubchannel2.CurrentAddress, address2);
+
+        lock (subChannelConnections)
+        {
+            try
+            {
+                Assert.AreEqual(4, subChannelConnections.Count);
+                Assert.Contains(discardedSubchannel, subChannelConnections);
+                Assert.Contains(preservedSubchannel1, subChannelConnections);
+                Assert.Contains(preservedSubchannel2, subChannelConnections);
+                Assert.Contains(newSubchannel, subChannelConnections);
+            }
+            catch (Exception ex)
+            {
+                throw new Exception("Connected subchannels: " + Environment.NewLine + string.Join(Environment.NewLine, subChannelConnections), ex);
+            }
+        }
     }
 }
 #endif
