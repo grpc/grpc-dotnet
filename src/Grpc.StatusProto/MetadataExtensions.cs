@@ -32,13 +32,16 @@ public static class MetadataExtensions
     /// Get the <see cref="Google.Rpc.Status"/> from the metadata.
     /// If the metadata received contains duplicate status details then the last one found
     /// is the one that is returned.
+    /// Note: experimental API that can change or be removed without any prior notice.
     /// </summary>
     /// <param name="metadata"></param>
+    /// <param name="throwOnParseError">if true then <see cref="Google.Protobuf.InvalidProtocolBufferException"/>
+    /// is thrown if the metadata cannot be parsed. Otherwise null is returned on a parsing error.</param>
     /// <returns>
     /// The found <see cref="Google.Rpc.Status"/> or null if it was
     /// not present or could the data could not be parsed.
     /// </returns>
-    public static Google.Rpc.Status? GetRpcStatus(this Metadata metadata)
+    public static Google.Rpc.Status? GetRpcStatus(this Metadata metadata, bool throwOnParseError=false)
     {
         var entry = metadata.LastOrDefault(t => t.Key == StatusDetailsTrailerName);
         if (entry is null)
@@ -51,7 +54,12 @@ public static class MetadataExtensions
         }
         catch
         {
-            // If the message is malformed, just report there's no information.
+            if (throwOnParseError)
+            {
+                throw;
+            }
+
+            // By default if the message is malformed, just report there's no information.
             return null;
         }
     }
@@ -59,6 +67,7 @@ public static class MetadataExtensions
     /// <summary>
     /// Add <see cref="Google.Rpc.Status"/> to the metadata.
     /// Any existing status in the metadata will be overwritten.
+    /// Note: experimental API that can change or be removed without any prior notice.
     /// </summary>
     /// <param name="metadata"></param>
     /// <param name="status">Status to add</param>

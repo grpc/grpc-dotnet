@@ -1,9 +1,12 @@
-# Grpc C# API for error handling with Status.proto
+# Grpc C# API for error handling with status.proto
 
-This is a protoype NuGet package providing client and server side support for the
+This is a protoype NuGet package providing C# and .NET client and server side support for the
 [gRPC richer error model](https://grpc.io/docs/guides/error/#richer-error-model).
 
-It had dependencies NuGet packages on:
+This feature is already available in many other implementations including C++,
+Go, Java and Python.
+
+This package has dependencies on these NuGet packages:
 * `Google.Api.CommonProtos` - to provide the proto implementations used by the richer error model
 * `Grpc.Core.Api` - for API classes such as `RpcException`
 
@@ -11,7 +14,8 @@ It had dependencies NuGet packages on:
 
 The standard way for gRPC to report the success or failure of a gRPC call is for a
 status code to be returned. If a call completes successfully the server returns an `OK`
-status to the client, otherwise an error status code is returned. This is known as the
+status to the client, otherwise an error status code is returned with an optional string
+error message that provides further details about what happened. This is known as the
 _standard error model_ and is the official gRPC error model supported by all gRPC
 implementations.
 
@@ -22,10 +26,6 @@ messages, and a
 is defined to cover most needs. The protobuf binary encoding of this extra error
 information is provided as trailing metadata in the response.
 
-Not all languages currently have support for this richer error model. It is already
-supported in the C++, Go, Java, Python, and Ruby libraries. This NuGet package adds
-support for C# and .NET.
-
 For more information on the richer error model see the
 [gRPC documentation on error handling](https://grpc.io/docs/guides/error/),
 and the [Google APIs overview of the error model](https://cloud.google.com/apis/design/errors#error_model).
@@ -33,12 +33,14 @@ and the [Google APIs overview of the error model](https://cloud.google.com/apis/
 ## .NET implementation of the richer error model
 
 The error model is define by the protocol buffers files [status.proto](https://github.com/googleapis/googleapis/blob/master/google/rpc/status.proto)
-and [error_details.proto](https://github.com/googleapis/googleapis/blob/master/google/rpc/error_details.proto)
-and their implementations in classes provided in the `Google.Api.CommonProtos` NuGet package.
+and [error_details.proto](https://github.com/googleapis/googleapis/blob/master/google/rpc/error_details.proto),
+and the `Google.Api.CommonProtos` NuGet package that provides the generated .NET classes
+from these proto files.
 
 The error is encapsulated by an instance of `Google.Rpc.Status` and
-returned in the trailing response metadata. Setting and reading this metadata is handled
-for you when using the extension methods provided in this package.
+returned in the trailing response metadata with well-known key `grpc-status-details-bin`.
+Setting and reading this metadata is handled
+for you when using the methods provided in this package.
 
 ## Server Side
 
@@ -46,14 +48,14 @@ The server side uses C#'s Object and Collection initializer syntax.
 
 There are two ways that the server can return additional error information:
 - by throwing an `RpcException` that contains the details of the error.
-- by setting the `Status` and `ResponseTrailers` in the `ServerCallContext`
+- by setting the `Status` and adding to the `ResponseTrailers` in the `ServerCallContext`
 before returning from the call. See the examples below.
 
 There are examples of both methods below.  In a .NET client the result will always be
 an exception received by the client no matter which of the above methods the server
 implements.
 
-The `Google.Rpc.Status` can be created and initialized using C#'s Object and Collection initializer syntax. To add messages to the `Details` repeated field, wrap each one in `Any.Pack()` - see example below.
+To add messages to the `Details` repeated field in `Google.Rpc.Status`, wrap each one in `Any.Pack()` - see example below.
 
 The `Google.Rpc.Status` extension method `ToRpcException` creates the appropriate `RpcException` from the status.
 
@@ -113,9 +115,41 @@ But users can use a different domain of values if they want and and as long as t
 services are mutually compatible, things will work fine.
 
 In the richer error model the `RpcException` will contain both a `Grpc.Core.Status` (for the
-standard error mode) and a `Google.Rpc.Status` (for the richer error model), each with their
+standard error model) and a `Google.Rpc.Status` (for the richer error model), each with their
 own status code. While an application is free to set these to different values we recommend
 that they are set to the same value to avoid ambiguity.
+
+### Passing stack traces from the server to the client
+
+The richer error model defines a standard way of passing stack traces from the server to the
+client. The `DebugInfo` message can be populated with stack traces and then it can 
+be included in the `Details` of the `Google.Rpc.Status`.
+
+This package includes the extension method `ToRpcDebugInfo` for `System.Exception` to help
+create the `DebugInfo` message with the details from the exception.
+
+Example:
+
+```C#
+try
+{
+    // ...
+}
+catch (Exception e)
+{
+    throw new Google.Rpc.Status
+    {
+        Code = Google.Rpc.Code.Internal,
+        Message = "Internal error",
+        Details =
+        {
+            // populate debugInfo from the exception
+            Any.Pack(e.ToRpcDebugInfo()),
+            // Add any other messages to the details ...
+        }
+    }.ToRpcException();
+}
+```
 
 ## Client Side
 

@@ -29,6 +29,7 @@ public static class RpcStatusExtensions
     /// <summary>
     /// Retrieves the error details of type <typeparamref name="T"/> from the <see cref="Google.Rpc.Status"/>
     /// message.
+    /// Note: experimental API that can change or be removed without any prior notice.
     /// </summary>
     /// <remarks>
     /// <example>
@@ -57,6 +58,7 @@ public static class RpcStatusExtensions
 
     /// <summary>
     /// Create a <see cref="RpcException"/> from the <see cref="Google.Rpc.Status"/>
+    /// Note: experimental API that can change or be removed without any prior notice.
     /// </summary>
     /// <remarks>
     /// <para>
@@ -88,6 +90,7 @@ public static class RpcStatusExtensions
 
     /// <summary>
     /// Create a <see cref="RpcException"/> from the <see cref="Google.Rpc.Status"/>
+    /// Note: experimental API that can change or be removed without any prior notice.
     /// </summary>
     /// <remarks>
     /// <para>
@@ -125,6 +128,7 @@ public static class RpcStatusExtensions
 
     /// <summary>
     /// Iterate over all the messages in the <see cref="Google.Rpc.Status.Details"/>
+    /// Note: experimental API that can change or be removed without any prior notice.
     /// </summary>
     /// <remarks>
     /// <para>
@@ -159,6 +163,7 @@ public static class RpcStatusExtensions
     /// <summary>
     /// Iterate over all the messages in the <see cref="Google.Rpc.Status.Details"/> that match types
     /// in the given <see cref="TypeRegistry"/>
+    /// Note: experimental API that can change or be removed without any prior notice.
     /// </summary>
     /// <remarks>
     /// <para>

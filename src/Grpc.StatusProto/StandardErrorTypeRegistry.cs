@@ -21,6 +21,7 @@ namespace Grpc.StatusProto;
 /// Registry of the <see href="https://github.com/googleapis/googleapis/blob/master/google/rpc/error_details.proto">
 /// standard set of error types</see> defined in the richer error model developed and used by Google.
 /// These can be sepcified in the <see cref="Google.Rpc.Status.Details"/>.
+/// Note: experimental API that can change or be removed without any prior notice.
 /// </summary>
 public static class StandardErrorTypeRegistry
 {
@@ -42,6 +43,7 @@ public static class StandardErrorTypeRegistry
 
     /// <summary>
     /// Get the registry
+    /// Note: experimental API that can change or be removed without any prior notice.
     /// </summary>
     public static TypeRegistry Registry
     {

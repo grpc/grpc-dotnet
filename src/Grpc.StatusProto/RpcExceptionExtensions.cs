@@ -24,6 +24,7 @@ public static class RpcExceptionExtensions
     /// <summary>
     /// Retrieves the <see cref="Google.Rpc.Status"/> message containing extended error information
     /// from the trailers in an <see cref="RpcException"/>, if present.
+    /// Note: experimental API that can change or be removed without any prior notice.
     /// </summary>
     /// <param name="ex">The RPC exception to retrieve details from. Must not be null.</param>
     /// <returns>The <see cref="Google.Rpc.Status"/> message specified in the exception, or null

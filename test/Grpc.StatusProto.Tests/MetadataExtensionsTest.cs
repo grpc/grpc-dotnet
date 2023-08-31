@@ -1,5 +1,5 @@
 #region Copyright notice and license
-// Copyright 2015 gRPC authors.
+// Copyright 2023 gRPC authors.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -18,6 +18,7 @@ using Google.Protobuf.WellKnownTypes;
 using Google.Rpc;
 using NUnit.Framework;
 using Grpc.Core;
+using Google.Protobuf;
 
 namespace Grpc.StatusProto.Tests;
 
@@ -122,6 +123,17 @@ public class MetadataExtensionsTest
 
         var sts = metadata.GetRpcStatus();
         Assert.IsNull(sts);
+    }
+
+    [Test]
+    public void GetRpcStatus_BadEncodingWithException()
+    {
+        var metadata = new Metadata
+        {
+            { MetadataExtensions.StatusDetailsTrailerName, new byte[] { 1, 2, 3 } }
+        };
+
+        _ = Assert.Throws<InvalidProtocolBufferException>(() => metadata.GetRpcStatus(throwOnParseError: true));
     }
 
 }

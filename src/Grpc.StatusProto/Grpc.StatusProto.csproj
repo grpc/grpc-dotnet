@@ -1,7 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <Description>gRPC C# API for error handling using status.proto</Description>
+    <Description>gRPC C# API for error handling using google/rpc/status.proto</Description>
     <PackageTags>gRPC RPC HTTP/2</PackageTags>
 
     <IsGrpcPublishedPackage>true</IsGrpcPublishedPackage>
@@ -11,7 +11,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Google.Api.CommonProtos" Version="$(GoogleApiCommonProtos)" />
+    <PackageReference Include="Google.Api.CommonProtos" Version="$(GoogleApiCommonProtosPackageVersion)" />
   </ItemGroup>
   
   <ItemGroup>
