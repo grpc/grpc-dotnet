@@ -14,6 +14,8 @@
 // limitations under the License.
 #endregion
 
+using System.Text;
+using Google.Rpc;
 using NUnit.Framework;
 
 namespace Grpc.StatusProto.Tests;
@@ -36,9 +38,13 @@ public class ExceptionExtensionsTest
             var debugInfo = ex.ToRpcDebugInfo();
             Assert.IsNotNull(debugInfo);
             Assert.AreEqual("System.ArgumentException: extra details", debugInfo.Detail);
-            Assert.IsTrue(debugInfo.StackEntries.Count >= 2);
-            Assert.IsTrue(debugInfo.StackEntries[0].Contains("ExceptionExtensionsTest.ThrowException"));
-            Assert.IsTrue(debugInfo.StackEntries[1].Contains("ExceptionExtensionsTest.ToRpcDebugInfoTest"));
+
+            var stackTraces = ConcatStackTraces(debugInfo);
+            Console.WriteLine("Test stack trace data:");
+            Console.WriteLine(stackTraces);
+            Assert.IsTrue(stackTraces.Contains("ExceptionExtensionsTest.ThrowException"));
+            Assert.IsTrue(stackTraces.Contains("ExceptionExtensionsTest.ToRpcDebugInfoTest"));
+            Assert.IsFalse(stackTraces.Contains("InnerException:"));
         }
     }
 
@@ -54,10 +60,14 @@ public class ExceptionExtensionsTest
             var debugInfo = ex.ToRpcDebugInfo(1);
             Assert.IsNotNull(debugInfo);
             Assert.AreEqual("System.ArgumentException: extra details", debugInfo.Detail);
-            Assert.IsTrue(debugInfo.StackEntries.Count >= 5);
-            Assert.IsTrue(debugInfo.StackEntries[0].Contains("ExceptionExtensionsTest.ThrowException"));
-            Assert.IsTrue(debugInfo.StackEntries[1].Contains("ExceptionExtensionsTest.ToRpcDebugInfo_WithInnerExceptionTest"));
-            Assert.IsTrue(debugInfo.StackEntries[2].Contains("InnerException:"));
+
+            var stackTraces = ConcatStackTraces(debugInfo);
+            Console.WriteLine("Test stack trace data:");
+            Console.WriteLine(stackTraces);
+            Assert.IsTrue(stackTraces.Contains("ExceptionExtensionsTest.ThrowException"));
+            Assert.IsTrue(stackTraces.Contains("ExceptionExtensionsTest.ToRpcDebugInfo_WithInnerExceptionTest"));
+            Assert.IsTrue(stackTraces.Contains("InnerException: System.ApplicationException: inner exception"));
+            Assert.IsTrue(stackTraces.Contains("ExceptionExtensionsTest.ThrowInnerException"));
         }
     }
 
@@ -76,5 +86,17 @@ public class ExceptionExtensionsTest
     private void ThrowInnerException(string message)
     {
         throw new System.ApplicationException(message);
+    }
+
+    private string ConcatStackTraces(DebugInfo debugInfo)
+    {
+        var sb = new StringBuilder();
+
+        foreach (var stackEntry in debugInfo.StackEntries)
+        {
+            sb.AppendLine(stackEntry);
+        }
+
+        return sb.ToString();
     }
 }
