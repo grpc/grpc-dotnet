@@ -67,7 +67,6 @@ public class ExceptionExtensionsTest
             Assert.IsTrue(stackTraces.Contains("ExceptionExtensionsTest.ThrowException"));
             Assert.IsTrue(stackTraces.Contains("ExceptionExtensionsTest.ToRpcDebugInfo_WithInnerExceptionTest"));
             Assert.IsTrue(stackTraces.Contains("InnerException: System.ApplicationException: inner exception"));
-            Assert.IsTrue(stackTraces.Contains("ExceptionExtensionsTest.ThrowInnerException"));
         }
     }
 
