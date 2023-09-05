@@ -84,12 +84,12 @@ internal static class GrpcProtocolConstants
 #endif
     }
 
-    public const string MethodKey = "Method";
-    public const string ChannelKey = "Channel";
-    public const string RequestKey = "Request";
-
     public static IEnumerator<KeyValuePair<string, object>> GetDebugEnumerator(ChannelBase channel, IMethod method, object? request)
     {
+        const string MethodKey = "Method";
+        const string ChannelKey = "Channel";
+        const string RequestKey = "Request";
+
         yield return new KeyValuePair<string, object>(ChannelKey, channel);
         yield return new KeyValuePair<string, object>(MethodKey, method);
         if (request != null)
