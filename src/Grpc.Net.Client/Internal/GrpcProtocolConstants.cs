@@ -16,6 +16,7 @@
 
 #endregion
 
+using System.Collections;
 using System.Net.Http.Headers;
 using Grpc.Core;
 using Grpc.Net.Compression;
@@ -81,6 +82,17 @@ internal static class GrpcProtocolConstants
 #else
             string.Join(",", compressionProviders.Select(p => p.Key));
 #endif
+    }
+
+    public const string MethodKey = "Method";
+    public const string ChannelKey = "Channel";
+    public const string RequestKey = "Request";
+
+    public static IEnumerator GetDebugEnumerator(ChannelBase channel, IMethod method, object? request)
+    {
+        yield return new DictionaryEntry(ChannelKey, channel);
+        yield return new DictionaryEntry(MethodKey, method);
+        yield return new DictionaryEntry(RequestKey, request);
     }
 
     static GrpcProtocolConstants()
