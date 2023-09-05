@@ -16,13 +16,12 @@
 
 #endregion
 
-using System.Collections;
 using System.Diagnostics.CodeAnalysis;
 using Grpc.Core;
 
 namespace Grpc.Net.Client.Internal;
 
-internal interface IGrpcCall<TRequest, TResponse> : IDisposable, IEnumerable
+internal interface IGrpcCall<TRequest, TResponse> : IDisposable, IEnumerable<KeyValuePair<string, object>>
     where TRequest : class
     where TResponse : class
 {

@@ -18,6 +18,7 @@
 
 using System;
 using System.Collections;
+using System.Collections.Generic;
 using System.Diagnostics;
 
 namespace Grpc.Core.Internal;
@@ -54,11 +55,11 @@ internal static class CallDebuggerHelpers
         // We want to get information about a call to display during debugging, but Grpc.Core.Api does
         // doesn't have access to the implementation's internal fields.
         // GetDebugValue accesses values by IEnumerable + key from the implementation state.
-        if (callState.State is IEnumerable enumerable)
+        if (callState.State is IEnumerable<KeyValuePair<string, object>> enumerable)
         {
-            foreach (DictionaryEntry entry in enumerable)
+            foreach (var entry in enumerable)
             {
-                if ((string)entry.Key == key)
+                if (entry.Key == key)
                 {
                     return (T)entry.Value;
                 }

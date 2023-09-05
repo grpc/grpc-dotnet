@@ -16,7 +16,7 @@
 
 #endregion
 
-using System.Collections;
+using System.Collections.Generic;
 using System.Net.Http.Headers;
 using Grpc.Core;
 using Grpc.Net.Compression;
@@ -88,11 +88,14 @@ internal static class GrpcProtocolConstants
     public const string ChannelKey = "Channel";
     public const string RequestKey = "Request";
 
-    public static IEnumerator GetDebugEnumerator(ChannelBase channel, IMethod method, object? request)
+    public static IEnumerator<KeyValuePair<string, object>> GetDebugEnumerator(ChannelBase channel, IMethod method, object? request)
     {
-        yield return new DictionaryEntry(ChannelKey, channel);
-        yield return new DictionaryEntry(MethodKey, method);
-        yield return new DictionaryEntry(RequestKey, request);
+        yield return new KeyValuePair<string, object>(ChannelKey, channel);
+        yield return new KeyValuePair<string, object>(MethodKey, method);
+        if (request != null)
+        {
+            yield return new KeyValuePair<string, object>(RequestKey, request);
+        }
     }
 
     static GrpcProtocolConstants()

@@ -1163,5 +1163,6 @@ internal sealed partial class GrpcCall<TRequest, TResponse> : GrpcCall, IGrpcCal
         diagnosticSource.Write(name, value);
     }
 
-    public IEnumerator GetEnumerator() => GrpcProtocolConstants.GetDebugEnumerator(Channel, Method, _request);
+    IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
+    public IEnumerator<KeyValuePair<string, object>> GetEnumerator() => GrpcProtocolConstants.GetDebugEnumerator(Channel, Method, _request);
 }

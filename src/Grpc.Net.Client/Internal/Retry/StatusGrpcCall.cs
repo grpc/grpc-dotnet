@@ -122,7 +122,8 @@ internal sealed class StatusGrpcCall<TRequest, TResponse> : IGrpcCall<TRequest, 
         }
     }
 
-    public IEnumerator GetEnumerator() => GrpcProtocolConstants.GetDebugEnumerator(_channel, _method, _request);
+    IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
+    public IEnumerator<KeyValuePair<string, object>> GetEnumerator() => GrpcProtocolConstants.GetDebugEnumerator(_channel, _method, _request);
 
     private sealed class StatusClientStreamWriter : IClientStreamWriter<TRequest>
     {
