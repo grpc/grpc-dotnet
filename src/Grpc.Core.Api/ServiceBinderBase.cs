@@ -40,7 +40,7 @@ public class ServiceBinderBase
     /// <param name="handler">The method handler.</param>
     public virtual void AddMethod<TRequest, TResponse>(
         Method<TRequest, TResponse> method,
-        UnaryServerMethod<TRequest, TResponse> handler)
+        UnaryServerMethod<TRequest, TResponse>? handler)
             where TRequest : class
             where TResponse : class
     {
@@ -56,7 +56,7 @@ public class ServiceBinderBase
     /// <param name="handler">The method handler.</param>
     public virtual void AddMethod<TRequest, TResponse>(
         Method<TRequest, TResponse> method,
-        ClientStreamingServerMethod<TRequest, TResponse> handler)
+        ClientStreamingServerMethod<TRequest, TResponse>? handler)
             where TRequest : class
             where TResponse : class
     {
@@ -72,7 +72,7 @@ public class ServiceBinderBase
     /// <param name="handler">The method handler.</param>
     public virtual void AddMethod<TRequest, TResponse>(
         Method<TRequest, TResponse> method,
-        ServerStreamingServerMethod<TRequest, TResponse> handler)
+        ServerStreamingServerMethod<TRequest, TResponse>? handler)
             where TRequest : class
             where TResponse : class
     {
@@ -88,7 +88,7 @@ public class ServiceBinderBase
     /// <param name="handler">The method handler.</param>
     public virtual void AddMethod<TRequest, TResponse>(
         Method<TRequest, TResponse> method,
-        DuplexStreamingServerMethod<TRequest, TResponse> handler)
+        DuplexStreamingServerMethod<TRequest, TResponse>? handler)
             where TRequest : class
             where TResponse : class
     {
