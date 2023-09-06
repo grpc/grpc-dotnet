@@ -17,18 +17,28 @@
 #endregion
 
 using System;
+using System.Collections;
+using System.Collections.Generic;
 using System.Diagnostics;
 
 namespace Grpc.Core.Internal;
 
 internal static class CallDebuggerHelpers
 {
+    public const string MethodKey = "Method";
+    public const string ChannelKey = "Channel";
+    public const string RequestKey = "Request";
+
     public static string DebuggerToString(AsyncCallState callState)
     {
         string debugText = string.Empty;
-        if (callState.State is IMethod method)
+        if (GetDebugValue<ChannelBase>(callState, ChannelKey) is { } channel)
         {
-            debugText = $"Method = {method.FullName}, ";
+            debugText = $"Channel = {channel.Target}, ";
+        }
+        if (GetDebugValue<IMethod>(callState, MethodKey) is { } method)
+        {
+            debugText += $"Method = {method.FullName}, ";
         }
 
         var status = GetStatus(callState);
@@ -38,6 +48,30 @@ internal static class CallDebuggerHelpers
             debugText += $", StatusCode = {status.Value.StatusCode}";
         }
         return debugText;
+    }
+
+    public static T? GetDebugValue<T>(AsyncCallState callState, string key) where T : class
+    {
+        // We want to get information about a call to display during debugging, but Grpc.Core.Api does
+        // doesn't have access to the implementation's internal fields.
+        // GetDebugValue accesses values by IEnumerable + key from the implementation state.
+        if (callState.State is IEnumerable<KeyValuePair<string, object>> enumerable)
+        {
+            foreach (var entry in enumerable)
+            {
+                if (entry.Key == key)
+                {
+                    if (entry.Value is T t)
+                    {
+                        return t;
+                    }
+
+                    return null;
+                }
+            }
+        }
+
+        return null;
     }
 
     public static Status? GetStatus(AsyncCallState callState)

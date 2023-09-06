@@ -180,12 +180,13 @@ public sealed class AsyncClientStreamingCall<TRequest, TResponse> : IDisposable
             _call = call;
         }
 
-        public CallDebuggerMethodDebugView? Method => _call.callState.State is IMethod method ? new CallDebuggerMethodDebugView(method) : null;
         public bool IsComplete => CallDebuggerHelpers.GetStatus(_call.callState) != null;
         public Status? Status => CallDebuggerHelpers.GetStatus(_call.callState);
         public Metadata? ResponseHeaders => _call.ResponseHeadersAsync.Status == TaskStatus.RanToCompletion ? _call.ResponseHeadersAsync.GetAwaiter().GetResult() : null;
         public Metadata? Trailers => CallDebuggerHelpers.GetTrailers(_call.callState);
         public IClientStreamWriter<TRequest> RequestStream => _call.RequestStream;
         public TResponse? Response => _call.ResponseAsync.Status == TaskStatus.RanToCompletion ? _call.ResponseAsync.Result : default;
+        public CallDebuggerMethodDebugView? Method => CallDebuggerHelpers.GetDebugValue<IMethod>(_call.callState, CallDebuggerHelpers.MethodKey) is { } method ? new CallDebuggerMethodDebugView(method) : null;
+        public ChannelBase? Channel => CallDebuggerHelpers.GetDebugValue<ChannelBase>(_call.callState, CallDebuggerHelpers.ChannelKey);
     }
 }

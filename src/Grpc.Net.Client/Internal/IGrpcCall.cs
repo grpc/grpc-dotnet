@@ -21,7 +21,7 @@ using Grpc.Core;
 
 namespace Grpc.Net.Client.Internal;
 
-internal interface IGrpcCall<TRequest, TResponse> : IDisposable, IMethod
+internal interface IGrpcCall<TRequest, TResponse> : IDisposable, IEnumerable<KeyValuePair<string, object>>
     where TRequest : class
     where TResponse : class
 {

@@ -16,6 +16,7 @@
 
 #endregion
 
+using System.Collections;
 using System.Diagnostics.CodeAnalysis;
 using Grpc.Core;
 
@@ -28,6 +29,7 @@ internal sealed class StatusGrpcCall<TRequest, TResponse> : IGrpcCall<TRequest, 
     private readonly Status _status;
     private readonly GrpcChannel _channel;
     private readonly Method<TRequest, TResponse> _method;
+    private readonly TRequest? _request;
     private IClientStreamWriter<TRequest>? _clientStreamWriter;
     private IAsyncStreamReader<TResponse>? _clientStreamReader;
 
@@ -39,17 +41,13 @@ internal sealed class StatusGrpcCall<TRequest, TResponse> : IGrpcCall<TRequest, 
 
     public object? CallWrapper { get; set; }
 
-    MethodType IMethod.Type => _method.Type;
-    string IMethod.ServiceName => _method.ServiceName;
-    string IMethod.Name => _method.Name;
-    string IMethod.FullName => _method.FullName;
-
-    public StatusGrpcCall(Status status, GrpcChannel channel, Method<TRequest, TResponse> method, int messagesRead)
+    public StatusGrpcCall(Status status, GrpcChannel channel, Method<TRequest, TResponse> method, int messagesRead, TRequest? request)
     {
         _status = status;
         _channel = channel;
         _method = method;
         MessagesRead = messagesRead;
+        _request = request;
     }
 
     public void Dispose()
@@ -123,6 +121,9 @@ internal sealed class StatusGrpcCall<TRequest, TResponse> : IGrpcCall<TRequest, 
             return new RpcException(status);
         }
     }
+
+    IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
+    public IEnumerator<KeyValuePair<string, object>> GetEnumerator() => GrpcProtocolConstants.GetDebugEnumerator(_channel, _method, _request);
 
     private sealed class StatusClientStreamWriter : IClientStreamWriter<TRequest>
     {

@@ -16,6 +16,7 @@
 
 #endregion
 
+using System.Collections;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
@@ -53,6 +54,7 @@ internal sealed partial class GrpcCall<TRequest, TResponse> : GrpcCall, IGrpcCal
 
     // These are set depending on the type of gRPC call
     private TaskCompletionSource<TResponse>? _responseTcs;
+    private TRequest? _request;
 
     public int MessagesWritten { get; private set; }
     public int MessagesRead { get; private set; }
@@ -99,12 +101,11 @@ internal sealed partial class GrpcCall<TRequest, TResponse> : GrpcCall, IGrpcCal
 
     public object? CallWrapper { get; set; }
 
-    MethodType IMethod.Type => Method.Type;
-    string IMethod.ServiceName => Method.ServiceName;
-    string IMethod.Name => Method.Name;
-    string IMethod.FullName => Method.FullName;
-
-    public void StartUnary(TRequest request) => StartUnaryCore(CreatePushUnaryContent(request));
+    public void StartUnary(TRequest request)
+    {
+        _request = request;
+        StartUnaryCore(CreatePushUnaryContent(request));
+    }
 
     public void StartClientStreaming()
     {
@@ -1161,4 +1162,7 @@ internal sealed partial class GrpcCall<TRequest, TResponse> : GrpcCall, IGrpcCal
     {
         diagnosticSource.Write(name, value);
     }
+
+    IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
+    public IEnumerator<KeyValuePair<string, object>> GetEnumerator() => GrpcProtocolConstants.GetDebugEnumerator(Channel, Method, _request);
 }
