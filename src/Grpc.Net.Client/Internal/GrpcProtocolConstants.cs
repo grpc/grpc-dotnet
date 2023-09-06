@@ -84,6 +84,10 @@ internal static class GrpcProtocolConstants
 #endif
     }
 
+    /// <summary>
+    /// Gets key value pairs used by debugging. These are provided as an enumerator instead of a dictionary
+    /// because it's one method to implement an enumerator on gRPC calls compared to a dozen members for a dictionary.
+    /// </summary>
     public static IEnumerator<KeyValuePair<string, object>> GetDebugEnumerator(ChannelBase channel, IMethod method, object? request)
     {
         const string MethodKey = "Method";

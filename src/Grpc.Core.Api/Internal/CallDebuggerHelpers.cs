@@ -61,7 +61,12 @@ internal static class CallDebuggerHelpers
             {
                 if (entry.Key == key)
                 {
-                    return (T)entry.Value;
+                    if (entry.Value is T t)
+                    {
+                        return t;
+                    }
+
+                    return null;
                 }
             }
         }
