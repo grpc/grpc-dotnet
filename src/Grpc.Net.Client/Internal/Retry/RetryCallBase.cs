@@ -16,6 +16,7 @@
 
 #endregion
 
+using System.Collections;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using Grpc.Core;
@@ -35,6 +36,7 @@ internal abstract partial class RetryCallBase<TRequest, TResponse> : IGrpcCall<T
     private RetryCallBaseClientStreamWriter<TRequest, TResponse>? _retryBaseClientStreamWriter;
     private Task<TResponse>? _responseTask;
     private Task<Metadata>? _responseHeadersTask;
+    private TRequest? _request;
 
     // Internal for unit testing.
     internal CancellationTokenRegistration? _ctsRegistration;
@@ -63,11 +65,6 @@ internal abstract partial class RetryCallBase<TRequest, TResponse> : IGrpcCall<T
     protected List<ReadOnlyMemory<byte>> BufferedMessages { get; }
     protected long CurrentCallBufferSize { get; set; }
     protected bool BufferedCurrentMessage { get; set; }
-
-    MethodType IMethod.Type => Method.Type;
-    string IMethod.ServiceName => Method.ServiceName;
-    string IMethod.Name => Method.Name;
-    string IMethod.FullName => Method.FullName;
 
     protected RetryCallBase(GrpcChannel channel, Method<TRequest, TResponse> method, CallOptions options, string loggerName, int retryAttempts)
     {
@@ -170,6 +167,7 @@ internal abstract partial class RetryCallBase<TRequest, TResponse> : IGrpcCall<T
 
     public void StartUnary(TRequest request)
     {
+        _request = request;
         StartCore(call => call.StartUnaryCore(CreatePushUnaryContent(request, call)));
     }
 
@@ -520,7 +518,7 @@ internal abstract partial class RetryCallBase<TRequest, TResponse> : IGrpcCall<T
 
     protected StatusGrpcCall<TRequest, TResponse> CreateStatusCall(Status status)
     {
-        var call = new StatusGrpcCall<TRequest, TResponse>(status, Channel, Method, MessagesRead);
+        var call = new StatusGrpcCall<TRequest, TResponse>(status, Channel, Method, MessagesRead, _request);
         call.CallWrapper = CallWrapper;
         return call;
     }
@@ -595,4 +593,7 @@ internal abstract partial class RetryCallBase<TRequest, TResponse> : IGrpcCall<T
     {
         throw new NotSupportedException();
     }
+
+    IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
+    public IEnumerator<KeyValuePair<string, object>> GetEnumerator() => GrpcProtocolConstants.GetDebugEnumerator(Channel, Method, _request);
 }

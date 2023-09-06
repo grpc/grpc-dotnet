@@ -157,12 +157,13 @@ public sealed class AsyncDuplexStreamingCall<TRequest, TResponse> : IDisposable
             _call = call;
         }
 
-        public CallDebuggerMethodDebugView? Method => _call.callState.State is IMethod method ? new CallDebuggerMethodDebugView(method) : null;
         public bool IsComplete => CallDebuggerHelpers.GetStatus(_call.callState) != null;
         public Status? Status => CallDebuggerHelpers.GetStatus(_call.callState);
         public Metadata? ResponseHeaders => _call.ResponseHeadersAsync.Status == TaskStatus.RanToCompletion ? _call.ResponseHeadersAsync.Result : null;
         public Metadata? Trailers => CallDebuggerHelpers.GetTrailers(_call.callState);
         public IAsyncStreamReader<TResponse> ResponseStream => _call.ResponseStream;
         public IClientStreamWriter<TRequest> RequestStream => _call.RequestStream;
+        public CallDebuggerMethodDebugView? Method => CallDebuggerHelpers.GetDebugValue<IMethod>(_call.callState, CallDebuggerHelpers.MethodKey) is { } method ? new CallDebuggerMethodDebugView(method) : null;
+        public ChannelBase? Channel => CallDebuggerHelpers.GetDebugValue<ChannelBase>(_call.callState, CallDebuggerHelpers.ChannelKey);
     }
 }
