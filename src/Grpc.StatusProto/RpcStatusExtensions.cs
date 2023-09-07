@@ -27,6 +27,15 @@ namespace Grpc.StatusProto;
 public static class RpcStatusExtensions
 {
     /// <summary>
+    /// Cache the full names of the messages types
+    /// </summary>
+    /// <typeparam name="T"></typeparam>
+    private static class MessageNameCache<T> where T : class, IMessage<T>, new()
+    {
+        public static readonly string FullName = new T().Descriptor.FullName;
+    }
+
+    /// <summary>
     /// Retrieves the error details of type <typeparamref name="T"/> from the <see cref="Google.Rpc.Status"/>
     /// message.
     /// Note: experimental API that can change or be removed without any prior notice.
@@ -54,8 +63,7 @@ public static class RpcStatusExtensions
             throw new ArgumentNullException(nameof(status));
         }
 
-        // TODO(tonydnewell) add cache so we don't need to create a new object each time
-        var expectedName = new T().Descriptor.FullName;
+        var expectedName = MessageNameCache<T>.FullName;
         var any = status.Details.FirstOrDefault(a => Any.GetTypeName(a.TypeUrl) == expectedName);
         if (any is null)
         {
