@@ -25,7 +25,7 @@ namespace Grpc.StatusProto;
 /// </summary>
 public static class StandardErrorTypeRegistry
 {
-    private static readonly TypeRegistry registry = TypeRegistry.FromMessages(
+    private static readonly TypeRegistry _registry = TypeRegistry.FromMessages(
         new MessageDescriptor[]
         {
             ErrorInfo.Descriptor,
@@ -38,15 +38,11 @@ public static class StandardErrorTypeRegistry
             ResourceInfo.Descriptor,
             Help.Descriptor,
             LocalizedMessage.Descriptor
-        }
-        );
+        });
 
     /// <summary>
     /// Get the registry
     /// Note: experimental API that can change or be removed without any prior notice.
     /// </summary>
-    public static TypeRegistry Registry
-    {
-        get => registry;
-    }
+    public static TypeRegistry Registry => _registry;
 }

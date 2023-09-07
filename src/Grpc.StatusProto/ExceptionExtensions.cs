@@ -21,38 +21,38 @@ namespace Grpc.StatusProto;
 /// </summary>
 public static class ExceptionExtensions
 {
-/// <summary>
-/// Create a <see cref="Google.Rpc.DebugInfo"/> from an <see cref="System.Exception"/>,
-/// populating the Message and StackTrace from the exception.
-/// Note: experimental API that can change or be removed without any prior notice.
-/// </summary>
-/// <remarks>
-/// <example>
-/// For example:
-/// <code>
-/// try { /* ... */
-/// }
-/// catch (Exception e) {
-///    Google.Rpc.Status status = new() {
-///        Code = (int)StatusCode.Internal,
-///        Message = "Internal error",
-///        Details = {
-///            // populate debugInfo from the exception
-///            Any.Pack(e.ToRpcDebugInfo())
-///        }
-///    };
-///    // ...
-/// }
-/// </code>
-/// </example>
-/// </remarks>
-/// <param name="exception"></param>
-/// <param name="innerDepth">Maximum number of inner exceptions to include in the StackTrace. Defaults
-/// to not including any inner exceptions</param>
-/// <returns>
-/// A new <see cref="Google.Rpc.DebugInfo"/> populated from the exception.
-/// </returns>
-public static DebugInfo ToRpcDebugInfo(this Exception exception, int innerDepth = 0)
+    /// <summary>
+    /// Create a <see cref="Google.Rpc.DebugInfo"/> from an <see cref="System.Exception"/>,
+    /// populating the Message and StackTrace from the exception.
+    /// Note: experimental API that can change or be removed without any prior notice.
+    /// </summary>
+    /// <remarks>
+    /// <example>
+    /// For example:
+    /// <code>
+    /// try { /* ... */
+    /// }
+    /// catch (Exception e) {
+    ///    Google.Rpc.Status status = new() {
+    ///        Code = (int)StatusCode.Internal,
+    ///        Message = "Internal error",
+    ///        Details = {
+    ///            // populate debugInfo from the exception
+    ///            Any.Pack(e.ToRpcDebugInfo())
+    ///        }
+    ///    };
+    ///    // ...
+    /// }
+    /// </code>
+    /// </example>
+    /// </remarks>
+    /// <param name="exception"></param>
+    /// <param name="innerDepth">Maximum number of inner exceptions to include in the StackTrace. Defaults
+    /// to not including any inner exceptions</param>
+    /// <returns>
+    /// A new <see cref="Google.Rpc.DebugInfo"/> populated from the exception.
+    /// </returns>
+    public static DebugInfo ToRpcDebugInfo(this Exception exception, int innerDepth = 0)
     {
         var debugInfo = new DebugInfo();
 

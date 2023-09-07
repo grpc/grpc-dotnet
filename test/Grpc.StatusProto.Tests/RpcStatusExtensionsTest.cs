@@ -128,7 +128,7 @@ public class RpcStatusExtensionsTest
         var status = CreateFullStatus(detailsMap);
 
         var foundSet = new HashSet<string>();
-        foreach (var msg in status.UnpackDetailMessage())
+        foreach (var msg in status.UnpackDetailMessages())
         {
             switch (msg)
             {

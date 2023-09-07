@@ -47,6 +47,14 @@ public static class RpcStatusExtensions
     /// <returns>The first error details of type <typeparamref name="T"/> found, or null if not present</returns>
     public static T? GetStatusDetail<T>(this Google.Rpc.Status status) where T : class, IMessage<T>, new()
     {
+        //TODO(tonydnewell) maybe move this method to Google.Api.CommonProtos
+
+        if (status == null)
+        {
+            throw new ArgumentNullException(nameof(status));
+        }
+
+        // TODO(tonydnewell) add cache so we don't need to create a new object each time
         var expectedName = new T().Descriptor.FullName;
         var any = status.Details.FirstOrDefault(a => Any.GetTypeName(a.TypeUrl) == expectedName);
         if (any is null)
@@ -85,7 +93,25 @@ public static class RpcStatusExtensions
     /// <returns>A <see cref="RpcException"/> populated with the details from the status.</returns>
     public static RpcException ToRpcException(this Google.Rpc.Status status)
     {
-        return status.ToRpcException((StatusCode)status.Code, status.Message);
+        if (status == null)
+        {
+            throw new ArgumentNullException(nameof(status));
+        }
+
+        // Both Grpc.Core.StatusCode and Google.Rpc.Code define enums for a common
+        // set of status codes such as "NotFound", "PermissionDenied", etc. They have the same
+        // values and are based on the codes defined "grpc/status.h"
+        //
+        // However applications can use a different domain of values if they want and and as
+        // long as their services are mutually compatible, things will work fine.
+        //
+        // If an application wants to explicitly set different status codes in Grpc.Core.Status
+        // and Google.Rpc.Status then use the ToRpcException below that takes additional parameters.
+        //
+        // Check here that we can convert Google.Rpc.Status.Code to Grpc.Core.StatusCode,
+        // and if not use StatusCode.Unknown.
+        var statusCode = System.Enum.IsDefined(typeof(StatusCode), status.Code) ? (StatusCode)status.Code : StatusCode.Unknown;
+        return status.ToRpcException(statusCode, status.Message);
     }
 
     /// <summary>
@@ -119,6 +145,11 @@ public static class RpcStatusExtensions
     /// <returns></returns>
     public static RpcException ToRpcException(this Google.Rpc.Status status, StatusCode statusCode, string message)
     {
+        if (status == null)
+        {
+            throw new ArgumentNullException(nameof(status));
+        }
+
         var metadata = new Metadata();
         metadata.SetRpcStatus(status);
         return new RpcException(
@@ -141,7 +172,7 @@ public static class RpcStatusExtensions
     /// <example>
     /// Example:
     /// <code>
-    /// foreach (var msg in status.UnpackDetailMessage()) {
+    /// foreach (var msg in status.UnpackDetailMessages()) {
     ///   switch (msg) {
     ///     case ErrorInfo errorInfo:
     ///          // Handle errorInfo ...
@@ -155,9 +186,16 @@ public static class RpcStatusExtensions
     /// </remarks>
     /// <param name="status"></param>
     /// <returns></returns>
-    public static IEnumerable<IMessage> UnpackDetailMessage(this Google.Rpc.Status status)
+    public static IEnumerable<IMessage> UnpackDetailMessages(this Google.Rpc.Status status)
     {
-        return status.UnpackDetailMessage(StandardErrorTypeRegistry.Registry);
+        //TODO(tonydnewell) maybe move this method to Google.Api.CommonProtos
+
+        if (status == null)
+        {
+            throw new ArgumentNullException(nameof(status));
+        }
+
+        return status.UnpackDetailMessages(StandardErrorTypeRegistry.Registry);
     }
 
     /// <summary>
@@ -181,7 +219,7 @@ public static class RpcStatusExtensions
     ///     FooMessage.Descriptor, BarMessage.Descriptor
     ///   });
     ///   
-    /// foreach (var msg in status.UnpackDetailMessage(myTypes)) {
+    /// foreach (var msg in status.UnpackDetailMessages(myTypes)) {
     ///   switch (msg) {
     ///     case FooMessage foo:
     ///          // Handle foo ...
@@ -196,8 +234,15 @@ public static class RpcStatusExtensions
     /// <param name="status"></param>
     /// <param name="registry"></param>
     /// <returns></returns>
-    public static IEnumerable<IMessage> UnpackDetailMessage(this Google.Rpc.Status status, TypeRegistry registry)
+    public static IEnumerable<IMessage> UnpackDetailMessages(this Google.Rpc.Status status, TypeRegistry registry)
     {
+        //TODO(tonydnewell) maybe move this method to Google.Api.CommonProtos
+
+        if (status == null)
+        {
+            throw new ArgumentNullException(nameof(status));
+        }
+
         foreach (var any in status.Details)
         {
             var msg = any.Unpack(registry);

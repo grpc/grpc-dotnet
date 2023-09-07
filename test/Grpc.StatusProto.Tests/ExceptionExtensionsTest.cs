@@ -25,7 +25,6 @@ namespace Grpc.StatusProto.Tests;
 /// </summary>
 public class ExceptionExtensionsTest
 {
-    
     [Test]
     public void ToRpcDebugInfoTest()
     {

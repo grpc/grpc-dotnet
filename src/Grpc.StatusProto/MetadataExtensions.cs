@@ -20,7 +20,7 @@ namespace Grpc.StatusProto;
 /// <summary>
 /// Extension methods for the Grpc.Core.Metadata
 /// </summary>
-public static class MetadataExtensions  
+public static class MetadataExtensions
 {
     /// <summary>
     /// Name of key in the metadata for the binary encoding of
@@ -30,8 +30,6 @@ public static class MetadataExtensions
 
     /// <summary>
     /// Get the <see cref="Google.Rpc.Status"/> from the metadata.
-    /// If the metadata received contains duplicate status details then the last one found
-    /// is the one that is returned.
     /// Note: experimental API that can change or be removed without any prior notice.
     /// </summary>
     /// <param name="metadata"></param>
@@ -41,9 +39,14 @@ public static class MetadataExtensions
     /// The found <see cref="Google.Rpc.Status"/> or null if it was
     /// not present or could the data could not be parsed.
     /// </returns>
-    public static Google.Rpc.Status? GetRpcStatus(this Metadata metadata, bool throwOnParseError=false)
+    public static Google.Rpc.Status? GetRpcStatus(this Metadata metadata, bool throwOnParseError = false)
     {
-        var entry = metadata.LastOrDefault(t => t.Key == StatusDetailsTrailerName);
+        if (metadata == null)
+        {
+            throw new ArgumentNullException(nameof(metadata));
+        }
+
+        var entry = metadata.Get(StatusDetailsTrailerName);
         if (entry is null)
         {
             return null;
@@ -52,13 +55,8 @@ public static class MetadataExtensions
         {
             return Google.Rpc.Status.Parser.ParseFrom(entry.ValueBytes);
         }
-        catch
+        catch when (!throwOnParseError)
         {
-            if (throwOnParseError)
-            {
-                throw;
-            }
-
             // By default if the message is malformed, just report there's no information.
             return null;
         }
@@ -73,6 +71,16 @@ public static class MetadataExtensions
     /// <param name="status">Status to add</param>
     public static void SetRpcStatus(this Metadata metadata, Google.Rpc.Status status)
     {
+        if (metadata == null)
+        {
+            throw new ArgumentNullException(nameof(metadata));
+        }
+
+        if (status == null)
+        {
+            throw new ArgumentNullException(nameof(status));
+        }
+
         var entry = metadata.Get(StatusDetailsTrailerName);
         while (entry is not null)
         {

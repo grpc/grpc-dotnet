@@ -1,4 +1,4 @@
-# Grpc C# API for error handling with status.proto
+# gRPC C# API for error handling with status.proto
 
 This is a protoype NuGet package providing C# and .NET client and server side support for the
 [gRPC richer error model](https://grpc.io/docs/guides/error/#richer-error-model).
@@ -46,61 +46,47 @@ for you when using the methods provided in this package.
 
 The server side uses C#'s Object and Collection initializer syntax.
 
-There are two ways that the server can return additional error information:
-- by throwing an `RpcException` that contains the details of the error.
-- by setting the `Status` and adding to the `ResponseTrailers` in the `ServerCallContext`
-before returning from the call. See the examples below.
-
-There are examples of both methods below.  In a .NET client the result will always be
-an exception received by the client no matter which of the above methods the server
-implements.
+The server returns the additional error information by throwing an `RpcException` that is
+created from a `Google.Rpc.Status` which contains the details of the error.
 
 To add messages to the `Details` repeated field in `Google.Rpc.Status`, wrap each one in `Any.Pack()` - see example below.
 
 The `Google.Rpc.Status` extension method `ToRpcException` creates the appropriate `RpcException` from the status.
 
-The `Grpc.Core.Metadata` extension method `SetRpcStatus` adds a binary representation of the status to the metadata.
-
-
-__Example__ - throwing a `RpcException`:
+__Example__ - creating and throwing a `RpcException`:
 ```C#
-throw new Google.Rpc.Status
+public override Task<HelloReply> SayHello(HelloRequest request, ServerCallContext context)
 {
-    Code = Google.Rpc.Code.NotFound;
-    Message = "Simple error message",
-    Details =
-    {
-        Any.Pack(new ErrorInfo
-        {
-            Domain = "error example",
-            Reason = "some reason"
-        }),
-        Any.Pack(new RequestInfo
-        {
-            RequestId = "EchoRequest",
-            ServingData = "Param: " + request.Action.ToString()
-        }),
-        }
-}.ToRpcException();
-```
-__Example__ - setting the status and response trailers instead of throwing an exception:
-```C#
-context.Status = new Grpc.Core.Status(StatusCode.Internal, "Some detail");
-context.ResponseTrailers.SetRpcStatus(new Google.Rpc.Status
+    ArgumentNotNullOrEmpty(request.Name);
+
+    return Task.FromResult(new HelloReply { Message = "Hello " + request.Name });
+}
+
+private static void ArgumentNotNullOrEmpty(string value, [CallerArgumentExpression(nameof(value))] string? paramName = null)
 {
-    Code = Google.Rpc.Code.NotFound,
-    Message = "Simple error message",
-    Details =
+    if (string.IsNullOrEmpty(value))
     {
-        Any.Pack(new ErrorInfo
+        throw new Google.Rpc.Status
         {
-            Domain = "error example",
-            Reason = "some reason"
-        })
+            Code = (int)Code.InvalidArgument,
+            Message = "Bad request",
+            Details =
+            {
+                Any.Pack(new BadRequest
+                {
+                    FieldViolations =
+                    {
+                        new BadRequest.Types.FieldViolation
+                        {
+                            Field = paramName,
+                            Description = "Value is null or empty"
+                        }
+                    }
+                })
+            }
+        }.ToRpcException();
     }
-});
-
-return Task.FromResult( /* ... */ );
+}
 ```
 
 ### A note on error codes
@@ -139,7 +125,7 @@ catch (Exception e)
 {
     throw new Google.Rpc.Status
     {
-        Code = Google.Rpc.Code.Internal,
+        Code = (int)Google.Rpc.Code.Internal,
         Message = "Internal error",
         Details =
         {
