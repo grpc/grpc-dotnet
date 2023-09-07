@@ -1,4 +1,4 @@
-﻿#region Copyright notice and license
+#region Copyright notice and license
 
 // Copyright 2019 The gRPC Authors
 //
@@ -76,7 +76,7 @@ public class HttpContextStreamReaderTests
             await nextTask;
             Assert.Fail();
         }
-        catch (TaskCanceledException)
+        catch (OperationCanceledException)
         {
         }
 
@@ -85,5 +85,43 @@ public class HttpContextStreamReaderTests
 
         Assert.AreEqual(1, testSink.Writes.Count);
         Assert.AreEqual("ReadingMessage", testSink.Writes.First().EventId.Name);
+    }
+
+    [Test]
+    public async Task MoveNext_MultipleCalls_CurrentClearedBetweenCalls()
+    {
+        // Arrange
+        var ms = new SyncPointMemoryStream();
+
+        var testSink = new TestSink();
+        var testLoggerFactory = new TestLoggerFactory(testSink, enabled: true);
+
+        var httpContext = new DefaultHttpContext();
+        httpContext.Features.Set<IRequestBodyPipeFeature>(new TestRequestBodyPipeFeature(PipeReader.Create(ms)));
+        var serverCallContext = HttpContextServerCallContextHelper.CreateServerCallContext(httpContext, logger: testLoggerFactory.CreateLogger("Test"));
+        var reader = new HttpContextStreamReader<HelloReply>(serverCallContext, MessageHelpers.ServiceMethod.ResponseMarshaller.ContextualDeserializer);
+
+        // Act
+        var nextTask = reader.MoveNext(CancellationToken.None);
+
+        await ms.AddDataAndWait(new byte[]
+            {
+                0x00, // compression = 0
+                0x00,
+                0x00,
+                0x00,
+                0x00 // length = 0
+            }).DefaultTimeout();
+
+        Assert.IsTrue(await nextTask.DefaultTimeout());
+        Assert.IsNotNull(reader.Current);
+
+        nextTask = reader.MoveNext(CancellationToken.None);
+
+        Assert.IsFalse(nextTask.IsCompleted);
+        Assert.IsFalse(nextTask.IsCanceled);
+
+        // Assert
+        Assert.IsNull(reader.Current);
     }
 }

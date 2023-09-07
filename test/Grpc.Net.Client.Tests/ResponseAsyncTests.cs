@@ -1,4 +1,4 @@
-﻿#region Copyright notice and license
+#region Copyright notice and license
 
 // Copyright 2019 The gRPC Authors
 //
@@ -126,7 +126,7 @@ public class ResponseAsyncTests
         var invoker = HttpClientCallInvokerFactory.Create(httpClient);
 
         // Act
-        var call = invoker.AsyncUnaryCall<HelloRequest, HelloReply>(ClientTestHelpers.ServiceMethod, string.Empty, new CallOptions(), new HelloRequest());
+        var call = invoker.AsyncUnaryCall(new HelloRequest());
         var ex = await ExceptionAssert.ThrowsAsync<RpcException>(() => call.ResponseAsync).DefaultTimeout();
 
         // Assert
@@ -147,7 +147,7 @@ public class ResponseAsyncTests
         var invoker = HttpClientCallInvokerFactory.Create(httpClient);
 
         // Act
-        var call = invoker.AsyncUnaryCall<HelloRequest, HelloReply>(ClientTestHelpers.ServiceMethod, string.Empty, new CallOptions(), new HelloRequest());
+        var call = invoker.AsyncUnaryCall(new HelloRequest());
         var ex = await ExceptionAssert.ThrowsAsync<RpcException>(() => call.ResponseAsync).DefaultTimeout();
 
         // Assert
@@ -169,7 +169,7 @@ public class ResponseAsyncTests
         var invoker = HttpClientCallInvokerFactory.Create(httpClient);
 
         // Act
-        var call = invoker.AsyncClientStreamingCall<HelloRequest, HelloReply>(ClientTestHelpers.ServiceMethod, string.Empty, new CallOptions());
+        var call = invoker.AsyncClientStreamingCall();
         var ex = await ExceptionAssert.ThrowsAsync<RpcException>(() => call.ResponseAsync).DefaultTimeout();
 
         // Assert
@@ -190,7 +190,7 @@ public class ResponseAsyncTests
         var invoker = HttpClientCallInvokerFactory.Create(httpClient);
 
         // Act
-        var call = invoker.AsyncClientStreamingCall<HelloRequest, HelloReply>(ClientTestHelpers.ServiceMethod, string.Empty, new CallOptions());
+        var call = invoker.AsyncClientStreamingCall();
         var ex = await ExceptionAssert.ThrowsAsync<RpcException>(() => call.ResponseAsync).DefaultTimeout();
 
         // Assert

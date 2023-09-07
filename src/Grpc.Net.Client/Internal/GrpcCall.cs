@@ -16,20 +16,17 @@
 
 #endregion
 
+using System.Collections;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
+using System.Runtime.ExceptionServices;
 using Grpc.Core;
 using Grpc.Net.Client.Internal.Http;
 using Grpc.Shared;
 using Microsoft.Extensions.Logging;
-using System.Runtime.ExceptionServices;
 #if SUPPORT_LOAD_BALANCING
 using Grpc.Net.Client.Balancer.Internal;
-#endif
-
-#if NETSTANDARD2_0
-using ValueTask = System.Threading.Tasks.Task;
 #endif
 
 namespace Grpc.Net.Client.Internal;
@@ -57,6 +54,7 @@ internal sealed partial class GrpcCall<TRequest, TResponse> : GrpcCall, IGrpcCal
 
     // These are set depending on the type of gRPC call
     private TaskCompletionSource<TResponse>? _responseTcs;
+    private TRequest? _request;
 
     public int MessagesWritten { get; private set; }
     public int MessagesRead { get; private set; }
@@ -103,12 +101,11 @@ internal sealed partial class GrpcCall<TRequest, TResponse> : GrpcCall, IGrpcCal
 
     public object? CallWrapper { get; set; }
 
-    MethodType IMethod.Type => Method.Type;
-    string IMethod.ServiceName => Method.ServiceName;
-    string IMethod.Name => Method.Name;
-    string IMethod.FullName => Method.FullName;
-
-    public void StartUnary(TRequest request) => StartUnaryCore(CreatePushUnaryContent(request));
+    public void StartUnary(TRequest request)
+    {
+        _request = request;
+        StartUnaryCore(CreatePushUnaryContent(request));
+    }
 
     public void StartClientStreaming()
     {
@@ -129,7 +126,7 @@ internal sealed partial class GrpcCall<TRequest, TResponse> : GrpcCall, IGrpcCal
             ? new PushUnaryContent<TRequest, TResponse>(request, WriteAsync)
             : new WinHttpUnaryContent<TRequest, TResponse>(request, WriteAsync, this);
 
-        ValueTask WriteAsync(TRequest request, Stream stream)
+        Task WriteAsync(TRequest request, Stream stream)
         {
             return WriteMessageAsync(stream, request, Options);
         }
@@ -250,10 +247,7 @@ internal sealed partial class GrpcCall<TRequest, TResponse> : GrpcCall, IGrpcCal
 
     public void EnsureNotDisposed()
     {
-        if (Disposed)
-        {
-            throw new ObjectDisposedException(nameof(GrpcCall<TRequest, TResponse>));
-        }
+        ObjectDisposedThrowHelper.ThrowIf(Disposed, typeof(GrpcCall<TRequest, TResponse>));
     }
 
     private void FinishResponseAndCleanUp(Status status)
@@ -646,7 +640,7 @@ internal sealed partial class GrpcCall<TRequest, TResponse> : GrpcCall, IGrpcCal
                 if (_responseTcs != null)
                 {
                     _responseTcs.TrySetException(resolvedException);
-                    
+
                     // Always observe cancellation-like exceptions.
                     if (IsCancellationOrDeadlineException(ex))
                     {
@@ -818,9 +812,15 @@ internal sealed partial class GrpcCall<TRequest, TResponse> : GrpcCall, IGrpcCal
         // 1. Diagnostic source is enabled
         // 2. Logging is enabled
         // 3. There is an existing activity (to enable activity propagation)
-        if (diagnosticSourceEnabled || Logger.IsEnabled(LogLevel.Critical) || Activity.Current != null)
+        // 4. ActivitySource has listeners
+        if (diagnosticSourceEnabled || Logger.IsEnabled(LogLevel.Critical) || Activity.Current != null || GrpcDiagnostics.ActivitySource.HasListeners())
         {
-            activity = new Activity(GrpcDiagnostics.ActivityName);
+            activity = GrpcDiagnostics.ActivitySource.CreateActivity(GrpcDiagnostics.ActivityName, ActivityKind.Client);
+
+            // ActivitySource only returns an activity if someone is listening.
+            // If we're at this point then we always want there to be an activity. Create the activity manually.
+            activity ??= new Activity(GrpcDiagnostics.ActivityName);
+
             activity.AddTag(GrpcDiagnostics.GrpcMethodTagName, Method.FullName);
             activity.Start();
 
@@ -1091,7 +1091,7 @@ internal sealed partial class GrpcCall<TRequest, TResponse> : GrpcCall, IGrpcCal
         CancelCall(new Status(StatusCode.DeadlineExceeded, string.Empty));
     }
 
-    internal ValueTask WriteMessageAsync(
+    internal Task WriteMessageAsync(
         Stream stream,
         ReadOnlyMemory<byte> message,
         CancellationToken cancellationToken)
@@ -1103,7 +1103,7 @@ internal sealed partial class GrpcCall<TRequest, TResponse> : GrpcCall, IGrpcCal
             cancellationToken);
     }
 
-    internal ValueTask WriteMessageAsync(
+    internal Task WriteMessageAsync(
         Stream stream,
         TRequest message,
         CallOptions callOptions)
@@ -1116,7 +1116,7 @@ internal sealed partial class GrpcCall<TRequest, TResponse> : GrpcCall, IGrpcCal
             callOptions);
     }
 
-#if !NETSTANDARD2_0
+#if !NETSTANDARD2_0 && !NET462
     internal async ValueTask<TResponse?> ReadMessageAsync(
 #else
     internal async Task<TResponse?> ReadMessageAsync(
@@ -1140,7 +1140,7 @@ internal sealed partial class GrpcCall<TRequest, TResponse> : GrpcCall, IGrpcCal
         return message;
     }
 
-    public Task WriteClientStreamAsync<TState>(Func<GrpcCall<TRequest, TResponse>, Stream, CallOptions, TState, ValueTask> writeFunc, TState state, CancellationToken cancellationToken)
+    public Task WriteClientStreamAsync<TState>(Func<GrpcCall<TRequest, TResponse>, Stream, CallOptions, TState, Task> writeFunc, TState state, CancellationToken cancellationToken)
     {
         return ClientStreamWriter!.WriteAsync(writeFunc, state, cancellationToken);
     }
@@ -1162,4 +1162,7 @@ internal sealed partial class GrpcCall<TRequest, TResponse> : GrpcCall, IGrpcCal
     {
         diagnosticSource.Write(name, value);
     }
+
+    IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
+    public IEnumerator<KeyValuePair<string, object>> GetEnumerator() => GrpcProtocolConstants.GetDebugEnumerator(Channel, Method, _request);
 }

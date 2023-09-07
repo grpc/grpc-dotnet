@@ -53,11 +53,13 @@ internal static class BalancerHelpers
         string methodName,
         HttpProtocols? protocols = null,
         bool? isHttps = null,
-        X509Certificate2? certificate = null)
+        X509Certificate2? certificate = null,
+        ILoggerFactory? loggerFactory = null,
+        Action<KestrelServerOptions>? configureServer = null)
         where TRequest : class, IMessage, new()
         where TResponse : class, IMessage, new()
     {
-        var server = CreateServer(port, protocols, isHttps, certificate);
+        var server = CreateServer(port, protocols, isHttps, certificate, loggerFactory, configureServer);
         var method = server.DynamicGrpc.AddUnaryMethod(callHandler, methodName);
         var url = server.GetUrl(isHttps.GetValueOrDefault(false) ? TestServerEndpointName.Http2WithTls : TestServerEndpointName.Http2);
 
@@ -79,7 +81,6 @@ internal static class BalancerHelpers
 
         public Method<TRequest, TResponse> Method { get; }
         public Uri Address { get; }
-        public ILoggerFactory LoggerFactory => _server.LoggerFactory;
         public EndPoint EndPoint => new DnsEndPoint(Address.Host, Address.Port);
 
         public void Dispose()
@@ -88,14 +89,28 @@ internal static class BalancerHelpers
         }
     }
 
-    public static GrpcTestFixture<Startup> CreateServer(int port, HttpProtocols? protocols = null, bool? isHttps = null, X509Certificate2? certificate = null)
+    public static GrpcTestFixture<Startup> CreateServer(
+        int port,
+        HttpProtocols? protocols = null,
+        bool? isHttps = null,
+        X509Certificate2? certificate = null,
+        ILoggerFactory? loggerFactory = null,
+        Action<KestrelServerOptions>? configureServer = null)
     {
         var endpointName = isHttps.GetValueOrDefault(false) ? TestServerEndpointName.Http2WithTls : TestServerEndpointName.Http2;
 
         return new GrpcTestFixture<Startup>(
-            null,
+            services =>
+            {
+                if (loggerFactory != null)
+                {
+                    services.AddSingleton<ILoggerFactory>(loggerFactory);
+                }
+            },
             (options, urls) =>
             {
+                configureServer?.Invoke(options);
+
                 urls[endpointName] = isHttps.GetValueOrDefault(false)
                     ? $"https://127.0.0.1:{port}"
                     : $"http://127.0.0.1:{port}";
@@ -129,13 +144,15 @@ internal static class BalancerHelpers
         bool? connect = null,
         RetryPolicy? retryPolicy = null,
         Func<Socket, DnsEndPoint, CancellationToken, ValueTask>? socketConnect = null,
-        TimeSpan? connectTimeout = null)
+        TimeSpan? connectTimeout = null,
+        TimeSpan? connectionIdleTimeout = null,
+        TimeSpan? socketPingInterval = null)
     {
         var resolver = new TestResolver();
         var e = endpoints.Select(i => new BalancerAddress(i.Host, i.Port)).ToList();
         resolver.UpdateAddresses(e);
 
-        return CreateChannel(loggerFactory, loadBalancingConfig, resolver, httpMessageHandler, connect, retryPolicy, socketConnect, connectTimeout);
+        return CreateChannel(loggerFactory, loadBalancingConfig, resolver, httpMessageHandler, connect, retryPolicy, socketConnect, connectTimeout, connectionIdleTimeout, socketPingInterval);
     }
 
     public static async Task<GrpcChannel> CreateChannel(
@@ -146,12 +163,14 @@ internal static class BalancerHelpers
         bool? connect = null,
         RetryPolicy? retryPolicy = null,
         Func<Socket, DnsEndPoint, CancellationToken, ValueTask>? socketConnect = null,
-        TimeSpan? connectTimeout = null)
+        TimeSpan? connectTimeout = null,
+        TimeSpan? connectionIdleTimeout = null,
+        TimeSpan? socketPingInterval = null)
     {
         var services = new ServiceCollection();
         services.AddSingleton<ResolverFactory>(new TestResolverFactory(resolver));
         services.AddSingleton<IRandomGenerator>(new TestRandomGenerator());
-        services.AddSingleton<ISubchannelTransportFactory>(new TestSubchannelTransportFactory(TimeSpan.FromSeconds(0.5), connectTimeout, socketConnect));
+        services.AddSingleton<ISubchannelTransportFactory>(new TestSubchannelTransportFactory(socketPingInterval ?? TimeSpan.FromSeconds(0.5), connectTimeout, connectionIdleTimeout ?? TimeSpan.FromMinutes(1), socketConnect));
         services.AddSingleton<LoadBalancerFactory>(new LeastUsedBalancerFactory());
 
         var serviceConfig = new ServiceConfig();
@@ -208,12 +227,14 @@ internal static class BalancerHelpers
     {
         private readonly TimeSpan _socketPingInterval;
         private readonly TimeSpan? _connectTimeout;
+        private readonly TimeSpan _connectionIdleTimeout;
         private readonly Func<Socket, DnsEndPoint, CancellationToken, ValueTask>? _socketConnect;
 
-        public TestSubchannelTransportFactory(TimeSpan socketPingInterval, TimeSpan? connectTimeout, Func<Socket, DnsEndPoint, CancellationToken, ValueTask>? socketConnect)
+        public TestSubchannelTransportFactory(TimeSpan socketPingInterval, TimeSpan? connectTimeout, TimeSpan connectionIdleTimeout, Func<Socket, DnsEndPoint, CancellationToken, ValueTask>? socketConnect)
         {
             _socketPingInterval = socketPingInterval;
             _connectTimeout = connectTimeout;
+            _connectionIdleTimeout = connectionIdleTimeout;
             _socketConnect = socketConnect;
         }
 
@@ -224,6 +245,7 @@ internal static class BalancerHelpers
                 subchannel,
                 _socketPingInterval,
                 _connectTimeout,
+                _connectionIdleTimeout,
                 subchannel._manager.LoggerFactory,
                 _socketConnect);
 #else

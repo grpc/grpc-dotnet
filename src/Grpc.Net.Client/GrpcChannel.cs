@@ -38,6 +38,7 @@ namespace Grpc.Net.Client;
 /// Client objects can reuse the same channel. Creating a channel is an expensive operation compared to invoking
 /// a remote call so in general you should reuse a single channel for as many calls as possible.
 /// </summary>
+[DebuggerDisplay("{DebuggerToString(),nq}")]
 public sealed class GrpcChannel : ChannelBase, IDisposable
 {
     internal const int DefaultMaxReceiveMessageSize = 1024 * 1024 * 4; // 4 MB
@@ -60,6 +61,7 @@ public sealed class GrpcChannel : ChannelBase, IDisposable
     internal Uri Address { get; }
     internal HttpMessageInvoker HttpInvoker { get; }
     internal TimeSpan? ConnectTimeout { get; }
+    internal TimeSpan? ConnectionIdleTimeout { get; }
     internal HttpHandlerType HttpHandlerType { get; }
     internal TimeSpan InitialReconnectBackoff { get; }
     internal TimeSpan? MaxReconnectBackoff { get; }
@@ -116,7 +118,7 @@ public sealed class GrpcChannel : ChannelBase, IDisposable
         OperatingSystem = channelOptions.ResolveService<IOperatingSystem>(Internal.OperatingSystem.Instance);
         RandomGenerator = channelOptions.ResolveService<IRandomGenerator>(new RandomGenerator());
         Debugger = channelOptions.ResolveService<IDebugger>(new CachedDebugger());
-        Logger = LoggerFactory.CreateLogger<GrpcChannel>();
+        Logger = LoggerFactory.CreateLogger(typeof(GrpcChannel));
 
 #if SUPPORT_LOAD_BALANCING
         InitialReconnectBackoff = channelOptions.InitialReconnectBackoff;
@@ -124,7 +126,7 @@ public sealed class GrpcChannel : ChannelBase, IDisposable
 
         var resolverFactory = GetResolverFactory(channelOptions);
         ResolveCredentials(channelOptions, out _isSecure, out _callCredentials);
-        (HttpHandlerType, ConnectTimeout) = CalculateHandlerContext(Logger, address, _isSecure, channelOptions);
+        (HttpHandlerType, ConnectTimeout, ConnectionIdleTimeout) = CalculateHandlerContext(Logger, address, _isSecure, channelOptions);
 
         SubchannelTransportFactory = channelOptions.ResolveService<ISubchannelTransportFactory>(new SubChannelTransportFactory(this));
 
@@ -153,7 +155,7 @@ public sealed class GrpcChannel : ChannelBase, IDisposable
             throw new ArgumentException($"Address '{address.OriginalString}' doesn't have a host. Address should include a scheme, host, and optional port. For example, 'https://localhost:5001'.");
         }
         ResolveCredentials(channelOptions, out _isSecure, out _callCredentials);
-        (HttpHandlerType, ConnectTimeout) = CalculateHandlerContext(Logger, address, _isSecure, channelOptions);
+        (HttpHandlerType, ConnectTimeout, ConnectionIdleTimeout) = CalculateHandlerContext(Logger, address, _isSecure, channelOptions);
 #endif
 
         HttpInvoker = channelOptions.HttpClient ?? CreateInternalHttpInvoker(channelOptions.HttpHandler);
@@ -181,6 +183,26 @@ public sealed class GrpcChannel : ChannelBase, IDisposable
             (Address.Scheme == Uri.UriSchemeHttps || Address.Scheme == Uri.UriSchemeHttp))
         {
             Log.AddressPathUnused(Logger, Address.OriginalString);
+        }
+
+        // Grpc.Net.Client + .NET Framework + WinHttpHandler requires features in WinHTTP, shipped in Windows, to work correctly.
+        // This scenario is supported in these versions of Windows or later:
+        // -Windows Server 2022 has partial support.
+        //    -Unary and server streaming methods are supported.
+        //    -Client and bidi streaming methods aren't supported.
+        // -Windows 11 has full support.
+        //
+        // GrpcChannel validates the Windows version is WinServer2022 or later. Win11 version number is greater than WinServer2022.
+        // Note that this doesn't block using unsupported client and bidi streaming methods on WinServer2022.
+        const int WinServer2022BuildVersion = 20348;
+        if (HttpHandlerType == HttpHandlerType.WinHttpHandler &&
+            OperatingSystem.IsWindows &&
+            OperatingSystem.OSVersion.Build < WinServer2022BuildVersion)
+        {
+            throw new InvalidOperationException("The channel configuration isn't valid on this operating system. " +
+                "The channel is configured to use WinHttpHandler and the current version of Windows " +
+                "doesn't support HTTP/2 features required by gRPC. Windows Server 2022 or Windows 11 or later is required. " +
+                "For more information, see https://aka.ms/aspnet/grpc/netframework.");
         }
     }
 
@@ -228,7 +250,11 @@ public sealed class GrpcChannel : ChannelBase, IDisposable
         {
             // No way to know what handler a HttpClient is using so assume custom.
             var type = channelOptions.HttpClient == null
+#if NET462
+                ? HttpHandlerType.WinHttpHandler
+#else
                 ? HttpHandlerType.SocketsHttpHandler
+#endif
                 : HttpHandlerType.Custom;
 
             return new HttpHandlerContext(type);
@@ -242,12 +268,14 @@ public sealed class GrpcChannel : ChannelBase, IDisposable
         {
             HttpHandlerType type;
             TimeSpan? connectTimeout;
+            TimeSpan? connectionIdleTimeout;
 
 #if NET5_0_OR_GREATER
             var socketsHttpHandler = HttpRequestHelpers.GetHttpHandlerType<SocketsHttpHandler>(channelOptions.HttpHandler)!;
 
             type = HttpHandlerType.SocketsHttpHandler;
             connectTimeout = socketsHttpHandler.ConnectTimeout;
+            connectionIdleTimeout = GetConnectionIdleTimeout(socketsHttpHandler);
 
             // Check if the SocketsHttpHandler is being shared by channels.
             // It has already been setup by another channel (i.e. ConnectCallback is set) then
@@ -260,6 +288,7 @@ public sealed class GrpcChannel : ChannelBase, IDisposable
                 {
                     type = HttpHandlerType.Custom;
                     connectTimeout = null;
+                    connectionIdleTimeout = null;
                 }
             }
 
@@ -281,8 +310,9 @@ public sealed class GrpcChannel : ChannelBase, IDisposable
 #else
             type = HttpHandlerType.SocketsHttpHandler;
             connectTimeout = null;
+            connectionIdleTimeout = null;
 #endif
-            return new HttpHandlerContext(type, connectTimeout);
+            return new HttpHandlerContext(type, connectTimeout, connectionIdleTimeout);
         }
         if (HttpRequestHelpers.GetHttpHandlerType<HttpClientHandler>(channelOptions.HttpHandler) != null)
         {
@@ -290,6 +320,27 @@ public sealed class GrpcChannel : ChannelBase, IDisposable
         }
 
         return new HttpHandlerContext(HttpHandlerType.Custom);
+
+#if NET5_0_OR_GREATER
+        static TimeSpan? GetConnectionIdleTimeout(SocketsHttpHandler socketsHttpHandler)
+        {
+            // Check if either TimeSpan is InfiniteTimeSpan, and return the other one.
+            if (socketsHttpHandler.PooledConnectionIdleTimeout == Timeout.InfiniteTimeSpan)
+            {
+                return socketsHttpHandler.PooledConnectionLifetime;
+            }
+
+            if (socketsHttpHandler.PooledConnectionLifetime == Timeout.InfiniteTimeSpan)
+            {
+                return socketsHttpHandler.PooledConnectionIdleTimeout;
+            }
+
+            // Return the bigger TimeSpan.
+            return socketsHttpHandler.PooledConnectionIdleTimeout > socketsHttpHandler.PooledConnectionLifetime
+                ? socketsHttpHandler.PooledConnectionIdleTimeout
+                : socketsHttpHandler.PooledConnectionLifetime;
+        }
+#endif
     }
 
 #if NET5_0_OR_GREATER
@@ -457,10 +508,6 @@ public sealed class GrpcChannel : ChannelBase, IDisposable
             }
         }
 
-#if NET5_0
-        handler = HttpHandlerFactory.EnsureTelemetryHandler(handler);
-#endif
-
 #if SUPPORT_LOAD_BALANCING
         BalancerHttpHandler balancerHttpHandler;
         handler = balancerHttpHandler = new BalancerHttpHandler(handler, ConnectionManager);
@@ -487,10 +534,7 @@ public sealed class GrpcChannel : ChannelBase, IDisposable
         {
             // Test the disposed flag inside the lock to ensure there is no chance of a race and adding a call after dispose.
             // Note that a GrpcCall has been created but hasn't been started. The error will prevent it from starting.
-            if (Disposed)
-            {
-                throw new ObjectDisposedException(nameof(GrpcChannel));
-            }
+            ObjectDisposedThrowHelper.ThrowIf(Disposed, nameof(GrpcChannel));
 
             _activeCalls.Add(grpcCall);
         }
@@ -595,10 +639,7 @@ public sealed class GrpcChannel : ChannelBase, IDisposable
     /// <returns>A new <see cref="CallInvoker"/>.</returns>
     public override CallInvoker CreateCallInvoker()
     {
-        if (Disposed)
-        {
-            throw new ObjectDisposedException(nameof(GrpcChannel));
-        }
+        ObjectDisposedThrowHelper.ThrowIf(Disposed, typeof(GrpcChannel));
 
         var invoker = new HttpClientCallInvoker(this);
 
@@ -644,15 +685,8 @@ public sealed class GrpcChannel : ChannelBase, IDisposable
     /// <returns>A new instance of <see cref="GrpcChannel"/>.</returns>
     public static GrpcChannel ForAddress(Uri address, GrpcChannelOptions channelOptions)
     {
-        if (address == null)
-        {
-            throw new ArgumentNullException(nameof(address));
-        }
-
-        if (channelOptions == null)
-        {
-            throw new ArgumentNullException(nameof(channelOptions));
-        }
+        ArgumentNullThrowHelper.ThrowIfNull(address);
+        ArgumentNullThrowHelper.ThrowIfNull(channelOptions);
 
         if (channelOptions.HttpClient != null && channelOptions.HttpHandler != null)
         {
@@ -681,10 +715,7 @@ public sealed class GrpcChannel : ChannelBase, IDisposable
     /// <returns></returns>
     public Task ConnectAsync(CancellationToken cancellationToken = default)
     {
-        if (Disposed)
-        {
-            throw new ObjectDisposedException(nameof(GrpcChannel));
-        }
+        ObjectDisposedThrowHelper.ThrowIf(Disposed, typeof(GrpcChannel));
 
         ValidateHttpHandlerSupportsConnectivity();
         return ConnectionManager.ConnectAsync(waitForReady: true, cancellationToken);
@@ -726,10 +757,7 @@ public sealed class GrpcChannel : ChannelBase, IDisposable
     /// <returns>The task object representing the asynchronous operation.</returns>
     public Task WaitForStateChangedAsync(ConnectivityState lastObservedState, CancellationToken cancellationToken = default)
     {
-        if (Disposed)
-        {
-            throw new ObjectDisposedException(nameof(GrpcChannel));
-        }
+        ObjectDisposedThrowHelper.ThrowIf(Disposed, typeof(GrpcChannel));
 
         ValidateHttpHandlerSupportsConnectivity();
         return ConnectionManager.WaitForStateChangedAsync(lastObservedState, waitForState: null, cancellationToken);
@@ -834,8 +862,9 @@ public sealed class GrpcChannel : ChannelBase, IDisposable
             {
                 return new SocketConnectivitySubchannelTransport(
                     subchannel,
-                    TimeSpan.FromSeconds(5),
+                    SocketConnectivitySubchannelTransport.SocketPingInterval,
                     _channel.ConnectTimeout,
+                    _channel.ConnectionIdleTimeout ?? TimeSpan.FromMinutes(1),
                     _channel.LoggerFactory,
                     socketConnect: null);
             }
@@ -844,6 +873,23 @@ public sealed class GrpcChannel : ChannelBase, IDisposable
         }
     }
 #endif
+
+    internal string DebuggerToString()
+    {
+        var debugText = $@"Address = ""{Address.OriginalString}""";
+        if (!IsHttpOrHttpsAddress(Address))
+        {
+            // It is easy to tell whether a channel is secured when the address contains http/https.
+            // Load balancing use custom schemes. Include IsSecure in debug text for custom schemes.
+            // For example: Address = "dns:///my-dns-server, IsSecure = false
+            debugText += $", IsSecure = {(_isSecure ? "true" : "false")}";
+        }
+        if (Disposed)
+        {
+            debugText += ", Disposed = true";
+        }
+        return debugText;
+    }
 
     private readonly struct MethodKey : IEquatable<MethodKey>
     {
@@ -877,7 +923,7 @@ public sealed class GrpcChannel : ChannelBase, IDisposable
         }
     }
 
-    private readonly record struct HttpHandlerContext(HttpHandlerType HttpHandlerType, TimeSpan? ConnectTimeout = null);
+    private readonly record struct HttpHandlerContext(HttpHandlerType HttpHandlerType, TimeSpan? ConnectTimeout = null, TimeSpan? ConnectionIdleTimeout = null);
 }
 
 internal enum HttpHandlerType

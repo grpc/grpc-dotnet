@@ -1,4 +1,4 @@
-﻿#region Copyright notice and license
+#region Copyright notice and license
 
 // Copyright 2019 The gRPC Authors
 //
@@ -51,7 +51,7 @@ public class DiagnosticsTests
 
         var call = await Task.Run(() =>
         {
-            var c = invoker.AsyncDuplexStreamingCall<HelloRequest, HelloReply>(ClientTestHelpers.ServiceMethod, string.Empty, new CallOptions());
+            var c = invoker.AsyncDuplexStreamingCall();
             Assert.AreEqual("a", Activity.Current.OperationName);
 
             return c;
@@ -98,7 +98,7 @@ public class DiagnosticsTests
 
         using (GrpcDiagnostics.DiagnosticListener.Subscribe(new ObserverToList<KeyValuePair<string, object?>>(result)))
         {
-            var c1 = invoker.AsyncDuplexStreamingCall<HelloRequest, HelloReply>(ClientTestHelpers.ServiceMethod, string.Empty, new CallOptions());
+            var c1 = invoker.AsyncDuplexStreamingCall<HelloRequest, HelloReply>(ClientTestHelpers.GetServiceMethod(MethodType.DuplexStreaming), string.Empty, new CallOptions());
             c1.Dispose();
 
             requestMessage1 = requestMessage;
@@ -166,7 +166,49 @@ public class DiagnosticsTests
         // Act
         using (GrpcDiagnostics.DiagnosticListener.Subscribe(new ActionObserver<KeyValuePair<string, object?>>(onDiagnosticMessage)))
         {
-            var c = invoker.AsyncDuplexStreamingCall<HelloRequest, HelloReply>(ClientTestHelpers.ServiceMethod, string.Empty, new CallOptions());
+            var c = invoker.AsyncDuplexStreamingCall();
+            c.Dispose();
+        }
+
+        // Assert
+        Assert.AreEqual(GrpcDiagnostics.ActivityName, activityName);
+        Assert.IsNotNull(activityDurationOnStop);
+        Assert.AreNotEqual(TimeSpan.Zero, activityDurationOnStop);
+    }
+
+    [Test]
+    public void ActivitySource_MakeCall_ActivityHasNameAndDuration()
+    {
+        // Arrange
+        var httpClient = ClientTestHelpers.CreateTestClient(async request =>
+        {
+            var streamContent = await ClientTestHelpers.CreateResponseContent(new HelloReply()).DefaultTimeout();
+            var responseMessage = ResponseUtils.CreateResponse(HttpStatusCode.OK, streamContent, grpcStatusCode: StatusCode.Aborted);
+            responseMessage.TrailingHeaders().Add(GrpcProtocolConstants.MessageTrailer, "value");
+            return responseMessage;
+        });
+        var invoker = HttpClientCallInvokerFactory.Create(httpClient);
+
+        string? activityName = null;
+        TimeSpan? activityDurationOnStop = null;
+
+        // Act
+        using (var activityListener = new ActivityListener())
+        {
+            activityListener.ShouldListenTo = activitySource => activitySource == GrpcDiagnostics.ActivitySource;
+            activityListener.Sample = (ref ActivityCreationOptions<ActivityContext> _) => ActivitySamplingResult.AllData;
+            activityListener.ActivityStarted = activity =>
+            {
+                activityName = activity.OperationName;
+            };
+            activityListener.ActivityStopped = activity =>
+            {
+                activityDurationOnStop = activity.Duration;
+            };
+
+            ActivitySource.AddActivityListener(activityListener);
+
+            var c = invoker.AsyncDuplexStreamingCall<HelloRequest, HelloReply>(ClientTestHelpers.GetServiceMethod(MethodType.DuplexStreaming), string.Empty, new CallOptions());
             c.Dispose();
         }
 

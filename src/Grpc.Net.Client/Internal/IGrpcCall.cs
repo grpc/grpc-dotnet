@@ -19,13 +19,9 @@
 using System.Diagnostics.CodeAnalysis;
 using Grpc.Core;
 
-#if NETSTANDARD2_0
-using ValueTask = System.Threading.Tasks.Task;
-#endif
-
 namespace Grpc.Net.Client.Internal;
 
-internal interface IGrpcCall<TRequest, TResponse> : IDisposable, IMethod
+internal interface IGrpcCall<TRequest, TResponse> : IDisposable, IEnumerable<KeyValuePair<string, object>>
     where TRequest : class
     where TResponse : class
 {
@@ -43,7 +39,7 @@ internal interface IGrpcCall<TRequest, TResponse> : IDisposable, IMethod
     void StartDuplexStreaming();
 
     Task WriteClientStreamAsync<TState>(
-        Func<GrpcCall<TRequest, TResponse>, Stream, CallOptions, TState, ValueTask> writeFunc,
+        Func<GrpcCall<TRequest, TResponse>, Stream, CallOptions, TState, Task> writeFunc,
         TState state,
         CancellationToken cancellationToken);
 

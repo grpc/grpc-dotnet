@@ -17,6 +17,7 @@
 #endregion
 
 using System;
+using System.Diagnostics;
 using Grpc.Core.Utils;
 
 namespace Grpc.Core;
@@ -71,6 +72,7 @@ public interface IMethod
 /// </summary>
 /// <typeparam name="TRequest">Request message type for this method.</typeparam>
 /// <typeparam name="TResponse">Response message type for this method.</typeparam>
+[DebuggerDisplay("Name = {Name}, ServiceName = {ServiceName}, Type = {Type}")]
 public class Method<TRequest, TResponse> : IMethod
 {
     readonly MethodType type;

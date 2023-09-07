@@ -20,6 +20,7 @@
 using System.Collections;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 
 namespace Grpc.Net.Client.Balancer;
@@ -30,25 +31,29 @@ namespace Grpc.Net.Client.Balancer;
 /// Note: Experimental API that can change or be removed without any prior notice.
 /// </para>
 /// </summary>
+[DebuggerDisplay("{DebuggerToString(),nq}")]
+[DebuggerTypeProxy(typeof(BalancerAttributesDebugView))]
 public sealed class BalancerAttributes : IDictionary<string, object?>, IReadOnlyDictionary<string, object?>
 {
     /// <summary>
     /// Gets a read-only collection of metadata attributes.
     /// </summary>
-    public static readonly BalancerAttributes Empty = new BalancerAttributes(new ReadOnlyDictionary<string, object?>(new Dictionary<string, object?>()));
+    public static readonly BalancerAttributes Empty = new BalancerAttributes(new Dictionary<string, object?>(), readOnly: true);
 
-    private readonly IDictionary<string, object?> _attributes;
+    private readonly Dictionary<string, object?> _attributes;
+    private readonly bool _readOnly;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="BalancerAttributes"/> class.
     /// </summary>
-    public BalancerAttributes() : this(new Dictionary<string, object?>())
+    public BalancerAttributes() : this(new Dictionary<string, object?>(), readOnly: false)
     {
     }
 
-    private BalancerAttributes(IDictionary<string, object?> attributes)
+    private BalancerAttributes(Dictionary<string, object?> attributes, bool readOnly)
     {
         _attributes = attributes;
+        _readOnly = readOnly;
     }
 
     object? IDictionary<string, object?>.this[string key]
@@ -59,6 +64,7 @@ public sealed class BalancerAttributes : IDictionary<string, object?>, IReadOnly
         }
         set
         {
+            ValidateReadOnly();
             _attributes[key] = value;
         }
     }
@@ -66,21 +72,41 @@ public sealed class BalancerAttributes : IDictionary<string, object?>, IReadOnly
     ICollection<string> IDictionary<string, object?>.Keys => _attributes.Keys;
     ICollection<object?> IDictionary<string, object?>.Values => _attributes.Values;
     int ICollection<KeyValuePair<string, object?>>.Count => _attributes.Count;
-    bool ICollection<KeyValuePair<string, object?>>.IsReadOnly => _attributes.IsReadOnly;
+    bool ICollection<KeyValuePair<string, object?>>.IsReadOnly => _readOnly || ((ICollection<KeyValuePair<string, object?>>)_attributes).IsReadOnly;
     IEnumerable<string> IReadOnlyDictionary<string, object?>.Keys => _attributes.Keys;
     IEnumerable<object?> IReadOnlyDictionary<string, object?>.Values => _attributes.Values;
     int IReadOnlyCollection<KeyValuePair<string, object?>>.Count => _attributes.Count;
     object? IReadOnlyDictionary<string, object?>.this[string key] => _attributes[key];
-    void IDictionary<string, object?>.Add(string key, object? value) => _attributes.Add(key, value);
-    void ICollection<KeyValuePair<string, object?>>.Add(KeyValuePair<string, object?> item) => _attributes.Add(item);
-    void ICollection<KeyValuePair<string, object?>>.Clear() => _attributes.Clear();
+    void IDictionary<string, object?>.Add(string key, object? value)
+    {
+        ValidateReadOnly();
+        _attributes.Add(key, value);
+    }
+    void ICollection<KeyValuePair<string, object?>>.Add(KeyValuePair<string, object?> item)
+    {
+        ValidateReadOnly();
+        ((ICollection<KeyValuePair<string, object?>>)_attributes).Add(item);
+    }
+    void ICollection<KeyValuePair<string, object?>>.Clear()
+    {
+        ValidateReadOnly();
+        _attributes.Clear();
+    }
     bool ICollection<KeyValuePair<string, object?>>.Contains(KeyValuePair<string, object?> item) => _attributes.Contains(item);
     bool IDictionary<string, object?>.ContainsKey(string key) => _attributes.ContainsKey(key);
-    void ICollection<KeyValuePair<string, object?>>.CopyTo(KeyValuePair<string, object?>[] array, int arrayIndex) => _attributes.CopyTo(array, arrayIndex);
+    void ICollection<KeyValuePair<string, object?>>.CopyTo(KeyValuePair<string, object?>[] array, int arrayIndex) => ((ICollection<KeyValuePair<string, object?>>)_attributes).CopyTo(array, arrayIndex);
     IEnumerator<KeyValuePair<string, object?>> IEnumerable<KeyValuePair<string, object?>>.GetEnumerator() => _attributes.GetEnumerator();
     IEnumerator System.Collections.IEnumerable.GetEnumerator() => ((System.Collections.IEnumerable)_attributes).GetEnumerator();
-    bool IDictionary<string, object?>.Remove(string key) => _attributes.Remove(key);
-    bool ICollection<KeyValuePair<string, object?>>.Remove(KeyValuePair<string, object?> item) => _attributes.Remove(item);
+    bool IDictionary<string, object?>.Remove(string key)
+    {
+        ValidateReadOnly();
+        return _attributes.Remove(key);
+    }
+    bool ICollection<KeyValuePair<string, object?>>.Remove(KeyValuePair<string, object?> item)
+    {
+        ValidateReadOnly();
+        return ((ICollection<KeyValuePair<string, object?>>)_attributes).Remove(item);
+    }
     bool IDictionary<string, object?>.TryGetValue(string key, out object? value) => _attributes.TryGetValue(key, out value);
     bool IReadOnlyDictionary<string, object?>.ContainsKey(string key) => _attributes.ContainsKey(key);
     bool IReadOnlyDictionary<string, object?>.TryGetValue(string key, out object? value) => _attributes.TryGetValue(key, out value);
@@ -118,6 +144,7 @@ public sealed class BalancerAttributes : IDictionary<string, object?>, IReadOnly
     /// <param name="value">The value.</param>
     public void Set<TValue>(BalancerAttributesKey<TValue> key, TValue value)
     {
+        ValidateReadOnly();
         _attributes[key.Key] = value;
     }
 
@@ -132,7 +159,70 @@ public sealed class BalancerAttributes : IDictionary<string, object?>, IReadOnly
     /// </returns>
     public bool Remove<TValue>(BalancerAttributesKey<TValue> key)
     {
+        ValidateReadOnly();
         return _attributes.Remove(key.Key);
+    }
+
+    private void ValidateReadOnly()
+    {
+        if (_readOnly)
+        {
+            throw new NotSupportedException("Collection is read-only.");
+        }
+    }
+
+    internal static bool DeepEquals(BalancerAttributes? x, BalancerAttributes? y)
+    {
+        var xValues = x?._attributes;
+        var yValues = y?._attributes;
+
+        if (ReferenceEquals(xValues, yValues))
+        {
+            return true;
+        }
+
+        if (xValues == null || yValues == null)
+        {
+            return false;
+        }
+
+        if (xValues.Count != yValues.Count)
+        {
+            return false;
+        }
+
+        foreach (var kvp in xValues)
+        {
+            if (!yValues.TryGetValue(kvp.Key, out var value))
+            {
+                return false;
+            }
+
+            if (!Equals(kvp.Value, value))
+            {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    private string DebuggerToString()
+    {
+        return $"Count = {_attributes.Count}";
+    }
+
+    private sealed class BalancerAttributesDebugView
+    {
+        private readonly BalancerAttributes _collection;
+
+        public BalancerAttributesDebugView(BalancerAttributes collection)
+        {
+            _collection = collection;
+        }
+
+        [DebuggerBrowsable(DebuggerBrowsableState.RootHidden)]
+        public KeyValuePair<string, object?>[] Items => _collection.Select(pair => new KeyValuePair<string, object?>(pair.Key, pair.Value)).ToArray();
     }
 }
 #endif

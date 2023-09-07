@@ -18,6 +18,7 @@
 
 using System.Diagnostics;
 using Grpc.Core;
+using Grpc.Shared;
 
 namespace Grpc.AspNetCore.Server.Internal;
 
@@ -61,10 +62,7 @@ internal class HttpContextStreamWriter<TResponse> : IServerStreamWriter<TRespons
 
     private async Task WriteCoreAsync(TResponse message, CancellationToken cancellationToken)
     {
-        if (message == null)
-        {
-            throw new ArgumentNullException(nameof(message));
-        }
+        ArgumentNullThrowHelper.ThrowIfNull(message);
 
         // Register cancellation token early to ensure request is canceled if cancellation is requested.
         CancellationTokenRegistration? registration = null;

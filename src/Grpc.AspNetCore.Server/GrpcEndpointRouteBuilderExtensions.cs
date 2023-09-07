@@ -1,4 +1,4 @@
-﻿#region Copyright notice and license
+#region Copyright notice and license
 
 // Copyright 2019 The gRPC Authors
 //
@@ -19,6 +19,7 @@
 using System.Diagnostics.CodeAnalysis;
 using Grpc.AspNetCore.Server.Internal;
 using Grpc.AspNetCore.Server.Model.Internal;
+using Grpc.Shared;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -41,10 +42,7 @@ public static class GrpcEndpointRouteBuilderExtensions
 #endif
         TService>(this IEndpointRouteBuilder builder) where TService : class
     {
-        if (builder == null)
-        {
-            throw new ArgumentNullException(nameof(builder));
-        }
+        ArgumentNullThrowHelper.ThrowIfNull(builder);
 
         ValidateServicesRegistered(builder.ServiceProvider);
 

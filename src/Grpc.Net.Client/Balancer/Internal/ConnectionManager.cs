@@ -1,4 +1,4 @@
-﻿#region Copyright notice and license
+#region Copyright notice and license
 
 // Copyright 2019 The gRPC Authors
 //
@@ -17,17 +17,10 @@
 #endregion
 
 #if SUPPORT_LOAD_BALANCING
-using System;
-using System.Collections.Generic;
 using System.Diagnostics;
-using System.Linq;
-using System.Net;
-using System.Threading;
-using System.Threading.Tasks;
 using Grpc.Core;
 using Grpc.Net.Client.Configuration;
 using Grpc.Net.Client.Internal;
-using Grpc.Shared;
 using Microsoft.Extensions.Logging;
 
 namespace Grpc.Net.Client.Balancer.Internal;
@@ -35,6 +28,7 @@ namespace Grpc.Net.Client.Balancer.Internal;
 internal sealed class ConnectionManager : IDisposable, IChannelControlHelper
 {
     public static readonly BalancerAttributesKey<string> HostOverrideKey = new BalancerAttributesKey<string>("HostOverride");
+    private static readonly ChannelIdProvider _channelIdProvider = new ChannelIdProvider();
 
     private readonly object _lock;
     internal readonly Resolver _resolver;
@@ -42,6 +36,7 @@ internal sealed class ConnectionManager : IDisposable, IChannelControlHelper
     private readonly List<Subchannel> _subchannels;
     private readonly List<StateWatcher> _stateWatchers;
     private readonly TaskCompletionSource<object?> _resolverStartedTcs;
+    private readonly long _channelId;
 
     // Internal for testing
     internal LoadBalancer? _balancer;
@@ -64,8 +59,9 @@ internal sealed class ConnectionManager : IDisposable, IChannelControlHelper
         _lock = new object();
         _nextPickerTcs = new TaskCompletionSource<SubchannelPicker>(TaskCreationOptions.RunContinuationsAsynchronously);
         _resolverStartedTcs = new TaskCompletionSource<object?>(TaskCreationOptions.RunContinuationsAsynchronously);
+        _channelId = _channelIdProvider.GetNextChannelId();
 
-        Logger = loggerFactory.CreateLogger<ConnectionManager>();
+        Logger = loggerFactory.CreateLogger(typeof(ConnectionManager));
         LoggerFactory = loggerFactory;
         BackoffPolicyFactory = backoffPolicyFactory;
         _subchannels = new List<Subchannel>();
@@ -92,9 +88,10 @@ internal sealed class ConnectionManager : IDisposable, IChannelControlHelper
         }
     }
 
-    internal int GetNextId()
+    internal string GetNextId()
     {
-        return Interlocked.Increment(ref _currentSubchannelId);
+        var nextSubchannelId = Interlocked.Increment(ref _currentSubchannelId);
+        return $"{_channelId}-{nextSubchannelId}";
     }
 
     public void ConfigureBalancer(Func<IChannelControlHelper, LoadBalancer> configure)
@@ -319,7 +316,7 @@ internal sealed class ConnectionManager : IDisposable, IChannelControlHelper
 
                     if (address != null)
                     {
-                        ConnectionManagerLog.PickResultSuccessful(Logger, subchannel.Id, address);
+                        ConnectionManagerLog.PickResultSuccessful(Logger, subchannel.Id, address, subchannel.Transport.TransportStatus);
                         return (subchannel, address, result.SubchannelCallTracker);
                     }
                     else
@@ -481,11 +478,11 @@ internal static class ConnectionManagerLog
     private static readonly Action<ILogger, Exception?> _pickStarted =
         LoggerMessage.Define(LogLevel.Trace, new EventId(5, "PickStarted"), "Pick started.");
 
-    private static readonly Action<ILogger, int, BalancerAddress, Exception?> _pickResultSuccessful =
-        LoggerMessage.Define<int, BalancerAddress>(LogLevel.Debug, new EventId(6, "PickResultSuccessful"), "Successfully picked subchannel id '{SubchannelId}' with address {CurrentAddress}.");
+    private static readonly Action<ILogger, string, BalancerAddress, TransportStatus, Exception?> _pickResultSuccessful =
+        LoggerMessage.Define<string, BalancerAddress, TransportStatus>(LogLevel.Debug, new EventId(6, "PickResultSuccessful"), "Successfully picked subchannel id '{SubchannelId}' with address {CurrentAddress}. Transport status: {TransportStatus}");
 
-    private static readonly Action<ILogger, int, Exception?> _pickResultSubchannelNoCurrentAddress =
-        LoggerMessage.Define<int>(LogLevel.Debug, new EventId(7, "PickResultSubchannelNoCurrentAddress"), "Picked subchannel id '{SubchannelId}' doesn't have a current address.");
+    private static readonly Action<ILogger, string, Exception?> _pickResultSubchannelNoCurrentAddress =
+        LoggerMessage.Define<string>(LogLevel.Debug, new EventId(7, "PickResultSubchannelNoCurrentAddress"), "Picked subchannel id '{SubchannelId}' doesn't have a current address.");
 
     private static readonly Action<ILogger, Exception?> _pickResultQueued =
         LoggerMessage.Define(LogLevel.Debug, new EventId(8, "PickResultQueued"), "Picked queued.");
@@ -531,12 +528,12 @@ internal static class ConnectionManagerLog
         _pickStarted(logger, null);
     }
 
-    public static void PickResultSuccessful(ILogger logger, int subchannelId, BalancerAddress currentAddress)
+    public static void PickResultSuccessful(ILogger logger, string subchannelId, BalancerAddress currentAddress, TransportStatus transportStatus)
     {
-        _pickResultSuccessful(logger, subchannelId, currentAddress, null);
+        _pickResultSuccessful(logger, subchannelId, currentAddress, transportStatus, null);
     }
 
-    public static void PickResultSubchannelNoCurrentAddress(ILogger logger, int subchannelId)
+    public static void PickResultSubchannelNoCurrentAddress(ILogger logger, string subchannelId)
     {
         _pickResultSubchannelNoCurrentAddress(logger, subchannelId, null);
     }

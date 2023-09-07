@@ -1,4 +1,4 @@
-﻿#region Copyright notice and license
+#region Copyright notice and license
 
 // Copyright 2019 The gRPC Authors
 //
@@ -30,7 +30,9 @@ namespace Grpc.Net.Client.Balancer;
 /// </summary>
 public sealed class BalancerAddress
 {
-    private BalancerAttributes? _attributes;
+    // Internal so address attributes can be compared without using the Attributes property.
+    // The property allocates an empty collection if one isn't already present.
+    internal BalancerAttributes? _attributes;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="BalancerAddress"/> class with the specified <see cref="DnsEndPoint"/>.
@@ -48,7 +50,7 @@ public sealed class BalancerAddress
     /// <param name="host">The host.</param>
     /// <param name="port">The port.</param>
     [DebuggerStepThrough]
-    public BalancerAddress(string host, int port) : this(new DnsEndPoint(host, port))
+    public BalancerAddress(string host, int port) : this(new BalancerEndPoint(host, port))
     {
     }
 
@@ -68,6 +70,22 @@ public sealed class BalancerAddress
     public override string ToString()
     {
         return $"{EndPoint.Host}:{EndPoint.Port}";
+    }
+
+    private sealed class BalancerEndPoint : DnsEndPoint
+    {
+        private string? _cachedToString;
+
+        public BalancerEndPoint(string host, int port) : base(host, port)
+        {
+        }
+
+        public override string ToString()
+        {
+            // Improve ToString performance when logging by caching ToString.
+            // Don't include DnsEndPoint address family.
+            return _cachedToString ??= $"{Host}:{Port}";
+        }
     }
 }
 #endif

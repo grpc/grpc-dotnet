@@ -1,4 +1,4 @@
-﻿#region Copyright notice and license
+#region Copyright notice and license
 
 // Copyright 2019 The gRPC Authors
 //
@@ -21,7 +21,6 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net;
-using System.Net.Http;
 using System.Threading;
 using System.Threading.Tasks;
 using Grpc.Core;
@@ -214,7 +213,7 @@ public class RoundRobinBalancerTests
         var services = new ServiceCollection();
         services.AddNUnitLogger();
 
-        ILogger? logger = null;
+        ILogger logger = null!;
         SyncPoint? syncPoint = new SyncPoint(runContinuationsAsynchronously: true);
 
         var connectState = ConnectivityState.Ready;
@@ -301,7 +300,15 @@ public class RoundRobinBalancerTests
 
         var connectState = ConnectivityState.Ready;
 
-        var transportFactory = new TestSubchannelTransportFactory((s, c) => Task.FromResult(new TryConnectResult(connectState)));
+        var subChannelConnections = new List<Subchannel>();
+        var transportFactory = new TestSubchannelTransportFactory((s, c) =>
+        {
+            lock (subChannelConnections)
+            {
+                subChannelConnections.Add(s);
+            }
+            return Task.FromResult(new TryConnectResult(connectState));
+        });
         services.AddSingleton<TestResolver>(s =>
         {
             return new TestResolver(
@@ -329,7 +336,8 @@ public class RoundRobinBalancerTests
         resolver.UpdateAddresses(new List<BalancerAddress>
         {
             new BalancerAddress("localhost", 80),
-            new BalancerAddress("localhost", 81)
+            new BalancerAddress("localhost", 81),
+            new BalancerAddress("localhost", 82)
         });
 
         // Act
@@ -341,31 +349,72 @@ public class RoundRobinBalancerTests
         await connectTask.DefaultTimeout();
 
         var subchannels = channel.ConnectionManager.GetSubchannels();
-        Assert.AreEqual(2, subchannels.Count);
+        Assert.AreEqual(3, subchannels.Count);
 
         Assert.AreEqual(1, subchannels[0]._addresses.Count);
         Assert.AreEqual(new DnsEndPoint("localhost", 80), subchannels[0]._addresses[0].EndPoint);
         Assert.AreEqual(1, subchannels[1]._addresses.Count);
         Assert.AreEqual(new DnsEndPoint("localhost", 81), subchannels[1]._addresses[0].EndPoint);
+        Assert.AreEqual(1, subchannels[2]._addresses.Count);
+        Assert.AreEqual(new DnsEndPoint("localhost", 82), subchannels[2]._addresses[0].EndPoint);
 
-        // Preserved because port 81 is in both refresh results
-        var preservedSubchannel = subchannels[1];
+        // Preserved because port 81, 82 is in both refresh results
+        var discardedSubchannel = subchannels[0];
+        var preservedSubchannel1 = subchannels[1];
+        var preservedSubchannel2 = subchannels[2];
+
+        await BalancerWaitHelpers.WaitForSubchannelsToBeReadyAsync(
+            serviceProvider.GetRequiredService<ILoggerFactory>().CreateLogger(GetType()),
+            channel.ConnectionManager,
+            expectedCount: 3).DefaultTimeout();
+
+        var address2 = new BalancerAddress("localhost", 82);
+        address2.Attributes.Set(new BalancerAttributesKey<int>("test"), 1);
 
         resolver.UpdateAddresses(new List<BalancerAddress>
         {
             new BalancerAddress("localhost", 81),
-            new BalancerAddress("localhost", 82)
+            address2,
+            new BalancerAddress("localhost", 83)
         });
 
+        await BalancerWaitHelpers.WaitForSubchannelsToBeReadyAsync(
+            serviceProvider.GetRequiredService<ILoggerFactory>().CreateLogger(GetType()),
+            channel.ConnectionManager,
+            expectedCount: 3).DefaultTimeout();
+
         subchannels = channel.ConnectionManager.GetSubchannels();
-        Assert.AreEqual(2, subchannels.Count);
+        var newSubchannel = subchannels[2];
+        Assert.AreEqual(3, subchannels.Count);
 
         Assert.AreEqual(1, subchannels[0]._addresses.Count);
         Assert.AreEqual(new DnsEndPoint("localhost", 81), subchannels[0]._addresses[0].EndPoint);
         Assert.AreEqual(1, subchannels[1]._addresses.Count);
         Assert.AreEqual(new DnsEndPoint("localhost", 82), subchannels[1]._addresses[0].EndPoint);
+        Assert.AreEqual(1, subchannels[2]._addresses.Count);
+        Assert.AreEqual(new DnsEndPoint("localhost", 83), subchannels[2]._addresses[0].EndPoint);
 
-        Assert.AreSame(preservedSubchannel, subchannels[0]);
+        Assert.AreSame(preservedSubchannel1, subchannels[0]);
+        Assert.AreSame(preservedSubchannel2, subchannels[1]);
+
+        // Test that the channel's address was updated with new attribute with new attributes.
+        Assert.AreSame(preservedSubchannel2.CurrentAddress, address2);
+
+        lock (subChannelConnections)
+        {
+            try
+            {
+                Assert.AreEqual(4, subChannelConnections.Count);
+                Assert.Contains(discardedSubchannel, subChannelConnections);
+                Assert.Contains(preservedSubchannel1, subChannelConnections);
+                Assert.Contains(preservedSubchannel2, subChannelConnections);
+                Assert.Contains(newSubchannel, subChannelConnections);
+            }
+            catch (Exception ex)
+            {
+                throw new Exception("Connected subchannels: " + Environment.NewLine + string.Join(Environment.NewLine, subChannelConnections), ex);
+            }
+        }
     }
 }
 #endif

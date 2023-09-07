@@ -18,9 +18,9 @@
     <!-- Don't make missing XML docs a fatal build error, but still surface so we have visibility into undocumented APIs. -->
     <WarningsNotAsErrors>$(WarningsNotAsErrors);CS1591</WarningsNotAsErrors>
 
-    <!-- Ignore warning about lowercase identifiers. Caused by generated source from Protobuf. -->
-    <!-- TODO(JamesNK): Remove when Protobuf is updated and samples use a version of Grpc.AspNetCore that brings in Grpc.Tools 2.49.0 or later. -->
-    <NoWarn>$(NoWarn);CS8981</NoWarn>
+    <!-- Disable warnings about AOT and trimming features on older targets, e.g. netstandard2.0.
+         For now, continue to apply these features to these targets because some packages don't have a target that supports them -->
+    <NoWarn>$(NoWarn);NETSDK1195;NETSDK1210</NoWarn>
 
     <EmbedUntrackedSources>true</EmbedUntrackedSources>
     <LangVersion>11.0</LangVersion>

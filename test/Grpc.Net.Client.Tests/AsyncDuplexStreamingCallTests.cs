@@ -50,7 +50,7 @@ public class AsyncDuplexStreamingCallTests
         var invoker = HttpClientCallInvokerFactory.Create(httpClient);
 
         // Act
-        var call = invoker.AsyncDuplexStreamingCall<HelloRequest, HelloReply>(ClientTestHelpers.ServiceMethod, string.Empty, new CallOptions());
+        var call = invoker.AsyncDuplexStreamingCall();
 
         var responseStream = call.ResponseStream;
 
@@ -76,7 +76,7 @@ public class AsyncDuplexStreamingCallTests
         var invoker = HttpClientCallInvokerFactory.Create(httpClient);
 
         // Act
-        var call = invoker.AsyncDuplexStreamingCall<HelloRequest, HelloReply>(ClientTestHelpers.ServiceMethod, string.Empty, new CallOptions());
+        var call = invoker.AsyncDuplexStreamingCall();
 
         var responseStream = call.ResponseStream;
 
@@ -109,7 +109,7 @@ public class AsyncDuplexStreamingCallTests
         var invoker = HttpClientCallInvokerFactory.Create(handler, "https://localhost");
 
         // Act
-        var call = invoker.AsyncDuplexStreamingCall<HelloRequest, HelloReply>(ClientTestHelpers.ServiceMethod, string.Empty, new CallOptions());
+        var call = invoker.AsyncDuplexStreamingCall();
 
         var requestStream = call.RequestStream;
         var responseStream = call.ResponseStream;
@@ -216,7 +216,7 @@ public class AsyncDuplexStreamingCallTests
 
             var cts = new CancellationTokenSource();
 
-            var call = invoker.AsyncDuplexStreamingCall<HelloRequest, HelloReply>(ClientTestHelpers.ServiceMethod, string.Empty, new CallOptions(cancellationToken: cts.Token));
+            var call = invoker.AsyncDuplexStreamingCall(new CallOptions(cancellationToken: cts.Token));
             await call.RequestStream.WriteAsync(new HelloRequest { Name = "1" }).DefaultTimeout();
             await call.RequestStream.CompleteAsync().DefaultTimeout();
 

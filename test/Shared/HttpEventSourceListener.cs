@@ -1,4 +1,4 @@
-﻿#region Copyright notice and license
+#region Copyright notice and license
 
 // Copyright 2019 The gRPC Authors
 //
@@ -22,14 +22,38 @@ using Microsoft.Extensions.Logging;
 
 namespace Grpc.Tests.Shared;
 
-public sealed class HttpEventSourceListener : EventListener
+public sealed class HttpEventSourceListener : EventSourceListenerBase
+{
+    public HttpEventSourceListener(ILoggerFactory loggerFactory) : base(loggerFactory)
+    {
+    }
+
+    protected override bool IsTargetEventSource(EventSource eventSource)
+    {
+        return eventSource.Name.Contains("System.Net.Quic") || eventSource.Name.Contains("System.Net.Http");
+    }
+}
+
+public sealed class SocketsEventSourceListener : EventSourceListenerBase
+{
+    public SocketsEventSourceListener(ILoggerFactory loggerFactory) : base(loggerFactory)
+    {
+    }
+
+    protected override bool IsTargetEventSource(EventSource eventSource)
+    {
+        return eventSource.Name.Contains("System.Net.Sockets");
+    }
+}
+
+public abstract class EventSourceListenerBase : EventListener
 {
     private readonly StringBuilder _messageBuilder = new StringBuilder();
     private readonly ILogger? _logger;
     private readonly object _lock = new object();
     private bool _disposed;
 
-    public HttpEventSourceListener(ILoggerFactory loggerFactory)
+    public EventSourceListenerBase(ILoggerFactory loggerFactory)
     {
         _logger = loggerFactory.CreateLogger(nameof(HttpEventSourceListener));
         _logger.LogDebug($"Starting {nameof(HttpEventSourceListener)}.");
@@ -39,7 +63,7 @@ public sealed class HttpEventSourceListener : EventListener
     {
         base.OnEventSourceCreated(eventSource);
 
-        if (IsHttpEventSource(eventSource))
+        if (IsTargetEventSource(eventSource))
         {
             lock (_lock)
             {
@@ -51,16 +75,13 @@ public sealed class HttpEventSourceListener : EventListener
         }
     }
 
-    private static bool IsHttpEventSource(EventSource eventSource)
-    {
-        return eventSource.Name.Contains("System.Net.Quic") || eventSource.Name.Contains("System.Net.Http");
-    }
+    protected abstract bool IsTargetEventSource(EventSource eventSource);
 
     protected override void OnEventWritten(EventWrittenEventArgs eventData)
     {
         base.OnEventWritten(eventData);
 
-        if (!IsHttpEventSource(eventData.EventSource))
+        if (!IsTargetEventSource(eventData.EventSource))
         {
             return;
         }
@@ -73,7 +94,7 @@ public sealed class HttpEventSourceListener : EventListener
             _messageBuilder.Append(" - ");
             _messageBuilder.Append(eventData.EventName);
             _messageBuilder.Append(" : ");
-#if !NET472
+#if !NET462
             _messageBuilder.AppendJoin(',', eventData.Payload!);
 #else
             _messageBuilder.Append(string.Join(",", eventData.Payload!.ToArray()));

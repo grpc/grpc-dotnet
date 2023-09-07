@@ -138,6 +138,9 @@ public class PickFirstBalancerTests : FunctionalTestBase
         Logger.LogInformation("Ending " + endpoint.Address);
         endpoint.Dispose();
 
+        // Wait for client to change to idle state in reaction to server stopping.
+        await BalancerWaitHelpers.WaitForChannelStateAsync(Logger, channel, ConnectivityState.Idle).DefaultTimeout();
+
         Logger.LogInformation("Restarting");
         using var endpointNew = BalancerHelpers.CreateGrpcEndpoint<HelloRequest, HelloReply>(50051, UnaryMethod, nameof(UnaryMethod));
 
@@ -179,6 +182,9 @@ public class PickFirstBalancerTests : FunctionalTestBase
 
         Logger.LogInformation("Ending " + endpoint.Address);
         endpoint.Dispose();
+
+        // Wait for client to change to idle state in reaction to server stopping.
+        await BalancerWaitHelpers.WaitForChannelStateAsync(Logger, channel, ConnectivityState.Idle).DefaultTimeout();
 
         var ex = await ExceptionAssert.ThrowsAsync<RpcException>(
             () => client.UnaryCall(new HelloRequest { Name = "Balancer" }).ResponseAsync).DefaultTimeout();
@@ -365,7 +371,7 @@ public class PickFirstBalancerTests : FunctionalTestBase
         Assert.GreaterOrEqual(activeStreams.Count, 2);
         foreach (var stream in activeStreams)
         {
-            Assert.AreEqual(new DnsEndPoint("127.0.0.1", 50051), stream.Address.EndPoint);
+            Assert.AreEqual(new DnsEndPoint("127.0.0.1", 50051), stream.EndPoint);
         }
 
         tcs.SetResult(null);
@@ -379,7 +385,7 @@ public class PickFirstBalancerTests : FunctionalTestBase
         await TestHelpers.AssertIsTrueRetryAsync(() =>
         {
             activeStreams = transport.GetActiveStreams();
-            Logger.LogInformation($"Current active stream addresses: {string.Join(", ", activeStreams.Select(s => s.Address))}");
+            Logger.LogInformation($"Current active stream addresses: {string.Join(", ", activeStreams.Select(s => s.EndPoint))}");
             return activeStreams.Count == 0;
         }, "Active streams removed.", Logger).DefaultTimeout();
 
@@ -389,7 +395,7 @@ public class PickFirstBalancerTests : FunctionalTestBase
 
         activeStreams = transport.GetActiveStreams();
         Assert.AreEqual(1, activeStreams.Count);
-        Assert.AreEqual(new DnsEndPoint("127.0.0.1", 50052), activeStreams[0].Address.EndPoint);
+        Assert.AreEqual(new DnsEndPoint("127.0.0.1", 50052), activeStreams[0].EndPoint);
     }
 
     [Test]
@@ -445,8 +451,10 @@ public class PickFirstBalancerTests : FunctionalTestBase
         }
 
         // Arrange
+        Logger.LogInformation("Starting server");
         using var endpoint = BalancerHelpers.CreateGrpcEndpoint<HelloRequest, HelloReply>(50051, UnaryMethod, nameof(UnaryMethod));
 
+        Logger.LogInformation("Creating clients");
         var socketsHttpHandler = new SocketsHttpHandler();
         var channel1 = await BalancerHelpers.CreateChannel(LoggerFactory, new PickFirstConfig(), new[] { endpoint.Address }, socketsHttpHandler).DefaultTimeout();
         var channel2 = await BalancerHelpers.CreateChannel(LoggerFactory, new PickFirstConfig(), new[] { endpoint.Address }, socketsHttpHandler).DefaultTimeout();
@@ -455,10 +463,12 @@ public class PickFirstBalancerTests : FunctionalTestBase
         var client2 = TestClientFactory.Create(channel2, endpoint.Method);
 
         // Act
+        Logger.LogInformation("Starting calls");
         var reply1Task = client1.UnaryCall(new HelloRequest { Name = "Balancer" }).ResponseAsync.DefaultTimeout();
         var reply2Task = client2.UnaryCall(new HelloRequest { Name = "Balancer" }).ResponseAsync.DefaultTimeout();
 
         // Assert
+        Logger.LogInformation("Client waiting for replies");
         Assert.AreEqual("Balancer", (await reply1Task).Message);
         Assert.AreEqual("Balancer", (await reply2Task).Message);
         Assert.AreEqual("127.0.0.1:50051", host);

@@ -22,7 +22,6 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Net;
-using System.Net.Http;
 using System.Threading;
 using System.Threading.Tasks;
 using Greet;
@@ -57,9 +56,20 @@ public class PickFirstBalancerTests
         });
 
         services.AddSingleton<ResolverFactory>(new TestResolverFactory(resolver));
-        services.AddSingleton<ISubchannelTransportFactory>(new TestSubchannelTransportFactory());
+
+        var subChannelConnections = new List<Subchannel>();
+        var transportFactory = new TestSubchannelTransportFactory((s, c) =>
+        {
+            lock (subChannelConnections)
+            {
+                subChannelConnections.Add(s);
+            }
+            return Task.FromResult(new TryConnectResult(ConnectivityState.Ready));
+        });
+        services.AddSingleton<ISubchannelTransportFactory>(transportFactory);
+
         var serviceProvider = services.BuildServiceProvider();
-        var logger = serviceProvider.GetRequiredService<ILoggerProvider>().CreateLogger(GetType().FullName);
+        var logger = serviceProvider.GetRequiredService<ILoggerProvider>().CreateLogger(GetType().FullName!);
 
         var handler = new TestHttpMessageHandler((r, ct) => default!);
         var channelOptions = new GrpcChannelOptions
@@ -96,6 +106,12 @@ public class PickFirstBalancerTests
         Assert.AreEqual(1, subchannels[0]._addresses.Count);
         Assert.AreEqual(new DnsEndPoint("localhost", 81), subchannels[0]._addresses[0].EndPoint);
         Assert.AreEqual(ConnectivityState.Ready, subchannels[0].State);
+
+        lock (subChannelConnections)
+        {
+            Assert.AreEqual(2, subChannelConnections.Count);
+            Assert.AreSame(subChannelConnections[0], subChannelConnections[1]);
+        }
     }
 
     [Test]
@@ -164,7 +180,7 @@ public class PickFirstBalancerTests
         services.AddSingleton<ResolverFactory>(new TestResolverFactory(resolver));
         services.AddSingleton<ISubchannelTransportFactory>(transportFactory);
         var serviceProvider = services.BuildServiceProvider();
-        var logger = serviceProvider.GetRequiredService<ILoggerProvider>().CreateLogger(GetType().FullName);
+        var logger = serviceProvider.GetRequiredService<ILoggerProvider>().CreateLogger(GetType().FullName!);
 
         var handler = new TestHttpMessageHandler((r, ct) => default!);
         var channelOptions = new GrpcChannelOptions
@@ -376,7 +392,7 @@ public class PickFirstBalancerTests
         services.AddSingleton<ResolverFactory>(new TestResolverFactory(resolver));
         services.AddSingleton<ISubchannelTransportFactory>(transportFactory);
         var serviceProvider = services.BuildServiceProvider();
-        var logger = serviceProvider.GetRequiredService<ILoggerProvider>().CreateLogger(GetType().FullName);
+        var logger = serviceProvider.GetRequiredService<ILoggerProvider>().CreateLogger(GetType().FullName!);
 
         var handler = new TestHttpMessageHandler((r, ct) => default!);
         var channelOptions = new GrpcChannelOptions
@@ -426,7 +442,7 @@ public class PickFirstBalancerTests
         var resolver = new TestResolver();
         resolver.UpdateAddresses(new List<BalancerAddress> { new BalancerAddress("localhost", 80) });
 
-        ILogger? logger = null;
+        ILogger logger = null!;
 
         var tcs = new TaskCompletionSource<object?>(TaskCreationOptions.RunContinuationsAsynchronously);
         var transportConnectCount = 0;
@@ -488,7 +504,7 @@ public class PickFirstBalancerTests
         var resolver = new TestResolver();
         resolver.UpdateAddresses(new List<BalancerAddress> { new BalancerAddress("localhost", 80) });
 
-        ILogger? logger = null;
+        ILogger logger = null!;
 
         var tcs = new TaskCompletionSource<object?>(TaskCreationOptions.RunContinuationsAsynchronously);
         var transportConnectCount = 0;
@@ -528,7 +544,7 @@ public class PickFirstBalancerTests
         _ = invoker.Channel.ConnectAsync();
 
         // Act
-        var call = invoker.AsyncUnaryCall<HelloRequest, HelloReply>(ClientTestHelpers.ServiceMethod, string.Empty, new CallOptions(), new HelloRequest());
+        var call = invoker.AsyncUnaryCall(new HelloRequest());
         await tcs.Task.DefaultTimeout();
 
         // Assert

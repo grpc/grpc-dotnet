@@ -1,4 +1,4 @@
-﻿#region Copyright notice and license
+#region Copyright notice and license
 
 // Copyright 2019 The gRPC Authors
 //
@@ -26,7 +26,7 @@ internal class ChannelRetryThrottling
     private readonly object _lock = new object();
     private readonly double _tokenRatio;
     private readonly int _maxTokens;
-    private readonly ILogger<ChannelRetryThrottling> _logger;
+    private readonly ILogger _logger;
 
     private double _tokenCount;
     private readonly double _tokenThreshold;
@@ -41,7 +41,7 @@ internal class ChannelRetryThrottling
         _maxTokens = maxTokens;
         _tokenCount = maxTokens;
         _tokenThreshold = _tokenCount / 2;
-        _logger = loggerFactory.CreateLogger<ChannelRetryThrottling>();
+        _logger = loggerFactory.CreateLogger(typeof(ChannelRetryThrottling));
     }
 
     public bool IsRetryThrottlingActive()

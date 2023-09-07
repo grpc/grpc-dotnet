@@ -1,4 +1,4 @@
-﻿#region Copyright notice and license
+#region Copyright notice and license
 
 // Copyright 2019 The gRPC Authors
 //
@@ -41,7 +41,7 @@ public class ConnectionTests
         var invoker = HttpClientCallInvokerFactory.Create(httpClient);
 
         // Act
-        var call = invoker.AsyncUnaryCall<HelloRequest, HelloReply>(ClientTestHelpers.ServiceMethod, string.Empty, new CallOptions(deadline: invoker.Channel.Clock.UtcNow.AddSeconds(1)), new HelloRequest());
+        var call = invoker.AsyncUnaryCall(new HelloRequest(), new CallOptions(deadline: invoker.Channel.Clock.UtcNow.AddSeconds(1)));
 
         // Assert
         var ex = await ExceptionAssert.ThrowsAsync<RpcException>(() => call.ResponseAsync).DefaultTimeout();
@@ -62,7 +62,7 @@ public class ConnectionTests
         var invoker = HttpClientCallInvokerFactory.Create(httpClient);
 
         // Act
-        var call = invoker.AsyncUnaryCall<HelloRequest, HelloReply>(ClientTestHelpers.ServiceMethod, string.Empty, new CallOptions(deadline: invoker.Channel.Clock.UtcNow.AddSeconds(1)), new HelloRequest());
+        var call = invoker.AsyncUnaryCall(new HelloRequest(), new CallOptions(deadline: invoker.Channel.Clock.UtcNow.AddSeconds(1)));
 
         // Assert
         var ex = await ExceptionAssert.ThrowsAsync<RpcException>(() => call.ResponseAsync).DefaultTimeout();
@@ -81,7 +81,7 @@ public class ConnectionTests
         var invoker = HttpClientCallInvokerFactory.Create(httpClient);
 
         // Act
-        var call = invoker.AsyncUnaryCall<HelloRequest, HelloReply>(ClientTestHelpers.ServiceMethod, string.Empty, new CallOptions(deadline: invoker.Channel.Clock.UtcNow.AddSeconds(1)), new HelloRequest());
+        var call = invoker.AsyncUnaryCall(new HelloRequest(), new CallOptions(deadline: invoker.Channel.Clock.UtcNow.AddSeconds(1)));
 
         // Assert
         var ex = await ExceptionAssert.ThrowsAsync<RpcException>(() => call.ResponseAsync).DefaultTimeout();

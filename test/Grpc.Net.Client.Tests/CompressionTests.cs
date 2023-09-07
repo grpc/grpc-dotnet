@@ -1,4 +1,4 @@
-﻿#region Copyright notice and license
+#region Copyright notice and license
 
 // Copyright 2019 The gRPC Authors
 //
@@ -67,10 +67,10 @@ public class CompressionTests
 
         // Act
         var compressionMetadata = CreateClientCompressionMetadata("not-supported");
-        var call = invoker.AsyncUnaryCall<HelloRequest, HelloReply>(ClientTestHelpers.ServiceMethod, string.Empty, new CallOptions(headers: compressionMetadata), new HelloRequest
+        var call = invoker.AsyncUnaryCall(new HelloRequest
         {
             Name = "Hello"
-        });
+        }, new CallOptions(headers: compressionMetadata));
 
         // Assert
         var ex = await ExceptionAssert.ThrowsAsync<RpcException>(() => call.ResponseAsync).DefaultTimeout();
@@ -127,10 +127,10 @@ public class CompressionTests
         }
 
         // Act
-        var call = invoker.AsyncUnaryCall<HelloRequest, HelloReply>(ClientTestHelpers.ServiceMethod, string.Empty, callOptions, new HelloRequest
+        var call = invoker.AsyncUnaryCall(new HelloRequest
         {
             Name = "Hello"
-        });
+        }, callOptions);
 
         // Assert
         var response = await call.ResponseAsync;
@@ -187,7 +187,7 @@ public class CompressionTests
         var invoker = HttpClientCallInvokerFactory.Create(handler, "http://localhost");
 
         // Act
-        var call = invoker.AsyncUnaryCall<HelloRequest, HelloReply>(ClientTestHelpers.ServiceMethod, string.Empty, new CallOptions(), new HelloRequest
+        var call = invoker.AsyncUnaryCall(new HelloRequest
         {
             Name = "Hello"
         });
@@ -233,7 +233,7 @@ public class CompressionTests
         var invoker = HttpClientCallInvokerFactory.Create(httpClient);
 
         // Act
-        var call = invoker.AsyncUnaryCall<HelloRequest, HelloReply>(ClientTestHelpers.ServiceMethod, string.Empty, new CallOptions(), new HelloRequest
+        var call = invoker.AsyncUnaryCall(new HelloRequest
         {
             Name = "Hello"
         });
@@ -304,7 +304,7 @@ public class CompressionTests
         var callOptions = new CallOptions(headers: compressionMetadata);
 
         // Act
-        var call = invoker.AsyncClientStreamingCall<HelloRequest, HelloReply>(ClientTestHelpers.ServiceMethod, string.Empty, callOptions);
+        var call = invoker.AsyncClientStreamingCall(callOptions);
 
         await call.RequestStream.WriteAsync(new HelloRequest
         {

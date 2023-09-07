@@ -22,10 +22,6 @@ using Grpc.Core;
 using Grpc.Shared;
 using Log = Grpc.Net.Client.Internal.ClientStreamWriterBaseLog;
 
-#if NETSTANDARD2_0
-using ValueTask = System.Threading.Tasks.Task;
-#endif
-
 namespace Grpc.Net.Client.Internal;
 
 [DebuggerDisplay("{DebuggerToString(),nq}")]
@@ -91,10 +87,7 @@ internal class HttpContentClientStreamWriter<TRequest, TResponse> : ClientStream
 
     public override async Task WriteCoreAsync(TRequest message, CancellationToken cancellationToken)
     {
-        if (message == null)
-        {
-            throw new ArgumentNullException(nameof(message));
-        }
+        ArgumentNullThrowHelper.ThrowIfNull(message);
 
         _call.TryRegisterCancellation(cancellationToken, out var ctsRegistration);
 
@@ -107,13 +100,13 @@ internal class HttpContentClientStreamWriter<TRequest, TResponse> : ClientStream
             ctsRegistration?.Dispose();
         }
 
-        static ValueTask WriteMessageToStream(GrpcCall<TRequest, TResponse> call, Stream writeStream, CallOptions callOptions, TRequest message)
+        static Task WriteMessageToStream(GrpcCall<TRequest, TResponse> call, Stream writeStream, CallOptions callOptions, TRequest message)
         {
             return call.WriteMessageAsync(writeStream, message, callOptions);
         }
     }
 
-    public Task WriteAsync<TState>(Func<GrpcCall<TRequest, TResponse>, Stream, CallOptions, TState, ValueTask> writeFunc, TState state, CancellationToken cancellationToken)
+    public Task WriteAsync<TState>(Func<GrpcCall<TRequest, TResponse>, Stream, CallOptions, TState, Task> writeFunc, TState state, CancellationToken cancellationToken)
     {
         _call.EnsureNotDisposed();
 
@@ -158,7 +151,7 @@ internal class HttpContentClientStreamWriter<TRequest, TResponse> : ClientStream
 
     public GrpcCall<TRequest, TResponse> Call => _call;
 
-    public async Task WriteAsyncCore<TState>(Func<GrpcCall<TRequest, TResponse>, Stream, CallOptions, TState, ValueTask> writeFunc, TState state, CancellationToken cancellationToken)
+    public async Task WriteAsyncCore<TState>(Func<GrpcCall<TRequest, TResponse>, Stream, CallOptions, TState, Task> writeFunc, TState state, CancellationToken cancellationToken)
     {
         try
         {

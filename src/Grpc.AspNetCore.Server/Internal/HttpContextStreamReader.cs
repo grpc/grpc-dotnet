@@ -59,6 +59,10 @@ internal class HttpContextStreamReader<TRequest> : IAsyncStreamReader<TRequest> 
             return Task.FromException<bool>(new InvalidOperationException("Can't read messages after the request is complete."));
         }
 
+        // Clear current before moving next. This prevents rooting the previous value while getting the next one.
+        // In a long running stream this can allow the previous value to be GCed.
+        Current = null!;
+
         var request = _serverCallContext.HttpContext.Request.BodyReader.ReadStreamMessageAsync(_serverCallContext, _deserializer, cancellationToken);
         if (!request.IsCompletedSuccessfully)
         {

@@ -1,4 +1,4 @@
-﻿#region Copyright notice and license
+#region Copyright notice and license
 
 // Copyright 2019 The gRPC Authors
 //
@@ -24,6 +24,8 @@ internal interface IOperatingSystem
 {
     bool IsBrowser { get; }
     bool IsAndroid { get; }
+    bool IsWindows { get; }
+    Version OSVersion { get; }
 }
 
 internal sealed class OperatingSystem : IOperatingSystem
@@ -32,14 +34,28 @@ internal sealed class OperatingSystem : IOperatingSystem
 
     public bool IsBrowser { get; }
     public bool IsAndroid { get; }
+    public bool IsWindows { get; }
+    public Version OSVersion { get; }
 
     private OperatingSystem()
     {
-        IsBrowser = RuntimeInformation.IsOSPlatform(OSPlatform.Create("browser"));
 #if NET5_0_OR_GREATER
         IsAndroid = System.OperatingSystem.IsAndroid();
+        IsWindows = System.OperatingSystem.IsWindows();
+        IsBrowser = System.OperatingSystem.IsBrowser();
+        OSVersion = Environment.OSVersion.Version;
 #else
         IsAndroid = false;
+        IsWindows = RuntimeInformation.IsOSPlatform(OSPlatform.Windows);
+        IsBrowser = RuntimeInformation.IsOSPlatform(OSPlatform.Create("browser"));
+
+        // Older versions of .NET report an OSVersion.Version based on Windows compatibility settings.
+        // For example, if an app running on Windows 11 is configured to be "compatible" with Windows 10
+        // then the version returned is always Windows 10.
+        //
+        // Get correct Windows version directly from Windows by calling RtlGetVersion.
+        // https://www.pinvoke.net/default.aspx/ntdll/RtlGetVersion.html
+        OSVersion = IsWindows ? NtDll.DetectWindowsVersion() : Environment.OSVersion.Version;
 #endif
     }
 }

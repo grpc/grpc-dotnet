@@ -22,12 +22,13 @@ Here are some key points in which the two implementation differ:
 - grpc-dotnet server integrates seamlessly ASP.NET Core (and allows e.g. dependency injection)
 - performance (while data we have data that seems to indicate that grpc-dotnet peforms at least as well as Grpc.Core, we strongly encourage to run your own benchmarks if performance matters for your application)
 - features available (see breakdown below)
+
 ## Frameworks supported
 
-Grpc.Core supports a wide range of .NET Framework versions, included some very old ones. A more detailed overview is [here]( https://github.com/grpc/grpc/tree/master/src/csharp#supported-platforms)
+Grpc.Core supports a wide range of .NET versions, including some very old ones. A more detailed overview is [here]( https://github.com/grpc/grpc/tree/master/src/csharp#supported-platforms)
 
-grpc-dotnet requires a more modern .NET Framework: A detailed summary of .NET Framework versions supported by grpc-dotnet is [here](https://docs.microsoft.com/en-us/aspnet/core/grpc/supported-platforms). Note that there's ongoing work to add [grpc-dotnet client support on
-legacy .NET Framework](https://docs.microsoft.com/en-us/aspnet/core/grpc/netstandard).
+grpc-dotnet uses features only available in modern .NET releases. It doesn't support some older versions of .NET. A detailed summary of .NET versions supported by grpc-dotnet is [here](https://docs.microsoft.com/aspnet/core/grpc/supported-platforms). There is limited support for [grpc-dotnet client support on
+legacy .NET Framework](https://docs.microsoft.com/aspnet/core/grpc/netstandard).
 
 ## Comparison of supported features 
 
@@ -42,18 +43,20 @@ In grpc-dotnet, we currently don't provide proxyless service mesh support, but i
 
 ### Load Balancing
 
-Grpc.Core provides basic client load balancing policies PICK_FIRST, ROUND_ROBIN. Besides that, there are two client-lookaside LB policies that are implemented, but we don't recommend using them.
+grpc-dotnet and Grpc.Core provides basic client load balancing policies PICK_FIRST, ROUND_ROBIN.
 
-- grpclb - limited use externally as there's no official implementation of the LB policy. We don't recommend using as it's been basically deprecated by the XDS loadbalancing.
+Grpc.Core also has implemented two client-lookaside LB policies, but we don't recommend using them:
+
+- grpclb - limited use externally as there's no official implementation of the LB policy. We don't recommend using it as it's been deprecated by the XDS load balancing.
 - XDS - Load balancing using the Envoy Universal Data Plane APIs (xDS). It does work in Grpc.Core (because it's implemented in C-core native library), but as noted above, we don't provide official support for the proxyless service mesh functionality in Grpc.Core.
 
-grpc-dotnet currently doesn't provide any loadbalancing policies, but there is ongoing work to add basic client load balancing policies, as well as suport for XDS loadbalancing.
+Proxy load balancing is supported by both implementations because load balancing is done by a separate process (e.g. Envoy, ngingx etc.) that proxies the traffic.
 
-Proxy loadbalancing is supported by both implementations because loadbalancing is done by a separate process (e.g. Envoy, ngingx etc.) that proxies the traffic.
-
-None of the implementations currently allow user-provided custom loadbalancing policies (= a plugin that provides the loadbalancing logic).
+grpc-dotnet allows user-provided custom load-balancing policies (= a plugin that provides the load-balancing logic).
 
 Also see:
+
+- https://learn.microsoft.com/aspnet/core/grpc/loadbalancing
 - https://github.com/grpc/grpc/blob/master/doc/load-balancing.md
 - https://github.com/grpc/grpc/blob/master/doc/naming.md
 - https://github.com/grpc/proposal/blob/master/A5-grpclb-in-dns.md
@@ -61,7 +64,7 @@ Also see:
 
 ### Service config
 
-Service config is currently only supported by Grpc.Core. Right now the feature is not that useful 
+Service config is supported by grpc-dotnet and Grpc.Core. Right now, the feature is not that useful 
 because support for service config encoded in DNS records hasn't been enabled yet by default.
 
 Also see:
@@ -79,7 +82,7 @@ Grpc.Core: currently not supported.
 
 Both implementations support client and server interceptors from Grpc.Core.Interceptors namespace. Interceptors operate at post-deserialization and pre-serialization level (no access to binary payloads).
 
-In addition to gRPC-aware interceptors, grpc-dotnet also allows interception at a HTTP/2 level:
+In addition to gRPC-aware interceptors, grpc-dotnet also allows interception at an HTTP/2 level:
 
 - Incoming gRPC HTTP/2 requests can be processed using [ASP.NET Core middleware](https://docs.microsoft.com/en-us/aspnet/core/fundamentals/middleware/).
 - Outgoing gRPC HTTP/2 requests can be processed using [HttpClient HttpMessageHandlers](https://docs.microsoft.com/en-us/dotnet/api/system.net.http.httpmessagehandler).
@@ -90,23 +93,25 @@ Both implementations fully support gRPC over HTTP/2 in both TLS and plaintext.
 
 Grpc.Core gets support for other transports supported by C-Core for free. Some (minor) integration work might be required to actually use these transports with gRPC C#.
 
-grpc-dotnet only supports the default transport.
+grpc-dotnet supports other transports in .NET 5 or later. For example, grpc-dotnet [supports interprocess communication (IPC)](https://learn.microsoft.com/aspnet/core/grpc/interprocess) using named pipes and Unix domain sockets.
 
 Notes:
 
 - Grpc.Core allows connections over UDS socket (both server and client) on Unix systems. It doesn't support named pipes on windows.
 - Grpc.Core supports additional "transports" like ALTS and cfstream thanks to being build on top of C-core.
 - Grpc.Core could provide an inprocess transport support but currently this functionality is not exposed in C# API.
-- grpc-dotnet support for TLS is platform dependent. TLS is fully supported on Windows and Linux, but doesn't work on MacOS.
-- grpc-dotnet support UDS socket on the server-side (On Unix systems, but also on [Windows](https://devblogs.microsoft.com/commandline/af_unix-comes-to-windows/))
+- grpc-dotnet support for TLS is platform dependent. TLS is fully supported on Windows and Linux. There is limited support for servers hosted on MacOS prior to .NET 8.
 
 ### Retries / Request Hedging
 
 Grpc.Core: implementation in C-core in progress, but no ETA yet
 
-grpc-dotnet: not implemented
+grpc-dotnet: Retries and hedging are fully supported.
 
-https://github.com/grpc/proposal/blob/master/A6-client-retries.md, 
+Also see:
+
+- https://learn.microsoft.com/aspnet/core/grpc/retries
+- https://github.com/grpc/proposal/blob/master/A6-client-retries.md
 
 ### Channelz
 
@@ -128,7 +133,7 @@ https://github.com/grpc/grpc/blob/master/doc/binary-logging.md
 
 Grpc.Core: supported (algorithms: `gzip`, `deflate`)
 
-grpc-dotnet: supported (algorithms: `gzip`), also provides public API to provide custom compression algorithm.
+grpc-dotnet: supported (algorithms: `gzip`, `deflate`), also provides public API to provide custom compression algorithm.
 
 Performance implications of using compression in both implementations haven't been measured. Compression functionality is offered mostly to comply with the spec.
 
@@ -139,7 +144,7 @@ https://github.com/grpc/grpc/blob/master/doc/compression_cookbook.md
 
 Grpc.Core: supported (exposed publicly on Channel), provided by C-Core
 
-grpc-dotnet: not supported (to provide support, changes to .NET HttpClient are needed, so adding support is non-trivial).
+grpc-dotnet: Supported on .NET 5 or later
 
 https://github.com/grpc/grpc/blob/master/doc/connectivity-semantics-and-api.md
 
@@ -163,7 +168,7 @@ https://github.com/grpc/grpc/blob/master/doc/keepalive.md
 
 Grpc.Core: supported, provided by C-core
 
-grpc-dotnet: not supported (implementing the wait_for_ready flag requires supporting channel connectivity first).
+grpc-dotnet: Supported on .NET 5 or later
 
 https://github.com/grpc/grpc/blob/master/doc/wait-for-ready.md
 
@@ -171,7 +176,7 @@ https://github.com/grpc/grpc/blob/master/doc/wait-for-ready.md
 
 Grpc.Core: conforms with the spec thanks to the C-core dependency. It is currently not possible to provide custom C# resolvers via resolver API (the APIs are in C core and aren't exposed in the C# layer).
 
-grpc-dotnet: only resolves basic DNS names. No API to provide a custom resolver.
+grpc-dotnet: Resolving is fully supported on .NET 5 or later. grpc-dotnet also provides an [API to write custom resolvers](https://learn.microsoft.com/aspnet/core/grpc/loadbalancingwrite-custom-resolvers-and-load-balancers).
 
 https://github.com/grpc/grpc/blob/master/doc/naming.md
 
@@ -181,7 +186,7 @@ grpc-dotnet allows port-sharing: serving both gRPC and non-gRPC traffic by the s
 
 ## Add-on Features
 
-Features that don't necessarily require changes to implementation's internals. They usually come as a separate opt-in nuget package.
+Features that don't necessarily require changes to the implementation's internals. They usually come as a separate opt-in nuget package.
 
 ### Addon: Server Reflection
 Grpc.Core: supported via Grpc.Reflection nuget package
@@ -213,4 +218,22 @@ grpc-dotnet supports integration with `HttpClientFactory` via the Grpc.Net.Clien
 - Reuse of channel instances.
 - Automatic propagation of cancellation and deadline when used in a `Grpc.AspNetCore` hosted gRPC service.
 
-https://docs.microsoft.com/en-us/aspnet/core/grpc/clientfactory
+### Addon: gRPC JSON transcoding
+
+grpc-dotnet supports providing a RESTful JSON API using [gRPC JSON transcoding](https://learn.microsoft.com/aspnet/core/grpc/json-transcoding).
+
+gRPC JSON transcoding is an extension for ASP.NET Core that creates RESTful JSON APIs for gRPC services. Once configured, transcoding allows apps to call gRPC services with familiar HTTP concepts:
+
+- HTTP verbs
+- URL parameter binding
+- JSON requests/responses
+
+gRPC can still be used to call services.
+
+### Addon: gRPC-Web
+
+grpc-dotnet supports the [gRPC-Web protocol](https://github.com/grpc/grpc/blob/master/doc/PROTOCOL-WEB.md).
+
+gRPC-Web allows browser JavaScript and Blazor apps to call gRPC services. It's not possible to call a gRPC service over HTTP/2 from a browser-based app. gRPC services hosted in ASP.NET Core can be configured to support gRPC-Web alongside gRPC over HTTP/2.
+
+https://learn.microsoft.com/aspnet/core/grpc/grpcweb

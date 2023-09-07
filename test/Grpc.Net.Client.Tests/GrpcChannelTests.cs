@@ -19,14 +19,14 @@
 using Greet;
 using Grpc.Core;
 using Grpc.Net.Client.Configuration;
+using Grpc.Net.Client.Internal;
 using Grpc.Net.Client.Tests.Infrastructure;
+using Grpc.Net.Client.Web;
 using Grpc.Tests.Shared;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Testing;
 using NUnit.Framework;
-using Grpc.Net.Client.Internal;
-using Grpc.Net.Client.Web;
 #if SUPPORT_LOAD_BALANCING
 using Grpc.Net.Client.Balancer;
 using Grpc.Net.Client.Balancer.Internal;
@@ -99,6 +99,56 @@ public class GrpcChannelTests
     }
 
     [TestCase("http://localhost")]
+    [TestCase("https://localhost")]
+    public void DebuggerToString_HttpAddress_ExpectedResult(string address)
+    {
+        // Arrange
+        var channel = GrpcChannel.ForAddress(address,
+            CreateGrpcChannelOptions());
+
+        // Act & Assert
+        Assert.AreEqual($@"Address = ""{address}""", channel.DebuggerToString());
+    }
+
+    [Test]
+    public void DebuggerToString_Dispose_ExpectedResult()
+    {
+        // Arrange
+        var channel = GrpcChannel.ForAddress("http://localhost",
+            CreateGrpcChannelOptions());
+        channel.Dispose();
+
+        // Act & Assert
+        Assert.AreEqual(@"Address = ""http://localhost"", Disposed = true", channel.DebuggerToString());
+    }
+
+#if SUPPORT_LOAD_BALANCING
+    [Test]
+    public void DebuggerToString_NonHttpAddress_ExpectedResult()
+    {
+        // Arrange
+        var services = new ServiceCollection();
+        services.AddSingleton<ResolverFactory, ChannelTestResolverFactory>();
+        services.AddSingleton<ISubchannelTransportFactory, TestSubchannelTransportFactory>();
+
+        var handler = new TestHttpMessageHandler();
+        var channelOptions = new GrpcChannelOptions
+        {
+            ServiceProvider = services.BuildServiceProvider(),
+            HttpHandler = handler,
+            Credentials = ChannelCredentials.SecureSsl
+        };
+        var channel = GrpcChannel.ForAddress("test:///localhost", channelOptions);
+
+        // Act
+        var debugText = channel.DebuggerToString();
+
+        // Assert
+        Assert.AreEqual(@"Address = ""test:///localhost"", IsSecure = true", debugText);
+    }
+#endif
+
+    [TestCase("http://localhost")]
     [TestCase("HTTP://localhost")]
     public void Build_SslCredentialsWithHttp_ThrowsError(string address)
     {
@@ -139,7 +189,7 @@ public class GrpcChannelTests
     private static GrpcChannelOptions CreateGrpcChannelOptions(Action<GrpcChannelOptions>? func = null)
     {
         var o = new GrpcChannelOptions();
-#if NET472
+#if NET462
         // An error is thrown if no handler is specified by .NET Standard 2.0 target.
         o.HttpHandler = new NullHttpHandler();
 #endif
@@ -157,6 +207,52 @@ public class GrpcChannelTests
         // Assert
         Assert.AreEqual("Channel is configured with insecure channel credentials and can't use a HttpClient with a 'https' scheme.", ex.Message);
     }
+
+#if SUPPORT_LOAD_BALANCING
+    [Test]
+    public void Build_ConnectTimeout_ReadFromSocketsHttpHandler()
+    {
+        // Arrange & Act
+        var channel = GrpcChannel.ForAddress("https://localhost", CreateGrpcChannelOptions(o => o.HttpHandler = new SocketsHttpHandler
+        {
+            ConnectTimeout = TimeSpan.FromSeconds(1)
+        }));
+
+        // Assert
+        Assert.AreEqual(TimeSpan.FromSeconds(1), channel.ConnectTimeout);
+    }
+
+    [TestCase(-1, -1, -1)]
+    [TestCase(0, 0, 0)]
+    [TestCase(0, -1, 0)]
+    [TestCase(-1, 0, 0)]
+    [TestCase(1000, -1, 1000)]
+    [TestCase(-1, 1000, 1000)]
+    [TestCase(500, 1000, 1000)]
+    [TestCase(1000, 500, 1000)]
+    public void Build_ConnectionIdleTimeout_ReadFromSocketsHttpHandler(
+        int? pooledConnectionIdleTimeoutMs,
+        int? pooledConnectionLifetimeMs,
+        int expectedConnectionIdleTimeoutMs)
+    {
+        // Arrange
+        var handler = new SocketsHttpHandler();
+        if (pooledConnectionIdleTimeoutMs != null)
+        {
+            handler.PooledConnectionIdleTimeout = TimeSpan.FromMilliseconds(pooledConnectionIdleTimeoutMs.Value);
+        }
+        if (pooledConnectionLifetimeMs != null)
+        {
+            handler.PooledConnectionLifetime = TimeSpan.FromMilliseconds(pooledConnectionLifetimeMs.Value);
+        }
+
+        // Act
+        var channel = GrpcChannel.ForAddress("https://localhost", CreateGrpcChannelOptions(o => o.HttpHandler = handler));
+
+        // Assert
+        Assert.AreEqual(TimeSpan.FromMilliseconds(expectedConnectionIdleTimeoutMs), channel.ConnectionIdleTimeout);
+    }
+#endif
 
     [Test]
     public void Build_HttpClientAndHttpHandler_ThrowsError()
@@ -208,23 +304,20 @@ public class GrpcChannelTests
         Assert.AreEqual("HttpHandler", ex.Status.DebugException!.Message);
     }
 
-#if NET472
     [Test]
-    public void Build_NoHttpProviderOnNetFx_Throw()
+    public void Build_ForAddressNoOptions_ValidChannel()
     {
         // Arrange & Act
-        var ex = Assert.Throws<PlatformNotSupportedException>(() => GrpcChannel.ForAddress("https://localhost"))!;
+        using var channel = GrpcChannel.ForAddress("https://localhost");
 
         // Assert
-        var message =
-            $"gRPC requires extra configuration on .NET implementations that don't support gRPC over HTTP/2. " +
-            $"An HTTP provider must be specified using {nameof(GrpcChannelOptions)}.{nameof(GrpcChannelOptions.HttpHandler)}." +
-            $"The configured HTTP provider must either support HTTP/2 or be configured to use gRPC-Web. " +
-            $"See https://aka.ms/aspnet/grpc/netstandard for details.";
-
-        Assert.AreEqual(message, ex.Message);
-    }
+        Assert.NotNull(channel);
+#if NET462
+        Assert.AreEqual(HttpHandlerType.WinHttpHandler, channel.HttpHandlerType);
+#else
+        Assert.AreEqual(HttpHandlerType.SocketsHttpHandler, channel.HttpHandlerType);
 #endif
+    }
 
     [Test]
     public void Build_ServiceConfigDuplicateMethodConfigNames_Error()
@@ -258,7 +351,7 @@ public class GrpcChannelTests
         Assert.IsFalse(channel.Disposed);
     }
 
-#if !NET472
+#if !NET462
     [Test]
     public void Dispose_Called_Disposed()
     {
@@ -520,6 +613,66 @@ public class GrpcChannelTests
     {
         public bool IsBrowser { get; set; }
         public bool IsAndroid { get; set; }
+        public bool IsWindows { get; set; }
+        public Version OSVersion { get; set; } = new Version(1, 2, 3, 4);
+    }
+
+    [Test]
+    public void WinHttpHandler_UnsupportedWindows_Throw()
+    {
+        // Arrange
+        var services = new ServiceCollection();
+        services.AddSingleton<IOperatingSystem>(new TestOperatingSystem
+        {
+            IsWindows = true,
+            OSVersion = new Version(1, 2, 3, 4)
+        });
+
+#pragma warning disable CS0436 // Just need to have a type called WinHttpHandler to activate new behavior.
+        var winHttpHandler = new WinHttpHandler(new TestHttpMessageHandler());
+#pragma warning restore CS0436
+
+        // Act
+        var ex = Assert.Throws<InvalidOperationException>(() =>
+        {
+            GrpcChannel.ForAddress("https://localhost", new GrpcChannelOptions
+            {
+                HttpHandler = winHttpHandler,
+                ServiceProvider = services.BuildServiceProvider()
+            });
+        });
+
+        // Assert
+        Assert.AreEqual(ex!.Message, "The channel configuration isn't valid on this operating system. " +
+                "The channel is configured to use WinHttpHandler and the current version of Windows " +
+                "doesn't support HTTP/2 features required by gRPC. Windows Server 2022 or Windows 11 or later is required. " +
+                "For more information, see https://aka.ms/aspnet/grpc/netframework.");
+    }
+
+    [Test]
+    public void WinHttpHandler_SupportedWindows_Success()
+    {
+        // Arrange
+        var services = new ServiceCollection();
+        services.AddSingleton<IOperatingSystem>(new TestOperatingSystem
+        {
+            IsWindows = true,
+            OSVersion = Version.Parse("10.0.20348.169")
+        });
+
+#pragma warning disable CS0436 // Just need to have a type called WinHttpHandler to activate new behavior.
+        var winHttpHandler = new WinHttpHandler(new TestHttpMessageHandler());
+#pragma warning restore CS0436
+
+        // Act
+        var channel = GrpcChannel.ForAddress("https://localhost", new GrpcChannelOptions
+        {
+            HttpHandler = winHttpHandler,
+            ServiceProvider = services.BuildServiceProvider()
+        });
+
+        // Assert
+        Assert.AreEqual(HttpHandlerType.WinHttpHandler, channel.HttpHandlerType);
     }
 
 #if SUPPORT_LOAD_BALANCING

@@ -20,6 +20,7 @@
 using Grpc.Core;
 using Grpc.Net.Client.Balancer.Internal;
 using Grpc.Net.Client.Internal;
+using Grpc.Shared;
 using Microsoft.Extensions.Logging;
 
 namespace Grpc.Net.Client.Balancer;
@@ -69,12 +70,9 @@ public abstract class PollingResolver : Resolver
     /// <param name="backoffPolicyFactory">The backoff policy factory.</param>
     protected PollingResolver(ILoggerFactory loggerFactory, IBackoffPolicyFactory? backoffPolicyFactory)
     {
-        if (loggerFactory == null)
-        {
-            throw new ArgumentNullException(nameof(loggerFactory));
-        }
+        ArgumentNullThrowHelper.ThrowIfNull(loggerFactory);
 
-        _logger = loggerFactory.CreateLogger<PollingResolver>();
+        _logger = loggerFactory.CreateLogger(typeof(PollingResolver));
         _backoffPolicyFactory = backoffPolicyFactory;
     }
 
@@ -88,10 +86,7 @@ public abstract class PollingResolver : Resolver
     /// <param name="listener">The callback used to receive updates on the target.</param>
     public sealed override void Start(Action<ResolverResult> listener)
     {
-        if (listener == null)
-        {
-            throw new ArgumentNullException(nameof(listener));
-        }
+        ArgumentNullThrowHelper.ThrowIfNull(listener);
 
         if (_listener != null)
         {
@@ -127,10 +122,8 @@ public abstract class PollingResolver : Resolver
     /// </summary>
     public sealed override void Refresh()
     {
-        if (_disposed)
-        {
-            throw new ObjectDisposedException(GetType().Name);
-        }
+        ObjectDisposedThrowHelper.ThrowIf(_disposed, GetType());
+
         if (_listener == null)
         {
             throw new InvalidOperationException("Resolver hasn't been started.");

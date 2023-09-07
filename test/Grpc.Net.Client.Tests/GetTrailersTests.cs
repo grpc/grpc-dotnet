@@ -1,4 +1,4 @@
-﻿#region Copyright notice and license
+#region Copyright notice and license
 
 // Copyright 2019 The gRPC Authors
 //
@@ -47,7 +47,7 @@ public class GetTrailersTests
         var invoker = HttpClientCallInvokerFactory.Create(httpClient);
 
         // Act
-        var call = invoker.AsyncUnaryCall<HelloRequest, HelloReply>(ClientTestHelpers.ServiceMethod, string.Empty, new CallOptions(), new HelloRequest());
+        var call = invoker.AsyncUnaryCall(new HelloRequest());
         var message = await call;
         var trailers1 = call.GetTrailers();
         var trailers2 = call.GetTrailers();
@@ -72,7 +72,7 @@ public class GetTrailersTests
         var invoker = HttpClientCallInvokerFactory.Create(httpClient);
 
         // Act
-        var call = invoker.AsyncUnaryCall<HelloRequest, HelloReply>(ClientTestHelpers.ServiceMethod, string.Empty, new CallOptions(), new HelloRequest());
+        var call = invoker.AsyncUnaryCall(new HelloRequest());
         var responseHeaders = await call.ResponseHeadersAsync.DefaultTimeout();
         var trailers = call.GetTrailers();
 
@@ -84,21 +84,23 @@ public class GetTrailersTests
     public void AsyncUnaryCall_UnfinishedCall_ThrowsError()
     {
         // Arrange
-        var tcs = new TaskCompletionSource<object>(TaskCreationOptions.RunContinuationsAsynchronously);
+        var tcs = new TaskCompletionSource<object?>(TaskCreationOptions.RunContinuationsAsynchronously);
 
         var httpClient = ClientTestHelpers.CreateTestClient(async request =>
         {
-            await tcs.Task.DefaultTimeout();
-            throw new Exception("Test shouldn't reach here.");
+            await tcs.Task;
+            return ResponseUtils.CreateResponse(HttpStatusCode.NotFound);
         });
         var invoker = HttpClientCallInvokerFactory.Create(httpClient);
 
         // Act
-        var call = invoker.AsyncUnaryCall<HelloRequest, HelloReply>(ClientTestHelpers.ServiceMethod, string.Empty, new CallOptions(), new HelloRequest());
+        var call = invoker.AsyncUnaryCall(new HelloRequest());
         var ex = Assert.Throws<InvalidOperationException>(() => call.GetTrailers())!;
 
         // Assert
         Assert.AreEqual("Can't get the call trailers because the call has not completed successfully.", ex.Message);
+
+        tcs.TrySetResult(null);
     }
 
     [Test]
@@ -114,7 +116,7 @@ public class GetTrailersTests
         var invoker = HttpClientCallInvokerFactory.Create(httpClient);
 
         // Act
-        var call = invoker.AsyncUnaryCall<HelloRequest, HelloReply>(ClientTestHelpers.ServiceMethod, string.Empty, new CallOptions(), new HelloRequest());
+        var call = invoker.AsyncUnaryCall(new HelloRequest());
         var ex = Assert.Throws<InvalidOperationException>(() => call.GetTrailers())!;
 
         // Assert
@@ -145,7 +147,7 @@ public class GetTrailersTests
         var invoker = HttpClientCallInvokerFactory.Create(httpClient, loggerFactory);
 
         // Act
-        var call = invoker.AsyncUnaryCall<HelloRequest, HelloReply>(ClientTestHelpers.ServiceMethod, string.Empty, new CallOptions(), new HelloRequest());
+        var call = invoker.AsyncUnaryCall(new HelloRequest());
         var ex = await ExceptionAssert.ThrowsAsync<RpcException>(() => call.ResponseAsync).DefaultTimeout();
 
         // Assert
@@ -158,7 +160,7 @@ public class GetTrailersTests
         Assert.AreEqual("Invalid Base-64 header value.", log.Exception.Message);
     }
 
-#if NET472
+#if NET462
     [Test]
     public async Task AsyncUnaryCall_NoTrailers_ThrowsError()
     {
@@ -174,7 +176,7 @@ public class GetTrailersTests
         var invoker = HttpClientCallInvokerFactory.Create(httpClient);
 
         // Act
-        var call = invoker.AsyncUnaryCall<HelloRequest, HelloReply>(ClientTestHelpers.ServiceMethod, string.Empty, new CallOptions(), new HelloRequest());
+        var call = invoker.AsyncUnaryCall(new HelloRequest());
         var ex = await ExceptionAssert.ThrowsAsync<RpcException>(() => call.ResponseAsync).DefaultTimeout();
 
         // Assert
@@ -198,7 +200,7 @@ public class GetTrailersTests
         var invoker = HttpClientCallInvokerFactory.Create(httpClient);
 
         // Act
-        var call = invoker.AsyncUnaryCall<HelloRequest, HelloReply>(ClientTestHelpers.ServiceMethod, string.Empty, new CallOptions(), new HelloRequest());
+        var call = invoker.AsyncUnaryCall(new HelloRequest());
         var ex = await ExceptionAssert.ThrowsAsync<RpcException>(() => call.ResponseAsync).DefaultTimeout();
 
         // Assert
@@ -219,10 +221,12 @@ public class GetTrailersTests
             response.Headers.Add("custom", "ABC");
             return response;
         });
+#pragma warning disable CS0436 // Using custom WinHttpHandler type rather than the real one
         var invoker = HttpClientCallInvokerFactory.Create(new WinHttpHandler(httpMessageHandler), "https://localhost");
+#pragma warning restore CS0436
 
         // Act
-        var call = invoker.AsyncUnaryCall<HelloRequest, HelloReply>(ClientTestHelpers.ServiceMethod, string.Empty, new CallOptions(), new HelloRequest());
+        var call = invoker.AsyncUnaryCall(new HelloRequest());
         var ex = await ExceptionAssert.ThrowsAsync<RpcException>(() => call.ResponseAsync).DefaultTimeout();
 
         // Assert
@@ -236,42 +240,46 @@ public class GetTrailersTests
     public void AsyncClientStreamingCall_UnfinishedCall_ThrowsError()
     {
         // Arrange
-        var tcs = new TaskCompletionSource<object>(TaskCreationOptions.RunContinuationsAsynchronously);
+        var tcs = new TaskCompletionSource<object?>(TaskCreationOptions.RunContinuationsAsynchronously);
 
         var httpClient = ClientTestHelpers.CreateTestClient(async request =>
         {
-            await tcs.Task.DefaultTimeout();
-            throw new Exception("Test shouldn't reach here.");
+            await tcs.Task;
+            return ResponseUtils.CreateResponse(HttpStatusCode.NotFound);
         });
         var invoker = HttpClientCallInvokerFactory.Create(httpClient);
 
         // Act
-        var call = invoker.AsyncClientStreamingCall<HelloRequest, HelloReply>(ClientTestHelpers.ServiceMethod, string.Empty, new CallOptions());
+        var call = invoker.AsyncClientStreamingCall();
         var ex = Assert.Throws<InvalidOperationException>(() => call.GetTrailers())!;
 
         // Assert
         Assert.AreEqual("Can't get the call trailers because the call has not completed successfully.", ex.Message);
+
+        tcs.TrySetResult(null);
     }
 
     [Test]
     public void AsyncServerStreamingCall_UnfinishedCall_ThrowsError()
     {
         // Arrange
-        var tcs = new TaskCompletionSource<object>(TaskCreationOptions.RunContinuationsAsynchronously);
+        var tcs = new TaskCompletionSource<object?>(TaskCreationOptions.RunContinuationsAsynchronously);
 
         var httpClient = ClientTestHelpers.CreateTestClient(async request =>
         {
-            await tcs.Task.DefaultTimeout();
-            throw new Exception("Test shouldn't reach here.");
+            await tcs.Task;
+            return ResponseUtils.CreateResponse(HttpStatusCode.NotFound);
         });
         var invoker = HttpClientCallInvokerFactory.Create(httpClient);
 
         // Act
-        var call = invoker.AsyncServerStreamingCall<HelloRequest, HelloReply>(ClientTestHelpers.ServiceMethod, string.Empty, new CallOptions(), new HelloRequest());
+        var call = invoker.AsyncServerStreamingCall(new HelloRequest());
         var ex = Assert.Throws<InvalidOperationException>(() => call.GetTrailers())!;
 
         // Assert
         Assert.AreEqual("Can't get the call trailers because the call has not completed successfully.", ex.Message);
+
+        tcs.TrySetResult(null);
     }
 
     [Test]
@@ -295,7 +303,7 @@ public class GetTrailersTests
         var invoker = HttpClientCallInvokerFactory.Create(httpClient);
 
         // Act
-        var call = invoker.AsyncServerStreamingCall<HelloRequest, HelloReply>(ClientTestHelpers.ServiceMethod, string.Empty, new CallOptions(), new HelloRequest());
+        var call = invoker.AsyncServerStreamingCall(new HelloRequest());
         var responseStream = call.ResponseStream;
 
         Assert.IsTrue(await responseStream.MoveNext(CancellationToken.None).DefaultTimeout());
@@ -328,7 +336,7 @@ public class GetTrailersTests
         var invoker = HttpClientCallInvokerFactory.Create(httpClient);
 
         // Act
-        var call = invoker.AsyncServerStreamingCall<HelloRequest, HelloReply>(ClientTestHelpers.ServiceMethod, string.Empty, new CallOptions(), new HelloRequest());
+        var call = invoker.AsyncServerStreamingCall(new HelloRequest());
         var responseStream = call.ResponseStream;
 
         Assert.IsTrue(await responseStream.MoveNext(CancellationToken.None).DefaultTimeout());
@@ -371,7 +379,7 @@ public class GetTrailersTests
         var invoker = HttpClientCallInvokerFactory.Create(handler, "https://localhost");
 
         // Act
-        var call = invoker.AsyncClientStreamingCall<HelloRequest, HelloReply>(ClientTestHelpers.ServiceMethod, string.Empty, new CallOptions());
+        var call = invoker.AsyncClientStreamingCall();
         await call.RequestStream.CompleteAsync().DefaultTimeout();
         await Task.WhenAll(call.ResponseAsync, trailingHeadersWrittenTcs.Task).DefaultTimeout();
         var trailers = call.GetTrailers();
@@ -394,7 +402,7 @@ public class GetTrailersTests
         var invoker = HttpClientCallInvokerFactory.Create(httpClient);
 
         // Act
-        var call = invoker.AsyncClientStreamingCall<HelloRequest, HelloReply>(ClientTestHelpers.ServiceMethod, string.Empty, new CallOptions());
+        var call = invoker.AsyncClientStreamingCall();
         var ex = Assert.Throws<InvalidOperationException>(() => call.GetTrailers())!;
 
         // Assert
@@ -413,7 +421,7 @@ public class GetTrailersTests
         var invoker = HttpClientCallInvokerFactory.Create(httpClient);
 
         // Act
-        var call = invoker.AsyncClientStreamingCall<HelloRequest, HelloReply>(ClientTestHelpers.ServiceMethod, string.Empty, new CallOptions());
+        var call = invoker.AsyncClientStreamingCall();
         var trailers = call.GetTrailers();
 
         // Assert
@@ -433,7 +441,7 @@ public class GetTrailersTests
         var invoker = HttpClientCallInvokerFactory.Create(httpClient);
 
         // Act
-        var call = invoker.AsyncClientStreamingCall<HelloRequest, HelloReply>(ClientTestHelpers.ServiceMethod, string.Empty, new CallOptions());
+        var call = invoker.AsyncClientStreamingCall();
         var trailers = call.GetTrailers();
 
         // Assert

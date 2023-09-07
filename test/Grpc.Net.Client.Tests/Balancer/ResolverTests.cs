@@ -238,7 +238,7 @@ public class ResolverTests
         services.Add(ServiceDescriptor.Singleton<LoadBalancerFactory>(firstLoadBalancerFactory));
         services.Add(ServiceDescriptor.Singleton<LoadBalancerFactory>(secondLoadBalancerFactory));
         var serviceProvider = services.BuildServiceProvider();
-        var logger = serviceProvider.GetRequiredService<ILoggerProvider>().CreateLogger(GetType().FullName);
+        var logger = serviceProvider.GetRequiredService<ILoggerProvider>().CreateLogger(GetType().FullName!);
 
         var handler = new TestHttpMessageHandler((r, ct) => default!);
         var channelOptions = new GrpcChannelOptions

@@ -1,4 +1,4 @@
-﻿#region Copyright notice and license
+#region Copyright notice and license
 
 // Copyright 2019 The gRPC Authors
 //
@@ -17,6 +17,9 @@
 #endregion
 
 #if SUPPORT_LOAD_BALANCING
+using System.Net;
+using Grpc.Shared;
+
 namespace Grpc.Net.Client.Balancer.Internal;
 
 /// <summary>
@@ -26,21 +29,22 @@ namespace Grpc.Net.Client.Balancer.Internal;
 /// </summary>
 internal interface ISubchannelTransport : IDisposable
 {
-    BalancerAddress? CurrentAddress { get; }
+    DnsEndPoint? CurrentEndPoint { get; }
     TimeSpan? ConnectTimeout { get; }
+    TransportStatus TransportStatus { get; }
 
-#if NET5_0_OR_GREATER
-    ValueTask<Stream> GetStreamAsync(BalancerAddress address, CancellationToken cancellationToken);
-#endif
-
-#if !NETSTANDARD2_0
-    ValueTask<ConnectResult>
-#else
-    Task<ConnectResult>
-#endif
-        TryConnectAsync(ConnectContext context);
+    ValueTask<Stream> GetStreamAsync(DnsEndPoint endPoint, CancellationToken cancellationToken);
+    ValueTask<ConnectResult> TryConnectAsync(ConnectContext context);
 
     void Disconnect();
+}
+
+internal enum TransportStatus
+{
+    NotConnected,
+    Passive,
+    InitialSocket,
+    ActiveStream
 }
 
 internal enum ConnectResult
@@ -74,10 +78,7 @@ internal sealed class ConnectContext
     public void CancelConnect()
     {
         // Check disposed because CTS.Cancel throws if the CTS is disposed.
-        if (Disposed)
-        {
-            throw new ObjectDisposedException(nameof(ConnectContext));
-        }
+        ObjectDisposedThrowHelper.ThrowIf(Disposed, typeof(ConnectContext));
 
         IsConnectCanceled = true;
         _cts.Cancel();

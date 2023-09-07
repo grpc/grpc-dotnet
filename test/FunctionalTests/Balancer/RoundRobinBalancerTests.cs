@@ -43,8 +43,10 @@ namespace Grpc.AspNetCore.FunctionalTests.Balancer;
 public class RoundRobinBalancerTests : FunctionalTestBase
 {
     [Test]
-    public async Task DisconnectEndpoint_NoCallsMade_SubchannelStateUpdated()
+    public async Task DisconnectEndpoint_NoCallsMade_ChannelStateUpdated()
     {
+        using var httpEventSource = new SocketsEventSourceListener(LoggerFactory);
+
         // Ignore errors
         SetExpectedErrorsFilter(writeContext =>
         {
@@ -59,21 +61,26 @@ public class RoundRobinBalancerTests : FunctionalTestBase
         }
 
         // Arrange
-        using var endpoint = BalancerHelpers.CreateGrpcEndpoint<HelloRequest, HelloReply>(50051, UnaryMethod, nameof(UnaryMethod));
+        Logger.LogInformation("Creating server.");
+        using var endpoint = BalancerHelpers.CreateGrpcEndpoint<HelloRequest, HelloReply>(50051, UnaryMethod, nameof(UnaryMethod), loggerFactory: LoggerFactory);
 
         var channel = await BalancerHelpers.CreateChannel(LoggerFactory, new RoundRobinConfig(), new[] { endpoint.Address });
 
+        Logger.LogInformation("Client connecting to server.");
         await channel.ConnectAsync().DefaultTimeout();
 
+        Logger.LogInformation("Client waiting for ready.");
         var subchannel = await BalancerWaitHelpers.WaitForSubchannelToBeReadyAsync(Logger, channel).DefaultTimeout();
 
+        var waitForConnectingTask = BalancerWaitHelpers.WaitForChannelStatesAsync(Logger, channel, new[] { ConnectivityState.Connecting });
+
         // Act
+        Logger.LogInformation("Server shutting down.");
         endpoint.Dispose();
 
         // Assert
-        await TestHelpers.AssertIsTrueRetryAsync(
-            () => subchannel.State == ConnectivityState.TransientFailure,
-            "Wait for subchannel to fail.").DefaultTimeout();
+        Logger.LogInformation("Waiting for client state change.");
+        await waitForConnectingTask.TimeoutAfter(TimeSpan.FromSeconds(10));
     }
 
     [Test]
@@ -374,8 +381,8 @@ public class RoundRobinBalancerTests : FunctionalTestBase
 
         var activeStreams = ((SocketConnectivitySubchannelTransport)disposedSubchannel.Transport).GetActiveStreams();
         Assert.AreEqual(1, activeStreams.Count);
-        Assert.AreEqual("127.0.0.1", activeStreams[0].Address.EndPoint.Host);
-        Assert.AreEqual(50051, activeStreams[0].Address.EndPoint.Port);
+        Assert.AreEqual("127.0.0.1", activeStreams[0].EndPoint.Host);
+        Assert.AreEqual(50051, activeStreams[0].EndPoint.Port);
 
         // Wait until connected to new endpoint
         Subchannel? newSubchannel = null;
@@ -399,15 +406,17 @@ public class RoundRobinBalancerTests : FunctionalTestBase
         Assert.AreEqual("127.0.0.1:50052", host!);
 
         // Disposed subchannel stream removed when endpoint disposed.
-        activeStreams = ((SocketConnectivitySubchannelTransport)disposedSubchannel.Transport).GetActiveStreams();
-        Assert.AreEqual(0, activeStreams.Count);
-        Assert.IsNull(((SocketConnectivitySubchannelTransport)disposedSubchannel.Transport)._initialSocket);
+        await TestHelpers.AssertIsTrueRetryAsync(() =>
+        {
+            var disposedTransport = (SocketConnectivitySubchannelTransport)disposedSubchannel.Transport;
+            return disposedTransport.GetActiveStreams().Count == 0 && disposedTransport._initialSocket == null;
+        }, "Wait for SocketsHttpHandler to react to server closing streams.").DefaultTimeout();
 
         // New subchannel stream created with request.
         activeStreams = ((SocketConnectivitySubchannelTransport)newSubchannel.Transport).GetActiveStreams();
         Assert.AreEqual(1, activeStreams.Count);
-        Assert.AreEqual("127.0.0.1", activeStreams[0].Address.EndPoint.Host);
-        Assert.AreEqual(50052, activeStreams[0].Address.EndPoint.Port);
+        Assert.AreEqual("127.0.0.1", activeStreams[0].EndPoint.Host);
+        Assert.AreEqual(50052, activeStreams[0].EndPoint.Port);
         Assert.IsNull(((SocketConnectivitySubchannelTransport)disposedSubchannel.Transport)._initialSocket);
     }
 

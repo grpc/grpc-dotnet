@@ -1,4 +1,4 @@
-﻿#region Copyright notice and license
+#region Copyright notice and license
 
 // Copyright 2019 The gRPC Authors
 //
@@ -44,6 +44,11 @@ internal class ServerStreamingServerCallHandler<
 
     protected override async Task HandleCallAsyncCore(HttpContext httpContext, HttpContextServerCallContext serverCallContext)
     {
+        // Disable certain features for server streaming methods.
+#if NET8_0_OR_GREATER
+        DisableRequestTimeout(httpContext);
+#endif
+
         // Decode request
         var request = await httpContext.Request.BodyReader.ReadSingleMessageAsync<TRequest>(serverCallContext, MethodInvoker.Method.RequestMarshaller.ContextualDeserializer);
 

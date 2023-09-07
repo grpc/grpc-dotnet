@@ -60,10 +60,7 @@ public static class GrpcClientServiceExtensions
         TClient>(this IServiceCollection services)
         where TClient : class
     {
-        if (services == null)
-        {
-            throw new ArgumentNullException(nameof(services));
-        }
+        ArgumentNullThrowHelper.ThrowIfNull(services);
 
         return services.AddGrpcClient<TClient>(o => { });
     }
@@ -171,15 +168,8 @@ public static class GrpcClientServiceExtensions
         TClient>(this IServiceCollection services, string name)
         where TClient : class
     {
-        if (services == null)
-        {
-            throw new ArgumentNullException(nameof(services));
-        }
-
-        if (name == null)
-        {
-            throw new ArgumentNullException(nameof(name));
-        }
+        ArgumentNullThrowHelper.ThrowIfNull(services);
+        ArgumentNullThrowHelper.ThrowIfNull(name);
 
         return services.AddGrpcClient<TClient>(name, o => { });
     }
@@ -214,20 +204,9 @@ public static class GrpcClientServiceExtensions
         TClient>(this IServiceCollection services, string name, Action<GrpcClientFactoryOptions> configureClient)
         where TClient : class
     {
-        if (services == null)
-        {
-            throw new ArgumentNullException(nameof(services));
-        }
-
-        if (name == null)
-        {
-            throw new ArgumentNullException(nameof(name));
-        }
-
-        if (configureClient == null)
-        {
-            throw new ArgumentNullException(nameof(configureClient));
-        }
+        ArgumentNullThrowHelper.ThrowIfNull(services);
+        ArgumentNullThrowHelper.ThrowIfNull(name);
+        ArgumentNullThrowHelper.ThrowIfNull(configureClient);
 
         services.Configure(name, configureClient);
 
@@ -268,20 +247,9 @@ public static class GrpcClientServiceExtensions
         TClient>(this IServiceCollection services, string name, Action<IServiceProvider, GrpcClientFactoryOptions> configureClient)
         where TClient : class
     {
-        if (services == null)
-        {
-            throw new ArgumentNullException(nameof(services));
-        }
-
-        if (name == null)
-        {
-            throw new ArgumentNullException(nameof(name));
-        }
-
-        if (configureClient == null)
-        {
-            throw new ArgumentNullException(nameof(configureClient));
-        }
+        ArgumentNullThrowHelper.ThrowIfNull(services);
+        ArgumentNullThrowHelper.ThrowIfNull(name);
+        ArgumentNullThrowHelper.ThrowIfNull(configureClient);
 
         services.AddTransient<IConfigureOptions<GrpcClientFactoryOptions>>(services =>
         {
@@ -309,10 +277,7 @@ public static class GrpcClientServiceExtensions
 #endif
         TClient>(this IServiceCollection services, string name) where TClient : class
     {
-        if (name == null)
-        {
-            throw new ArgumentNullException(nameof(name));
-        }
+        ArgumentNullThrowHelper.ThrowIfNull(name);
 
         // Transient so that IServiceProvider injected into constructor is for the current scope.
         services.TryAddTransient<GrpcClientFactory, DefaultGrpcClientFactory>();
@@ -339,10 +304,7 @@ public static class GrpcClientServiceExtensions
         TClient>(this IServiceCollection services, string name)
         where TClient : class
     {
-        if (services == null)
-        {
-            throw new ArgumentNullException(nameof(services));
-        }
+        ArgumentNullThrowHelper.ThrowIfNull(services);
 
         services
             .AddHttpClient(name)
@@ -372,9 +334,6 @@ public static class GrpcClientServiceExtensions
                         // by setting PooledConnectionLifetime to handler lifetime.
                         socketsHttpHandler.PooledConnectionLifetime = options.HandlerLifetime;
                     }
-#endif
-#if NET5_0
-                    handler = HttpHandlerFactory.EnsureTelemetryHandler(handler);
 #endif
 
                     builder.PrimaryHandler = handler;

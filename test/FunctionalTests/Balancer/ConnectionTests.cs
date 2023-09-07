@@ -23,10 +23,11 @@ using System.Diagnostics;
 using System.Linq;
 using System.Net;
 using System.Net.Http;
-using System.Net.Sockets;
 using System.Net.Security;
+using System.Net.Sockets;
 using System.Security.Authentication;
 using System.Security.Cryptography.X509Certificates;
+using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using Greet;
@@ -51,7 +52,6 @@ namespace Grpc.AspNetCore.FunctionalTests.Balancer;
 [TestFixture]
 public class ConnectionTests : FunctionalTestBase
 {
-#if NET5_0_OR_GREATER
     [Test]
     public async Task Active_UnaryCall_ConnectTimeout_ErrorThrownWhenTimeoutExceeded()
     {
@@ -141,6 +141,129 @@ public class ConnectionTests : FunctionalTestBase
         await ExceptionAssert.ThrowsAsync<OperationCanceledException>(() => connectTask).DefaultTimeout();
     }
 
+    [TestCase(0)] // TimeSpan.Zero
+    [TestCase(1000)] // 1 second
+    public async Task Active_UnaryCall_ConnectionIdleTimeout_SocketRecreated(int milliseconds)
+    {
+        // Ignore errors
+        SetExpectedErrorsFilter(writeContext =>
+        {
+            return true;
+        });
+
+        Task<HelloReply> UnaryMethod(HelloRequest request, ServerCallContext context)
+        {
+            return Task.FromResult(new HelloReply { Message = request.Name });
+        }
+
+        // Arrange
+        using var endpoint = BalancerHelpers.CreateGrpcEndpoint<HelloRequest, HelloReply>(50051, UnaryMethod, nameof(UnaryMethod), loggerFactory: LoggerFactory);
+
+        var connectionIdleTimeout = TimeSpan.FromMilliseconds(milliseconds);
+        var channel = await BalancerHelpers.CreateChannel(
+            LoggerFactory,
+            new PickFirstConfig(),
+            new[] { endpoint.Address },
+            connectionIdleTimeout: connectionIdleTimeout).DefaultTimeout();
+
+        Logger.LogInformation("Connecting channel.");
+        await channel.ConnectAsync();
+
+        // Wait for timeout plus a little extra to avoid issues from imprecise timers.
+        await Task.Delay(connectionIdleTimeout + TimeSpan.FromMilliseconds(50));
+
+        var client = TestClientFactory.Create(channel, endpoint.Method);
+        var response = await client.UnaryCall(new HelloRequest { Name = "Test!" }).ResponseAsync.DefaultTimeout();
+
+        // Assert
+        Assert.AreEqual("Test!", response.Message);
+
+        AssertHasLog(LogLevel.Debug, "ClosingSocketFromIdleTimeoutOnCreateStream");
+        AssertHasLog(LogLevel.Trace, "ConnectingOnCreateStream");
+    }
+
+    public async Task Active_UnaryCall_InfiniteConnectionIdleTimeout_SocketNotClosed()
+    {
+        SetExpectedErrorsFilter(writeContext =>
+        {
+            return true;
+        });
+
+        Task<HelloReply> UnaryMethod(HelloRequest request, ServerCallContext context)
+        {
+            return Task.FromResult(new HelloReply { Message = request.Name });
+        }
+
+        // Arrange
+        using var endpoint = BalancerHelpers.CreateGrpcEndpoint<HelloRequest, HelloReply>(50051, UnaryMethod, nameof(UnaryMethod), loggerFactory: LoggerFactory);
+
+        var channel = await BalancerHelpers.CreateChannel(
+            LoggerFactory,
+            new PickFirstConfig(),
+            new[] { endpoint.Address },
+            connectionIdleTimeout: Timeout.InfiniteTimeSpan).DefaultTimeout();
+
+        Logger.LogInformation("Connecting channel.");
+        await channel.ConnectAsync();
+
+        var client = TestClientFactory.Create(channel, endpoint.Method);
+        var response = await client.UnaryCall(new HelloRequest { Name = "Test!" }).ResponseAsync.DefaultTimeout();
+
+        // Assert
+        Assert.AreEqual("Test!", response.Message);
+
+        Assert.IsFalse(Logs.Any(l => l.EventId.Name == "ClosingSocketFromIdleTimeoutOnCreateStream"), "Shouldn't have a ClosingSocketFromIdleTimeoutOnCreateStream log.");
+    }
+
+    [Test]
+    public async Task Active_UnaryCall_ServerCloseOnKeepAlive_SocketRecreatedOnRequest()
+    {
+        // Ignore errors
+        SetExpectedErrorsFilter(writeContext =>
+        {
+            return true;
+        });
+
+        Task<HelloReply> UnaryMethod(HelloRequest request, ServerCallContext context)
+        {
+            return Task.FromResult(new HelloReply { Message = request.Name });
+        }
+
+        // In this test the client connects to the server, and the server then closes it after keep-alive is triggered.
+        // The client then starts a gRPC call to the server. The client should discard the closed socket and create a new one.
+
+        // Arrange
+        using var endpoint = BalancerHelpers.CreateGrpcEndpoint<HelloRequest, HelloReply>(
+            50051,
+            UnaryMethod,
+            nameof(UnaryMethod),
+            loggerFactory: LoggerFactory,
+            configureServer: o => o.Limits.KeepAliveTimeout = TimeSpan.FromSeconds(1));
+
+        // Don't timeout the socket or ping it from the client.
+        var channel = await BalancerHelpers.CreateChannel(
+            LoggerFactory,
+            new RoundRobinConfig(),
+            new[] { endpoint.Address },
+            connectionIdleTimeout: TimeSpan.FromMinutes(30),
+            socketPingInterval: TimeSpan.FromMinutes(30)).DefaultTimeout();
+
+        Logger.LogInformation("Connecting channel.");
+        await channel.ConnectAsync();
+
+        // Fails when this test is run with debugging. Kestrel doesn't trigger keepalive timeout if debugging is enabled.
+        await TestHelpers.AssertIsTrueRetryAsync(() =>
+        {
+            return Logs.Any(l => l.LoggerName.StartsWith("Microsoft.AspNetCore.Server.Kestrel") && l.EventId.Name == "ConnectionStop");
+        }, "Wait for server to close connection.");
+
+        var client = TestClientFactory.Create(channel, endpoint.Method);
+        var response = await client.UnaryCall(new HelloRequest { Name = "Test!" }).ResponseAsync.DefaultTimeout();
+
+        // Assert
+        Assert.AreEqual("Test!", response.Message);
+    }
+
     [Test]
     public async Task Active_UnaryCall_MultipleStreams_UnavailableAddress_FallbackToWorkingAddress()
     {
@@ -223,7 +346,7 @@ public class ConnectionTests : FunctionalTestBase
         }, "Wait for connections to start.");
         foreach (var t in activeStreams)
         {
-            Assert.AreEqual(new DnsEndPoint("127.0.0.1", 50051), t.Address.EndPoint);
+            Assert.AreEqual(new DnsEndPoint("127.0.0.1", 50051), t.EndPoint);
         }
 
         // Act
@@ -244,7 +367,7 @@ public class ConnectionTests : FunctionalTestBase
             activeStreams = transport.GetActiveStreams();
             return activeStreams.Count == 11;
         }, "Wait for connections to start.");
-        Assert.AreEqual(new DnsEndPoint("127.0.0.1", 50051), activeStreams[activeStreams.Count - 1].Address.EndPoint);
+        Assert.AreEqual(new DnsEndPoint("127.0.0.1", 50051), activeStreams[activeStreams.Count - 1].EndPoint);
 
         tcs.SetResult(null);
 
@@ -284,7 +407,7 @@ public class ConnectionTests : FunctionalTestBase
 
         activeStreams = transport.GetActiveStreams();
         Assert.AreEqual(1, activeStreams.Count);
-        Assert.AreEqual(new DnsEndPoint("127.0.0.1", 50052), activeStreams[0].Address.EndPoint);
+        Assert.AreEqual(new DnsEndPoint("127.0.0.1", 50052), activeStreams[0].EndPoint);
     }
 
 #if NET7_0_OR_GREATER
@@ -446,6 +569,248 @@ public class ConnectionTests : FunctionalTestBase
             return base.SendAsync(request, cancellationToken);
         }
     }
-#endif
+
+    [Test]
+    public async Task SocketSendsBytes_BeforeCall_ReplaysBufferedData()
+    {
+        // Arrange
+        using var listener = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
+        listener.Bind(new IPEndPoint(IPAddress.Loopback, 0));
+        listener.Listen(int.MaxValue);
+
+        var acceptSocketTask = Task.Run(async () =>
+        {
+            var socket = await listener.AcceptAsync();
+            socket.NoDelay = true;
+            return socket;
+        });
+
+        // Ignore errors
+        SetExpectedErrorsFilter(writeContext =>
+        {
+            return true;
+        });
+
+        var url = $"http://localhost:{((IPEndPoint?)listener.LocalEndPoint!).Port}";
+
+        var channel = await BalancerHelpers.CreateChannel(LoggerFactory, new RoundRobinConfig(), new[] { new Uri(url) });
+
+        Logger.LogInformation("Client starting connect.");
+        var connectTask = channel.ConnectAsync().DefaultTimeout();
+
+        Logger.LogInformation("Server accepting socket.");
+        var socket = await acceptSocketTask.DefaultTimeout();
+
+        Logger.LogInformation("Client waiting for connect complete.");
+        await connectTask.DefaultTimeout();
+
+        var subchannel = await BalancerWaitHelpers.WaitForSubchannelToBeReadyAsync(Logger, channel).DefaultTimeout();
+
+        // Act 1
+        Logger.LogInformation("Server sending data.");
+        var data = Convert.FromBase64String("AAAYBAAAAAAAAAQAP///AAUAP///AAYAACAA/gMAAAABAAAECAAAAAAAAD8AAA==");
+        socket.Send(data);
+
+        // Assert 1
+        const int RequiredCheckLogCount = 2;
+        await TestHelpers.AssertIsTrueRetryAsync(
+            () => Logs.Count(l => l.EventId.Name == "CheckingSocket") >= RequiredCheckLogCount,
+            "Wait for multiple checking socket logs.").DefaultTimeout();
+
+        Assert.False(Logs.Any(l => l.EventId.Name == "SocketPollBadState"), "Socket was unexpectedly disconnected with a bad state.");
+
+        // Act 2
+        var cts = new CancellationTokenSource();
+        var client = new Greeter.GreeterClient(channel);
+        _ = client.SayHelloAsync(new HelloRequest(), new CallOptions(cancellationToken: cts.Token));
+
+        // Assert 2
+        await TestHelpers.AssertIsTrueRetryAsync(
+            () => Logs.Any(l => l.EventId.Name == "StreamCreated" && HasState(l, "BufferedBytes", 46)),
+            "Wait for stream to be created with buffered data.").DefaultTimeout();
+        cts.Cancel();
+    }
+
+    [Test]
+    public async Task SocketSendsBytes_BeforeCall_LargeData_Error()
+    {
+        // Arrange
+        using var listener = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
+        listener.Bind(new IPEndPoint(IPAddress.Loopback, 0));
+        listener.Listen(int.MaxValue);
+
+        var acceptSocketTask = Task.Run(async () =>
+        {
+            var socket = await listener.AcceptAsync();
+            socket.NoDelay = true;
+            return socket;
+        });
+
+        // Ignore errors
+        SetExpectedErrorsFilter(writeContext =>
+        {
+            return true;
+        });
+
+        var url = $"http://localhost:{((IPEndPoint?)listener.LocalEndPoint!).Port}";
+
+        var channel = await BalancerHelpers.CreateChannel(LoggerFactory, new RoundRobinConfig(), new[] { new Uri(url) });
+
+        Logger.LogInformation("Client starting connect.");
+        var connectTask = channel.ConnectAsync().DefaultTimeout();
+
+        Logger.LogInformation("Server accepting socket.");
+        var socket = await acceptSocketTask.DefaultTimeout();
+
+        Logger.LogInformation("Client waiting for connect complete.");
+        await connectTask.DefaultTimeout();
+
+        var subchannel = await BalancerWaitHelpers.WaitForSubchannelToBeReadyAsync(Logger, channel).DefaultTimeout();
+
+        // Act
+        Logger.LogInformation("Server sending data.");
+        socket.Send(new byte[1024 * 1024]);
+
+        // Assert
+        const int RequiredCheckLogCount = 2;
+        await TestHelpers.AssertIsTrueRetryAsync(
+            () => Logs.Count(l => l.EventId.Name == "CheckingSocket") >= RequiredCheckLogCount,
+            "Wait for multiple checking socket logs.").DefaultTimeout();
+
+        Assert.True(Logs.Any(l => l.EventId.Name == "ErrorCheckingSocket" && l.Exception is { } ex && ex.Message.Contains("Maximum allowed data exceeded.")), "Socket was disconnected because of large data.");
+    }
+
+    private static bool HasState<T>(LogRecord l, string key, T expectedValue)
+    {
+        var values = (IReadOnlyList<KeyValuePair<string, object>>)l.State;
+        var value = (T)values.FirstOrDefault(values => values.Key == key).Value;
+        return Equals(expectedValue, value);
+    }
+
+    [Test]
+    public async Task Connect_Idle_PingServer()
+    {
+        // Ignore errors
+        SetExpectedErrorsFilter(writeContext =>
+        {
+            return true;
+        });
+
+        var tcs = new TaskCompletionSource<object?>(TaskCreationOptions.RunContinuationsAsynchronously);
+        Task<HelloReply> UnaryMethod(HelloRequest request, ServerCallContext context)
+        {
+            return Task.FromResult(new HelloReply { Message = request.Name });
+        }
+
+        // Arrange
+        using var endpoint = BalancerHelpers.CreateGrpcEndpoint<HelloRequest, HelloReply>(50051, UnaryMethod, nameof(UnaryMethod));
+
+        var channel = await BalancerHelpers.CreateChannel(
+            LoggerFactory,
+            new PickFirstConfig(),
+            new[] { endpoint.Address }).DefaultTimeout();
+
+        // Act
+        await channel.ConnectAsync().DefaultTimeout();
+
+        // Assert
+        const int RequiredCheckLogCount = 4;
+        await TestHelpers.AssertIsTrueRetryAsync(
+            () => Logs.Count(l => l.EventId.Name == "CheckingSocket") >= RequiredCheckLogCount,
+            "Wait for multiple checking socket logs.").DefaultTimeout();
+    }
+
+    [Test]
+    public async Task DisconnectSocket_NoCallsMade_ChannelStateUpdated()
+    {
+        // Arrange
+        using var listener = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
+        listener.Bind(new IPEndPoint(IPAddress.Loopback, 0));
+        listener.Listen(int.MaxValue);
+
+        var acceptSocketTask = Task.Run(async () =>
+        {
+            var socket = await listener.AcceptAsync();
+            socket.NoDelay = true;
+            return socket;
+        });
+
+        // Ignore errors
+        SetExpectedErrorsFilter(writeContext =>
+        {
+            return true;
+        });
+
+        var url = $"http://localhost:{((IPEndPoint?)listener.LocalEndPoint!).Port}";
+
+        var channel = await BalancerHelpers.CreateChannel(LoggerFactory, new RoundRobinConfig(), new[] { new Uri(url) });
+
+        var connectTask = channel.ConnectAsync().DefaultTimeout();
+
+        var socket = await acceptSocketTask.DefaultTimeout();
+
+        await connectTask.DefaultTimeout();
+
+        var subchannel = await BalancerWaitHelpers.WaitForSubchannelToBeReadyAsync(Logger, channel).DefaultTimeout();
+
+        var waitForConnectingTask = BalancerWaitHelpers.WaitForChannelStatesAsync(Logger, channel, new[] { ConnectivityState.Connecting }).DefaultTimeout();
+
+        // Act
+        socket.Shutdown(SocketShutdown.Both);
+        socket.Dispose();
+        listener.Dispose();
+
+        // Assert
+        await waitForConnectingTask.DefaultTimeout();
+    }
+
+    [Test]
+    public async Task DisconnectSocket_NoCallsMade_ServerSentData_SocketClosed_ChannelStateUpdated()
+    {
+        using var httpEventSource = new SocketsEventSourceListener(LoggerFactory);
+
+        // Arrange
+        using var listener = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
+        listener.Bind(new IPEndPoint(IPAddress.Loopback, 0));
+        listener.Listen(int.MaxValue);
+
+        var acceptSocketTask = Task.Run(async () =>
+        {
+            var socket = await listener.AcceptAsync();
+            socket.NoDelay = true;
+            return socket;
+        });
+
+        // Ignore errors
+        SetExpectedErrorsFilter(writeContext =>
+        {
+            return true;
+        });
+
+        var url = $"http://localhost:{((IPEndPoint?)listener.LocalEndPoint!).Port}";
+
+        var channel = await BalancerHelpers.CreateChannel(LoggerFactory, new RoundRobinConfig(), new[] { new Uri(url) });
+
+        var connectTask = channel.ConnectAsync().DefaultTimeout();
+
+        var socket = await acceptSocketTask.DefaultTimeout();
+        socket.Send(Encoding.UTF8.GetBytes("Hello world"));
+
+        await connectTask.DefaultTimeout();
+
+        var subchannel = await BalancerWaitHelpers.WaitForSubchannelToBeReadyAsync(Logger, channel).DefaultTimeout();
+
+        var waitForConnectingTask = BalancerWaitHelpers.WaitForChannelStatesAsync(Logger, channel, new[] { ConnectivityState.Connecting }).DefaultTimeout();
+
+        // Act
+        socket.Shutdown(SocketShutdown.Both);
+        socket.Dispose();
+        listener.Dispose();
+
+        // Assert
+        await waitForConnectingTask.DefaultTimeout();
+
+        Assert.IsTrue(Logs.Any(l => l.EventId.Name == "SocketReceivingAvailable"), "Socket should have read available data.");
+    }
 }
 #endif

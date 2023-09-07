@@ -1,4 +1,4 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <Description>Integration of ASP.NET Core health checks with Grpc.HealthCheck</Description>
@@ -6,7 +6,7 @@
 
     <IsGrpcPublishedPackage>true</IsGrpcPublishedPackage>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
-    <TargetFrameworks>netcoreapp3.0;net5.0;net6.0;net7.0</TargetFrameworks>
+    <TargetFrameworks>net6.0;net7.0;net8.0</TargetFrameworks>
 
     <!-- Disable analysis for ConfigureAwait(false) -->
     <WarningsNotAsErrors>$(WarningsNotAsErrors);CA2007</WarningsNotAsErrors>
@@ -18,6 +18,8 @@
 
     <ProjectReference Include="..\Grpc.AspNetCore.Server\Grpc.AspNetCore.Server.csproj" />
     <ProjectReference Include="..\Grpc.HealthCheck\Grpc.HealthCheck.csproj" />
+
+    <Compile Include="..\Shared\ThrowHelpers\ArgumentNullThrowHelper.cs" Link="Internal\ArgumentNullThrowHelper.cs" />
   </ItemGroup>
 
 </Project>

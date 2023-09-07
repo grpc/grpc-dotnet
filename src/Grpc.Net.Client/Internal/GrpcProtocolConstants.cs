@@ -1,4 +1,4 @@
-﻿#region Copyright notice and license
+#region Copyright notice and license
 
 // Copyright 2019 The gRPC Authors
 //
@@ -16,6 +16,7 @@
 
 #endregion
 
+using System.Collections.Generic;
 using System.Net.Http.Headers;
 using Grpc.Core;
 using Grpc.Net.Compression;
@@ -24,7 +25,7 @@ namespace Grpc.Net.Client.Internal;
 
 internal static class GrpcProtocolConstants
 {
-#if !NETSTANDARD2_0
+#if !NETSTANDARD2_0 && !NET462
     public static readonly Version Http2Version = System.Net.HttpVersion.Version20;
 #else
     public static readonly Version Http2Version = new Version(2, 0);
@@ -76,11 +77,29 @@ internal static class GrpcProtocolConstants
     internal static string GetMessageAcceptEncoding(Dictionary<string, ICompressionProvider> compressionProviders)
     {
         return IdentityGrpcEncoding + "," +
-#if !NETSTANDARD2_0
+#if !NETSTANDARD2_0 && !NET462
             string.Join(',', compressionProviders.Select(p => p.Key));
 #else
             string.Join(",", compressionProviders.Select(p => p.Key));
 #endif
+    }
+
+    /// <summary>
+    /// Gets key value pairs used by debugging. These are provided as an enumerator instead of a dictionary
+    /// because it's one method to implement an enumerator on gRPC calls compared to a dozen members for a dictionary.
+    /// </summary>
+    public static IEnumerator<KeyValuePair<string, object>> GetDebugEnumerator(ChannelBase channel, IMethod method, object? request)
+    {
+        const string MethodKey = "Method";
+        const string ChannelKey = "Channel";
+        const string RequestKey = "Request";
+
+        yield return new KeyValuePair<string, object>(ChannelKey, channel);
+        yield return new KeyValuePair<string, object>(MethodKey, method);
+        if (request != null)
+        {
+            yield return new KeyValuePair<string, object>(RequestKey, request);
+        }
     }
 
     static GrpcProtocolConstants()

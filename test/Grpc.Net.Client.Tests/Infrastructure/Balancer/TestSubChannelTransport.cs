@@ -1,4 +1,4 @@
-﻿#region Copyright notice and license
+#region Copyright notice and license
 
 // Copyright 2019 The gRPC Authors
 //
@@ -38,8 +38,9 @@ internal class TestSubchannelTransport : ISubchannelTransport
 
     public Subchannel Subchannel { get; }
 
-    public BalancerAddress? CurrentAddress { get; private set; }
+    public DnsEndPoint? CurrentEndPoint { get; private set; }
     public TimeSpan? ConnectTimeout => _factory.ConnectTimeout;
+    public TransportStatus TransportStatus => TransportStatus.Passive;
 
     public Task TryConnectTask => _connectTcs.Task;
 
@@ -61,19 +62,19 @@ internal class TestSubchannelTransport : ISubchannelTransport
     {
     }
 
-    public ValueTask<Stream> GetStreamAsync(BalancerAddress address, CancellationToken cancellationToken)
+    public ValueTask<Stream> GetStreamAsync(DnsEndPoint endPoint, CancellationToken cancellationToken)
     {
         return new ValueTask<Stream>(new MemoryStream());
     }
 
     public void Disconnect()
     {
-        CurrentAddress = null;
+        CurrentEndPoint = null;
         Subchannel.UpdateConnectivityState(ConnectivityState.Idle, "Disconnected.");
     }
 
     public async
-#if !NET472
+#if !NET462
         ValueTask<ConnectResult>
 #else
         Task<ConnectResult>
@@ -82,7 +83,7 @@ internal class TestSubchannelTransport : ISubchannelTransport
     {
         var (newState, connectResult) = await (_onTryConnect?.Invoke(context.CancellationToken) ?? Task.FromResult(new TryConnectResult(ConnectivityState.Ready)));
 
-        CurrentAddress = Subchannel._addresses[0];
+        CurrentEndPoint = Subchannel._addresses[0].EndPoint;
         var newStatus = newState == ConnectivityState.TransientFailure ? new Status(StatusCode.Internal, "") : Status.DefaultSuccess;
         Subchannel.UpdateConnectivityState(newState, newStatus);
 

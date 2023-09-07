@@ -1,4 +1,4 @@
-﻿#region Copyright notice and license
+#region Copyright notice and license
 
 // Copyright 2019 The gRPC Authors
 //
@@ -52,7 +52,7 @@ public class GetStatusTests
         var invoker = HttpClientCallInvokerFactory.Create(httpClient);
 
         // Act
-        var call = invoker.AsyncUnaryCall<HelloRequest, HelloReply>(ClientTestHelpers.ServiceMethod, string.Empty, new CallOptions(), new HelloRequest());
+        var call = invoker.AsyncUnaryCall(new HelloRequest());
 
         // Assert
         var ex = await ExceptionAssert.ThrowsAsync<RpcException>(() => call.ResponseAsync).DefaultTimeout();
@@ -76,7 +76,7 @@ public class GetStatusTests
         var invoker = HttpClientCallInvokerFactory.Create(httpClient);
 
         // Act
-        var call = invoker.AsyncUnaryCall<HelloRequest, HelloReply>(ClientTestHelpers.ServiceMethod, string.Empty, new CallOptions(), new HelloRequest());
+        var call = invoker.AsyncUnaryCall(new HelloRequest());
 
         // Assert
         var ex = await ExceptionAssert.ThrowsAsync<RpcException>(() => call.ResponseAsync).DefaultTimeout();
@@ -101,7 +101,7 @@ public class GetStatusTests
         var invoker = HttpClientCallInvokerFactory.Create(httpClient);
 
         // Act
-        var call = invoker.AsyncUnaryCall<HelloRequest, HelloReply>(ClientTestHelpers.ServiceMethod, string.Empty, new CallOptions(), new HelloRequest());
+        var call = invoker.AsyncUnaryCall(new HelloRequest());
 
         // Assert
         var ex = await ExceptionAssert.ThrowsAsync<RpcException>(() => call.ResponseAsync).DefaultTimeout();
@@ -126,7 +126,7 @@ public class GetStatusTests
         var invoker = HttpClientCallInvokerFactory.Create(httpClient);
 
         // Act
-        var call = invoker.AsyncUnaryCall<HelloRequest, HelloReply>(ClientTestHelpers.ServiceMethod, string.Empty, new CallOptions(), new HelloRequest());
+        var call = invoker.AsyncUnaryCall(new HelloRequest());
 
         // Assert
         var ex = await ExceptionAssert.ThrowsAsync<RpcException>(() => call.ResponseAsync).DefaultTimeout();
@@ -152,7 +152,7 @@ public class GetStatusTests
         var invoker = HttpClientCallInvokerFactory.Create(httpClient);
 
         // Act
-        var call = invoker.AsyncUnaryCall<HelloRequest, HelloReply>(ClientTestHelpers.ServiceMethod, string.Empty, new CallOptions(), new HelloRequest());
+        var call = invoker.AsyncUnaryCall(new HelloRequest());
 
         // Assert
         var ex = await ExceptionAssert.ThrowsAsync<RpcException>(() => call.ResponseAsync).DefaultTimeout();
@@ -175,7 +175,7 @@ public class GetStatusTests
         var invoker = HttpClientCallInvokerFactory.Create(httpClient);
 
         // Act
-        var call = invoker.AsyncUnaryCall<HelloRequest, HelloReply>(ClientTestHelpers.ServiceMethod, string.Empty, new CallOptions(), new HelloRequest());
+        var call = invoker.AsyncUnaryCall(new HelloRequest());
 
         // Assert
         var ex = await ExceptionAssert.ThrowsAsync<RpcException>(() => call.ResponseAsync).DefaultTimeout();
@@ -200,7 +200,7 @@ public class GetStatusTests
         var invoker = HttpClientCallInvokerFactory.Create(httpClient, operatingSystem: os);
 
         // Act
-        var call = invoker.AsyncUnaryCall<HelloRequest, HelloReply>(ClientTestHelpers.ServiceMethod, string.Empty, new CallOptions(), new HelloRequest());
+        var call = invoker.AsyncUnaryCall(new HelloRequest());
 
         // Assert
         var ex = await ExceptionAssert.ThrowsAsync<RpcException>(() => call.ResponseAsync).DefaultTimeout();
@@ -214,6 +214,8 @@ public class GetStatusTests
     {
         public bool IsBrowser { get; set; }
         public bool IsAndroid { get; set; }
+        public bool IsWindows { get; set; }
+        public Version OSVersion { get; set; } = new Version(1, 2, 3, 4);
     }
 
     [Test]
@@ -230,7 +232,7 @@ public class GetStatusTests
         var invoker = HttpClientCallInvokerFactory.Create(httpClient);
 
         // Act
-        var call = invoker.AsyncUnaryCall<HelloRequest, HelloReply>(ClientTestHelpers.ServiceMethod, string.Empty, new CallOptions(), new HelloRequest());
+        var call = invoker.AsyncUnaryCall(new HelloRequest());
 
         // Assert
         var ex = await ExceptionAssert.ThrowsAsync<RpcException>(() => call.ResponseAsync).DefaultTimeout();
@@ -255,7 +257,7 @@ public class GetStatusTests
         var invoker = HttpClientCallInvokerFactory.Create(httpClient);
 
         // Act
-        var call = invoker.AsyncUnaryCall<HelloRequest, HelloReply>(ClientTestHelpers.ServiceMethod, string.Empty, new CallOptions(), new HelloRequest());
+        var call = invoker.AsyncUnaryCall(new HelloRequest());
         var ex = Assert.Throws<InvalidOperationException>(() => call.GetStatus())!;
 
         // Assert

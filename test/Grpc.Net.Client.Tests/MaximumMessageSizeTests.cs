@@ -1,4 +1,4 @@
-﻿#region Copyright notice and license
+#region Copyright notice and license
 
 // Copyright 2019 The gRPC Authors
 //
@@ -172,7 +172,7 @@ public class MaximumMessageSizeTests
         var invoker = HttpClientCallInvokerFactory.Create(httpClient, configure: o => o.MaxSendMessageSize = 100);
 
         // Act
-        var call = invoker.AsyncDuplexStreamingCall<HelloRequest, HelloReply>(ClientTestHelpers.ServiceMethod, string.Empty, new CallOptions());
+        var call = invoker.AsyncDuplexStreamingCall();
         await call.RequestStream.WriteAsync(new HelloRequest
         {
             Name = "World"
@@ -192,7 +192,7 @@ public class MaximumMessageSizeTests
         var invoker = HttpClientCallInvokerFactory.Create(httpClient, configure: o => o.MaxSendMessageSize = 1);
 
         // Act
-        var call = invoker.AsyncDuplexStreamingCall<HelloRequest, HelloReply>(ClientTestHelpers.ServiceMethod, string.Empty, new CallOptions());
+        var call = invoker.AsyncDuplexStreamingCall();
 
         // Assert
         var ex = await ExceptionAssert.ThrowsAsync<RpcException>(() => call.RequestStream.WriteAsync(new HelloRequest
@@ -211,7 +211,7 @@ public class MaximumMessageSizeTests
         var invoker = HttpClientCallInvokerFactory.Create(httpClient, configure: o => o.MaxReceiveMessageSize = 100);
 
         // Act
-        var call = invoker.AsyncDuplexStreamingCall<HelloRequest, HelloReply>(ClientTestHelpers.ServiceMethod, string.Empty, new CallOptions());
+        var call = invoker.AsyncDuplexStreamingCall();
         await call.RequestStream.WriteAsync(new HelloRequest
         {
             Name = "World"
@@ -231,7 +231,7 @@ public class MaximumMessageSizeTests
         var invoker = HttpClientCallInvokerFactory.Create(httpClient, configure: o => o.MaxReceiveMessageSize = 1);
 
         // Act
-        var call = invoker.AsyncDuplexStreamingCall<HelloRequest, HelloReply>(ClientTestHelpers.ServiceMethod, string.Empty, new CallOptions());
+        var call = invoker.AsyncDuplexStreamingCall();
         await call.RequestStream.WriteAsync(new HelloRequest
         {
             Name = "World"

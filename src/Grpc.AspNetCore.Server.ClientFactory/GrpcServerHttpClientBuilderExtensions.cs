@@ -1,4 +1,4 @@
-﻿#region Copyright notice and license
+#region Copyright notice and license
 
 // Copyright 2019 The gRPC Authors
 //
@@ -19,6 +19,7 @@
 using Grpc.AspNetCore.ClientFactory;
 using Grpc.Core;
 using Grpc.Net.ClientFactory;
+using Grpc.Shared;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -38,10 +39,7 @@ public static class GrpcServerHttpClientBuilderExtensions
     /// <returns>An <see cref="IHttpClientBuilder"/> that can be used to configure the client.</returns>
     public static IHttpClientBuilder EnableCallContextPropagation(this IHttpClientBuilder builder)
     {
-        if (builder == null)
-        {
-            throw new ArgumentNullException(nameof(builder));
-        }
+        ArgumentNullThrowHelper.ThrowIfNull(builder);
 
         EnableCallContextPropagationCore(builder, new GrpcContextPropagationOptions());
 
@@ -57,15 +55,8 @@ public static class GrpcServerHttpClientBuilderExtensions
     /// <returns>An <see cref="IHttpClientBuilder"/> that can be used to configure the client.</returns>
     public static IHttpClientBuilder EnableCallContextPropagation(this IHttpClientBuilder builder, Action<GrpcContextPropagationOptions> configureOptions)
     {
-        if (builder == null)
-        {
-            throw new ArgumentNullException(nameof(builder));
-        }
-
-        if (configureOptions == null)
-        {
-            throw new ArgumentNullException(nameof(configureOptions));
-        }
+        ArgumentNullThrowHelper.ThrowIfNull(builder);
+        ArgumentNullThrowHelper.ThrowIfNull(configureOptions);
 
         var options = new GrpcContextPropagationOptions();
         configureOptions(options);

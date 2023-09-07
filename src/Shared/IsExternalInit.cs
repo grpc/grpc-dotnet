@@ -1,4 +1,4 @@
-﻿#region Copyright notice and license
+#region Copyright notice and license
 
 // Copyright 2019 The gRPC Authors
 //
@@ -18,7 +18,7 @@
 
 namespace System.Runtime.CompilerServices;
 
-#if NETCOREAPP3_0 || NETSTANDARD2_0_OR_GREATER
+#if NETCOREAPP3_0 || NETSTANDARD2_0_OR_GREATER || NET462
 internal static class IsExternalInit
 {
 }

@@ -162,7 +162,8 @@ internal sealed class RetryCall<TRequest, TResponse> : RetryCallBase<TRequest, T
                     // Headers were returned. We're commited.
                     CommitCall(currentCall, CommitReason.ResponseHeadersReceived);
 
-                    responseStatus = await currentCall.CallTask.ConfigureAwait(false);
+                    // Force yield here to prevent continuation running with any locks.
+                    responseStatus = await CompatibilityHelpers.AwaitWithYieldAsync(currentCall.CallTask).ConfigureAwait(false);
                     if (responseStatus.Value.StatusCode == StatusCode.OK)
                     {
                         RetryAttemptCallSuccess();
@@ -171,7 +172,7 @@ internal sealed class RetryCall<TRequest, TResponse> : RetryCallBase<TRequest, T
                     // Commited so exit retry loop.
                     return;
                 }
-                else if (IsSuccessfulStreamingCall(responseStatus.Value, currentCall))
+                else if (IsSuccessfulStreamingCall(responseStatus.Value))
                 {
                     // Headers were returned. We're commited.
                     CommitCall(currentCall, CommitReason.ResponseHeadersReceived);
@@ -251,9 +252,19 @@ internal sealed class RetryCall<TRequest, TResponse> : RetryCallBase<TRequest, T
             {
                 if (CommitedCallTask.Result is GrpcCall<TRequest, TResponse> call)
                 {
+                    // Ensure response task is created before waiting to the end.
+                    // Allows cancellation exceptions to be observed in cleanup.
+                    if (!HasResponseStream())
+                    {
+                        _ = GetResponseAsync();
+                    }
+
                     // Wait until the commited call is finished and then clean up retry call.
-                    await call.CallTask.ConfigureAwait(false);
-                    Cleanup();
+                    // Force yield here to prevent continuation running with any locks.
+                    var status = await CompatibilityHelpers.AwaitWithYieldAsync(call.CallTask).ConfigureAwait(false);
+
+                    var observeExceptions = status.StatusCode is StatusCode.Cancelled or StatusCode.DeadlineExceeded;
+                    Cleanup(observeExceptions);
                 }
             }
 
@@ -261,29 +272,35 @@ internal sealed class RetryCall<TRequest, TResponse> : RetryCallBase<TRequest, T
         }
     }
 
-    private static bool IsSuccessfulStreamingCall(Status responseStatus, GrpcCall<TRequest, TResponse> call)
+    private bool IsSuccessfulStreamingCall(Status responseStatus)
     {
         if (responseStatus.StatusCode != StatusCode.OK)
         {
             return false;
         }
 
-        return call.Method.Type == MethodType.ServerStreaming || call.Method.Type == MethodType.DuplexStreaming;
+        return HasResponseStream();
     }
 
     protected override void OnCommitCall(IGrpcCall<TRequest, TResponse> call)
     {
+        Debug.Assert(Monitor.IsEntered(Lock));
+
         _activeCall = null;
     }
 
     protected override void Dispose(bool disposing)
     {
+        base.Dispose(disposing);
+
+        // Don't dispose the active call inside the retry lock.
+        // Canceling the call could cause callbacks to run on other threads that want to aquire this lock, causing an app deadlock.
+        GrpcCall<TRequest, TResponse>? activeCall = null;
         lock (Lock)
         {
-            base.Dispose(disposing);
-
-            _activeCall?.Dispose();
+            activeCall = _activeCall;
         }
+        activeCall?.Dispose();
     }
 
     protected override void StartCore(Action<GrpcCall<TRequest, TResponse>> startCallFunc)

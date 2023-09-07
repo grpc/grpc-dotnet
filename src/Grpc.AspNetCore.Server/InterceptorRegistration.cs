@@ -1,4 +1,4 @@
-﻿#region Copyright notice and license
+#region Copyright notice and license
 
 // Copyright 2018 gRPC authors.
 //
@@ -18,6 +18,7 @@
 
 using System.Diagnostics.CodeAnalysis;
 using Grpc.Core.Interceptors;
+using Grpc.Shared;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace Grpc.AspNetCore.Server;
@@ -39,14 +40,9 @@ public class InterceptorRegistration
 #endif
         Type type, object[] arguments)
     {
-        if (type == null)
-        {
-            throw new ArgumentNullException(nameof(type));
-        }
-        if (arguments == null)
-        {
-            throw new ArgumentNullException(nameof(arguments));
-        }
+        ArgumentNullThrowHelper.ThrowIfNull(type);
+        ArgumentNullThrowHelper.ThrowIfNull(arguments);
+
         for (var i = 0; i < arguments.Length; i++)
         {
             if (arguments[i] == null)
