@@ -292,6 +292,14 @@ public sealed class GrpcChannel : ChannelBase, IDisposable
                 }
             }
 
+            // Load balancing has been disabled on the SocketsHttpHandler.
+            if (socketsHttpHandler.Properties["__GrpcLoadBalancingDisabled"] is bool value && value)
+            {   
+                type = HttpHandlerType.Custom;
+                connectTimeout = null;
+                connectionIdleTimeout = null;
+            }
+
             // If a proxy is specified then requests could be sent via an SSL tunnel.
             // A CONNECT request is made to the proxy to establish the transport stream and then
             // gRPC calls are sent via stream. This feature isn't supported by load balancer.
