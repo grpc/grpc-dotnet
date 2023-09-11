@@ -293,8 +293,9 @@ public sealed class GrpcChannel : ChannelBase, IDisposable
             }
 
             // Load balancing has been disabled on the SocketsHttpHandler.
-            if (socketsHttpHandler.Properties["__GrpcLoadBalancingDisabled"] is bool value && value)
-            {   
+            if (socketsHttpHandler.Properties.TryGetValue("__GrpcLoadBalancingDisabled", out var value)
+                && value is bool loadBalancingDisabled && loadBalancingDisabled)
+            {
                 type = HttpHandlerType.Custom;
                 connectTimeout = null;
                 connectionIdleTimeout = null;
