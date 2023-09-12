@@ -266,16 +266,8 @@ public sealed class GrpcChannel : ChannelBase, IDisposable
         }
         if (HttpRequestHelpers.HasHttpHandlerType(channelOptions.HttpHandler, "System.Net.Http.SocketsHttpHandler"))
         {
-            HttpHandlerType type;
-            TimeSpan? connectTimeout;
-            TimeSpan? connectionIdleTimeout;
-
 #if NET5_0_OR_GREATER
             var socketsHttpHandler = HttpRequestHelpers.GetHttpHandlerType<SocketsHttpHandler>(channelOptions.HttpHandler)!;
-
-            type = HttpHandlerType.SocketsHttpHandler;
-            connectTimeout = socketsHttpHandler.ConnectTimeout;
-            connectionIdleTimeout = GetConnectionIdleTimeout(socketsHttpHandler);
 
             // Check if the SocketsHttpHandler is being shared by channels.
             // It has already been setup by another channel (i.e. ConnectCallback is set) then
@@ -286,9 +278,7 @@ public sealed class GrpcChannel : ChannelBase, IDisposable
                 // This channel can't support advanced connectivity features.
                 if (socketsHttpHandler.ConnectCallback != null)
                 {
-                    type = HttpHandlerType.Custom;
-                    connectTimeout = null;
-                    connectionIdleTimeout = null;
+                    return new HttpHandlerContext(HttpHandlerType.Custom);
                 }
             }
 
@@ -296,9 +286,7 @@ public sealed class GrpcChannel : ChannelBase, IDisposable
             if (socketsHttpHandler.Properties.TryGetValue("__GrpcLoadBalancingDisabled", out var value)
                 && value is bool loadBalancingDisabled && loadBalancingDisabled)
             {
-                type = HttpHandlerType.Custom;
-                connectTimeout = null;
-                connectionIdleTimeout = null;
+                return new HttpHandlerContext(HttpHandlerType.Custom);
             }
 
             // If a proxy is specified then requests could be sent via an SSL tunnel.
@@ -307,21 +295,17 @@ public sealed class GrpcChannel : ChannelBase, IDisposable
             // Proxy can be specified via:
             // - SocketsHttpHandler.Proxy. Set via app code.
             // - HttpClient.DefaultProxy. Set via environment variables, e.g. HTTPS_PROXY.
-            if (type == HttpHandlerType.SocketsHttpHandler)
+            if (IsProxied(socketsHttpHandler, address, isSecure))
             {
-                if (IsProxied(socketsHttpHandler, address, isSecure))
-                {
-                    logger.LogInformation("Proxy configuration is detected. How the gRPC client creates connections can cause unexpected behavior when a proxy is configured. " +
-                        "To ensure the client correctly uses a proxy, configure GrpcChannelOptions.HttpHandler to use HttpClientHandler. " +
-                        "Note that HttpClientHandler isn't compatible with load balancing.");
-                }
+                logger.LogInformation("Proxy configuration is detected. How the gRPC client creates connections can cause unexpected behavior when a proxy is configured. " +
+                    "To ensure the client correctly uses a proxy, configure GrpcChannelOptions.HttpHandler to use HttpClientHandler. " +
+                    "Note that HttpClientHandler isn't compatible with load balancing.");
             }
+
+            return new HttpHandlerContext(HttpHandlerType.SocketsHttpHandler, socketsHttpHandler.ConnectTimeout, GetConnectionIdleTimeout(socketsHttpHandler));
 #else
-            type = HttpHandlerType.SocketsHttpHandler;
-            connectTimeout = null;
-            connectionIdleTimeout = null;
+            return new HttpHandlerContext(HttpHandlerType.SocketsHttpHandler);
 #endif
-            return new HttpHandlerContext(type, connectTimeout, connectionIdleTimeout);
         }
         if (HttpRequestHelpers.GetHttpHandlerType<HttpClientHandler>(channelOptions.HttpHandler) != null)
         {
