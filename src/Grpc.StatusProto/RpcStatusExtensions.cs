@@ -16,6 +16,7 @@ using Google.Protobuf;
 using Google.Protobuf.Reflection;
 using Google.Protobuf.WellKnownTypes;
 using Grpc.Core;
+using Grpc.Shared;
 
 namespace Grpc.StatusProto;
 
@@ -54,14 +55,11 @@ public static class RpcStatusExtensions
     /// <typeparam name="T">The message type to decode from within the error details.</typeparam>
     /// <param name="status">The RPC status to retrieve details from. Must not be null.</param>
     /// <returns>The first error details of type <typeparamref name="T"/> found, or null if not present</returns>
-    public static T? GetStatusDetail<T>(this Google.Rpc.Status status) where T : class, IMessage<T>, new()
+    public static T? GetDetail<T>(this Google.Rpc.Status status) where T : class, IMessage<T>, new()
     {
         //TODO(tonydnewell) maybe move this method to Google.Api.CommonProtos
 
-        if (status == null)
-        {
-            throw new ArgumentNullException(nameof(status));
-        }
+        ArgumentNullThrowHelper.ThrowIfNull(status);
 
         var expectedName = MessageNameCache<T>.FullName;
         var any = status.Details.FirstOrDefault(a => Any.GetTypeName(a.TypeUrl) == expectedName);
@@ -101,10 +99,7 @@ public static class RpcStatusExtensions
     /// <returns>A <see cref="RpcException"/> populated with the details from the status.</returns>
     public static RpcException ToRpcException(this Google.Rpc.Status status)
     {
-        if (status == null)
-        {
-            throw new ArgumentNullException(nameof(status));
-        }
+        ArgumentNullThrowHelper.ThrowIfNull(status);
 
         // Both Grpc.Core.StatusCode and Google.Rpc.Code define enums for a common
         // set of status codes such as "NotFound", "PermissionDenied", etc. They have the same
@@ -153,10 +148,7 @@ public static class RpcStatusExtensions
     /// <returns></returns>
     public static RpcException ToRpcException(this Google.Rpc.Status status, StatusCode statusCode, string message)
     {
-        if (status == null)
-        {
-            throw new ArgumentNullException(nameof(status));
-        }
+        ArgumentNullThrowHelper.ThrowIfNull(status);
 
         var metadata = new Metadata();
         metadata.SetRpcStatus(status);
@@ -198,10 +190,7 @@ public static class RpcStatusExtensions
     {
         //TODO(tonydnewell) maybe move this method to Google.Api.CommonProtos
 
-        if (status == null)
-        {
-            throw new ArgumentNullException(nameof(status));
-        }
+        ArgumentNullThrowHelper.ThrowIfNull(status);
 
         return status.UnpackDetailMessages(StandardErrorTypeRegistry.Registry);
     }
@@ -246,10 +235,7 @@ public static class RpcStatusExtensions
     {
         //TODO(tonydnewell) maybe move this method to Google.Api.CommonProtos
 
-        if (status == null)
-        {
-            throw new ArgumentNullException(nameof(status));
-        }
+        ArgumentNullThrowHelper.ThrowIfNull(status);
 
         foreach (var any in status.Details)
         {

@@ -13,6 +13,7 @@
 // limitations under the License.
 
 using Google.Rpc;
+using Grpc.Shared;
 
 namespace Grpc.StatusProto;
 
@@ -54,6 +55,8 @@ public static class ExceptionExtensions
     /// </returns>
     public static DebugInfo ToRpcDebugInfo(this Exception exception, int innerDepth = 0)
     {
+        ArgumentNullThrowHelper.ThrowIfNull(exception);
+
         var debugInfo = new DebugInfo();
 
         var message = exception.Message;

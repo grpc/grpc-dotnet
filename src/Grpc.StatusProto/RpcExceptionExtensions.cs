@@ -13,6 +13,7 @@
 // limitations under the License.
 
 using Grpc.Core;
+using Grpc.Shared;
 
 namespace Grpc.StatusProto;
 
@@ -31,6 +32,7 @@ public static class RpcExceptionExtensions
     /// if there is no such information.</returns>
     public static Google.Rpc.Status? GetRpcStatus(this RpcException ex)
     {
-        return ex.Trailers?.GetRpcStatus();
+        ArgumentNullThrowHelper.ThrowIfNull(ex);
+        return ex.Trailers.GetRpcStatus();
     }
 }

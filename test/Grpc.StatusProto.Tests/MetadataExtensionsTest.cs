@@ -25,10 +25,11 @@ namespace Grpc.StatusProto.Tests;
 /// <summary>
 /// Tests for MetadataExtensions
 /// </summary>
+[TestFixture]
 public class MetadataExtensionsTest
 {
     // creates a status to use in the tests
-    readonly Google.Rpc.Status status = new()
+    private readonly Google.Rpc.Status status = new()
     {
         Code = (int)StatusCode.NotFound,
         Message = "Simple error message",
@@ -50,9 +51,13 @@ public class MetadataExtensionsTest
     [Test]
     public void SetRpcStatusTest()
     {
+        // Arrange
         var metadata = new Metadata();
+
+        // Act
         metadata.SetRpcStatus(status);
 
+        // Assert
         var entry = metadata.Get(MetadataExtensions.StatusDetailsTrailerName);
         Assert.IsNotNull(entry);
         var sts = Google.Rpc.Status.Parser.ParseFrom(entry!.ValueBytes);
@@ -62,6 +67,7 @@ public class MetadataExtensionsTest
     [Test]
     public void SetRpcStatus_MultipleTimes()
     {
+        // Arrange
         Google.Rpc.Status status1 = new()
         {
             Code = (int)StatusCode.NotFound,
@@ -81,10 +87,12 @@ public class MetadataExtensionsTest
         };
         var metadata = new Metadata();
 
+        // Act - set the status three times
         metadata.SetRpcStatus(status1);
         metadata.SetRpcStatus(status2);
         metadata.SetRpcStatus(status3);
 
+        // Assert - only the last one should be in the metadata
         Assert.AreEqual(1, metadata.Count);
 
         var entry = metadata.Get(MetadataExtensions.StatusDetailsTrailerName);
@@ -96,10 +104,14 @@ public class MetadataExtensionsTest
     [Test]
     public void GetRpcStatus_OK()
     {
+        // Arrange
         var metadata = new Metadata();
         metadata.SetRpcStatus(status);
 
+        // Act - retrieve the status from the metadata
         var sts = metadata.GetRpcStatus();
+
+        // Assert - status retrieved ok
         Assert.IsNotNull(sts);
         Assert.AreEqual(status, sts);
     }
@@ -107,32 +119,44 @@ public class MetadataExtensionsTest
     [Test]
     public void GetRpcStatus_NotFound()
     {
+        // Arrange
         var metadata = new Metadata();
 
+        // Act - try and retrieve the non-existent status from the metadata
         var sts = metadata.GetRpcStatus();
+
+        // Assert - not found
         Assert.IsNull(sts);
     }
 
     [Test]
     public void GetRpcStatus_BadEncoding()
     {
+        // Arrange - create badly encoded status in the metadata
         var metadata = new Metadata
         {
             { MetadataExtensions.StatusDetailsTrailerName, new byte[] { 1, 2, 3 } }
         };
 
+        // Act - try and retrieve the badly formed status from the metadata
         var sts = metadata.GetRpcStatus();
+
+        // Assert - not found as it could not be decoded
         Assert.IsNull(sts);
     }
 
     [Test]
     public void GetRpcStatus_BadEncodingWithException()
     {
+        // Arrange - create badly encoded status in the metadata
         var metadata = new Metadata
         {
             { MetadataExtensions.StatusDetailsTrailerName, new byte[] { 1, 2, 3 } }
         };
 
+        // Act and Assert
+        // Try and retrieve the status from the metadata and expect an exception
+        // because it could not be decoded
         _ = Assert.Throws<InvalidProtocolBufferException>(() => metadata.GetRpcStatus(throwOnParseError: true));
     }
 

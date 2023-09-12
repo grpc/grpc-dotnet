@@ -24,10 +24,11 @@ namespace Grpc.StatusProto.Tests;
 /// <summary>
 /// Tests for RpcExceptionExtensions
 /// </summary>
+[TestFixture]
 public class RpcExceptionExtensionsTest
 {
     // creates a status to use in the tests
-    readonly Google.Rpc.Status status = new()
+    private readonly Google.Rpc.Status status = new()
     {
         Code = (int)StatusCode.NotFound,
         Message = "Simple error message",
@@ -49,7 +50,10 @@ public class RpcExceptionExtensionsTest
     [Test]
     public void GetRpcStatus_OK()
     {
-        RpcException exception = status.ToRpcException();
+        // Act
+        var exception = status.ToRpcException();
+
+        // Assert - check the contents of the exception
         Assert.AreEqual(status.Code, (int)exception.StatusCode);
         Assert.AreEqual(status.Message, exception.Status.Detail);
         var sts = exception.GetRpcStatus();
@@ -60,7 +64,10 @@ public class RpcExceptionExtensionsTest
     [Test]
     public void GetRpcStatus_NotFound()
     {
-        RpcException exception = new RpcException(new Core.Status());
+        // Act
+        var exception = new RpcException(new Core.Status());
+
+        // Assert - the exception does not contain a RpcStatus
         var sts = exception.GetRpcStatus();
         Assert.IsNull(sts);
     }
@@ -68,7 +75,10 @@ public class RpcExceptionExtensionsTest
     [Test]
     public void GetRpcStatus_SetCodeAndMessage()
     {
-        RpcException exception = status.ToRpcException(StatusCode.Aborted, "Different message");
+        // Arrange and Act - create the exception with status code and message
+        var exception = status.ToRpcException(StatusCode.Aborted, "Different message");
+
+        // Assert - check the details in the exception
         Assert.AreEqual(StatusCode.Aborted, exception.StatusCode);
         Assert.AreEqual("Different message", exception.Status.Detail);
         var sts = exception.GetRpcStatus();

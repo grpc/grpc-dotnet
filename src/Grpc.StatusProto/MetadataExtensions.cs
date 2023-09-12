@@ -14,6 +14,7 @@
 
 using Google.Protobuf;
 using Grpc.Core;
+using Grpc.Shared;
 
 namespace Grpc.StatusProto;
 
@@ -41,10 +42,7 @@ public static class MetadataExtensions
     /// </returns>
     public static Google.Rpc.Status? GetRpcStatus(this Metadata metadata, bool throwOnParseError = false)
     {
-        if (metadata == null)
-        {
-            throw new ArgumentNullException(nameof(metadata));
-        }
+        ArgumentNullThrowHelper.ThrowIfNull(metadata);
 
         var entry = metadata.Get(StatusDetailsTrailerName);
         if (entry is null)
@@ -71,15 +69,8 @@ public static class MetadataExtensions
     /// <param name="status">Status to add</param>
     public static void SetRpcStatus(this Metadata metadata, Google.Rpc.Status status)
     {
-        if (metadata == null)
-        {
-            throw new ArgumentNullException(nameof(metadata));
-        }
-
-        if (status == null)
-        {
-            throw new ArgumentNullException(nameof(status));
-        }
+        ArgumentNullThrowHelper.ThrowIfNull(metadata);
+        ArgumentNullThrowHelper.ThrowIfNull(status);
 
         var entry = metadata.Get(StatusDetailsTrailerName);
         while (entry is not null)

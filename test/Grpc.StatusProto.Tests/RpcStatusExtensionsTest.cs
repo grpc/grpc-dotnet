@@ -25,13 +25,18 @@ namespace Grpc.StatusProto.Tests;
 /// <summary>
 /// Tests for RpcStatusExtensions
 /// </summary>
+[TestFixture]
 public class RpcStatusExtensionsTest
 {
     [Test]
-    public void ToRpcExcetionTest()
+    public void ToRpcExceptionTest()
     {
+        // Arrange - create a status
         var status = CreateFullStatus();
+        // Act - get exception from the status
         var ex = status.ToRpcException();
+
+        // Assert - check the details in the exception
         Assert.IsNotNull(ex);
 
         var grpcSts = ex.Status;
@@ -44,12 +49,16 @@ public class RpcStatusExtensionsTest
     }
 
     [Test]
-    public void ToRpcExcetionWithParamsTest()
+    public void ToRpcExceptionWithParamsTest()
     {
+        // Arrange - create a status
         var status = CreateFullStatus();
+
+        // Act - get exception from the status with specific parameters
         var ex = status.ToRpcException(StatusCode.Cancelled, "status message");
         Assert.IsNotNull(ex);
 
+        // Assert - check the details in the exception
         var grpcSts = ex.Status;
         Assert.AreEqual(StatusCode.Cancelled, grpcSts.StatusCode);
         Assert.AreEqual("status message", grpcSts.Detail);
@@ -62,50 +71,71 @@ public class RpcStatusExtensionsTest
     [Test]
     public void GetStatusDetailTest()
     {
+        // Arrange - create a status
+        // The detailsMap contains all the Messages added to the status so
+        // these can be used in the comparisions when then are retrieved later
         var detailsMap = new Dictionary<string, IMessage>();
         var status = CreateFullStatus(detailsMap);
 
-        var badRequest = status.GetStatusDetail<BadRequest>();
+        // Act
+        var badRequest = status.GetDetail<BadRequest>();
+        // Assert
         Assert.IsNotNull(badRequest);
         var expected = detailsMap["badRequest"];
         Assert.AreEqual(expected, badRequest);
 
-        var errorInfo = status.GetStatusDetail<ErrorInfo>();
+        // Act
+        var errorInfo = status.GetDetail<ErrorInfo>();
+        // Assert
         Assert.IsNotNull(errorInfo);
         expected = detailsMap["errorInfo"];
         Assert.AreEqual(expected, errorInfo);
 
-        var retryInfo = status.GetStatusDetail<RetryInfo>();
+        // Act
+        var retryInfo = status.GetDetail<RetryInfo>();
+        // Assert
         Assert.IsNotNull(retryInfo);
         expected = detailsMap["retryInfo"];
         Assert.AreEqual(expected, retryInfo);
 
-        var debugInfo = status.GetStatusDetail<DebugInfo>();
+        // Act
+        var debugInfo = status.GetDetail<DebugInfo>();
+        // Assert
         Assert.IsNotNull(debugInfo);
         expected = detailsMap["debugInfo"];
         Assert.AreEqual(expected, debugInfo);
 
-        var quotaFailure = status.GetStatusDetail<QuotaFailure>();
+        // Act
+        var quotaFailure = status.GetDetail<QuotaFailure>();
+        // Assert
         Assert.IsNotNull(quotaFailure);
         expected = detailsMap["quotaFailure"];
         Assert.AreEqual(expected, quotaFailure);
 
-        var preconditionFailure = status.GetStatusDetail<PreconditionFailure>();
+        // Act
+        var preconditionFailure = status.GetDetail<PreconditionFailure>();
+        // Assert
         Assert.IsNotNull(preconditionFailure);
         expected = detailsMap["preconditionFailure"];
         Assert.AreEqual(expected, preconditionFailure);
 
-        var requestInfo = status.GetStatusDetail<RequestInfo>();
+        // Act
+        var requestInfo = status.GetDetail<RequestInfo>();
+        // Assert
         Assert.IsNotNull(requestInfo);
         expected = detailsMap["requestInfo"];
         Assert.AreEqual(expected, requestInfo);
 
-        var help = status.GetStatusDetail<Help>();
+        // Act
+        var help = status.GetDetail<Help>();
+        // Assert
         Assert.IsNotNull(help);
         expected = detailsMap["help"];
         Assert.AreEqual(expected, help);
 
-        var localizedMessage = status.GetStatusDetail<LocalizedMessage>();
+        // Act
+        var localizedMessage = status.GetDetail<LocalizedMessage>();
+        // Assert
         Assert.IsNotNull(localizedMessage);
         expected = detailsMap["localizedMessage"];
         Assert.AreEqual(expected, localizedMessage);
@@ -114,20 +144,33 @@ public class RpcStatusExtensionsTest
     [Test]
     public void GetStatusDetail_NotFound()
     {
+        // Arrange - create a status with only a few details
+        // The detailsMap contains all the Messages added to the status so
+        // these can be used in the comparisions when then are retrieved later
         var detailsMap = new Dictionary<string, IMessage>();
         var status = CreatePartialStatus(detailsMap);
 
-        var badRequest = status.GetStatusDetail<BadRequest>();
+        // Act - try and retieve non-existent BadRequest from the status
+        var badRequest = status.GetDetail<BadRequest>();
+        // Assert
         Assert.IsNull(badRequest);
     }
 
     [Test]
     public void UnpackDetailMessageTest()
     {
+        // Arrange - create a status
+        // The detailsMap contains all the Messages added to the status so
+        // these can be used in the comparisions when then are retrieved later
         var detailsMap = new Dictionary<string, IMessage>();
         var status = CreateFullStatus(detailsMap);
 
+        // foundSet will contain the messages found in the status so we can
+        // check all those expected were present
         var foundSet = new HashSet<string>();
+
+        // Act and Assert - iterate over all the messages in the status
+        // and check they contain what is expected
         foreach (var msg in status.UnpackDetailMessages())
         {
             switch (msg)

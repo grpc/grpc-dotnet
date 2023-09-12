@@ -145,10 +145,10 @@ an `RpcException`.
 Once the `Google.Rpc.Status` has been retrieved the messages in the `Details`
 can be unpacked. There are two ways of doing this:
 
-- calling `GetStatusDetails<T>()` with one of the expected message types
+- calling `GetDetail<T>()` with one of the expected message types
 - iterating over all the messages in the `Details` using `UnpackDetailMessage()`
 
-__Example__ - calling `GetStatusDetails<T>()`:
+__Example__ - calling `GetDetail<T>()`:
 
 ```C#
 void PrintError(RpcException ex)
@@ -161,7 +161,7 @@ void PrintError(RpcException ex)
         Console.WriteLine($"Google.Rpc Status: Code: {rpcStatus.Code}, Message: {rpcStatus.Message}");
 
         // Try and get the ErrorInfo from the details
-        ErrorInfo? errorInfo = rpcStatus.GetStatusDetails<ErrorInfo>(); // Extension method
+        ErrorInfo? errorInfo = rpcStatus.GetDetail<ErrorInfo>(); // Extension method
         if (errorInfo != null)
         {
             Console.WriteLine($"\tErrorInfo: Reason: {errorInfo.Reason}, Domain: {errorInfo.Domain}");
@@ -253,9 +253,8 @@ your own message definitions then you will need to copy these into your own proj
 
 Example server code fragment:
 ```C#
- while (await requestStream.MoveNext())
+await foreach (var request in requestStream.ReadAllAsync())
 {
-    var request = requestStream.Current;
     var response = new WidgetRsp();
 
     // ... process the request ...
@@ -264,7 +263,8 @@ Example server code fragment:
     if (error)
     {
         response.Status = new Google.Rpc.Status { /* ... */ };
-    } else
+    }
+    else
     {
         response.WidgetDetails = "the details";
     }
@@ -273,13 +273,11 @@ Example server code fragment:
 
 Example client code fragment:
 ```C#
-
 // reading the responses
 var responseReaderTask = Task.Run(async () =>
 {
-    while (await call.ResponseStream.MoveNext())
+    await foreach (var rsp in call.ResponseStream.ReadAllAsync())
     {
-        var rsp = call.ResponseStream.Current;
         switch (rsp.MessageCase)
         {
             case WidgetRsp.MessageOneofCase.WidgetDetails:
