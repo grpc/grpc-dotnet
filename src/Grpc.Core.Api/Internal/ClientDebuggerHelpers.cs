@@ -25,11 +25,7 @@ namespace Grpc.Core.Internal;
 
 internal static class ClientDebuggerHelpers
 {
-#if NETSTANDARD1_5
-    private static TypeInfo? GetParentType(Type clientType)
-#else
     private static Type? GetParentType(Type clientType)
-#endif
     {
         // Attempt to get the parent type for a generated client.
         // A generated client is always nested inside a static type that contains information about the client.
@@ -48,11 +44,7 @@ internal static class ClientDebuggerHelpers
             return null;
         }
 
-#if NETSTANDARD1_5
-        var parentType = clientType.DeclaringType.GetTypeInfo();
-#else
         var parentType = clientType.DeclaringType;
-#endif
         // Check parent type is static. A C# static type is sealed and abstract.
         if (parentType == null || (!parentType.IsSealed && !parentType.IsAbstract))
         {
@@ -101,10 +93,6 @@ internal static class ClientDebuggerHelpers
         return methods;
 
         static bool IsMethodField(FieldInfo field) =>
-#if NETSTANDARD1_5
-            typeof(IMethod).GetTypeInfo().IsAssignableFrom(field.FieldType);
-#else
             typeof(IMethod).IsAssignableFrom(field.FieldType);
-#endif
     }
 }
