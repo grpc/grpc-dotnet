@@ -25,6 +25,8 @@ namespace Grpc.StatusProto;
 /// </summary>
 public static class StandardErrorTypeRegistry
 {
+    // TODO(tonydnewell) maybe move this class to Google.Api.CommonProtos
+
     private static readonly TypeRegistry _registry = TypeRegistry.FromMessages(
         new MessageDescriptor[]
         {
