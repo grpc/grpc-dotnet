@@ -15,6 +15,7 @@
 #endregion
 
 using System;
+using System.Diagnostics;
 
 namespace Grpc.Core;
 
@@ -22,6 +23,7 @@ namespace Grpc.Core;
 /// <summary>
 /// Represents RPC result, which consists of <see cref="StatusCode"/> and an optional detail string.
 /// </summary>
+[DebuggerDisplay("{DebuggerToString(),nq}")]
 public struct Status
 {
     /// <summary>
@@ -92,5 +94,20 @@ public struct Status
                 $" DebugException=\"{DebugException.GetType()}: {DebugException.Message}\")";
         }
         return $"Status(StatusCode=\"{StatusCode}\", Detail=\"{Detail}\")";
+    }
+
+    private string DebuggerToString()
+    {
+        var text = $"StatusCode = {StatusCode}";
+        if (!string.IsNullOrEmpty(Detail))
+        {
+            text += $@", Detail = ""{Detail}""";
+        }
+        if (DebugException != null)
+        {
+            text += $@", DebugException = ""{DebugException.GetType()}: {DebugException.Message}""";
+        }
+
+        return text;
     }
 }
