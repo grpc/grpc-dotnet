@@ -6,15 +6,15 @@
     <GrpcDotNetPackageVersion>2.55.0</GrpcDotNetPackageVersion>  <!-- Used by example projects -->
     <GrpcPackageVersion>2.46.6</GrpcPackageVersion>
     <GrpcToolsPackageVersion>2.57.0</GrpcToolsPackageVersion>
-    <MicrosoftAspNetCoreAppPackageVersion>8.0.0-rc.1.23378.7</MicrosoftAspNetCoreAppPackageVersion>
+    <MicrosoftAspNetCoreAppPackageVersion>8.0.0-rc.1.23421.29</MicrosoftAspNetCoreAppPackageVersion>
     <MicrosoftAspNetCoreApp7PackageVersion>7.0.5</MicrosoftAspNetCoreApp7PackageVersion>
     <MicrosoftAspNetCoreApp6PackageVersion>6.0.11</MicrosoftAspNetCoreApp6PackageVersion>
     <MicrosoftBuildLocatorPackageVersion>1.5.5</MicrosoftBuildLocatorPackageVersion>
     <MicrosoftBuildPackageVersion>16.9.0</MicrosoftBuildPackageVersion>
-    <MicrosoftCodeAnalysisNetAnalyzersPackageVersion>8.0.0-preview1.23165.1</MicrosoftCodeAnalysisNetAnalyzersPackageVersion>
+    <MicrosoftCodeAnalysisNetAnalyzersPackageVersion>8.0.0-preview.23420.2</MicrosoftCodeAnalysisNetAnalyzersPackageVersion>
     <MicrosoftCrankEventSourcesPackageVersion>0.2.0-alpha.21255.1</MicrosoftCrankEventSourcesPackageVersion>
     <MicrosoftExtensionsLoggingTestingPackageVersion>2.1.1</MicrosoftExtensionsLoggingTestingPackageVersion>
-    <MicrosoftExtensionsPackageVersion>8.0.0-rc.1.23379.1</MicrosoftExtensionsPackageVersion>
+    <MicrosoftExtensionsPackageVersion>8.0.0-rc.1.23419.4</MicrosoftExtensionsPackageVersion>
     <MicrosoftExtensions6PackageVersion>6.0.0</MicrosoftExtensions6PackageVersion>
     <MicrosoftNETTestSdkPackageVersion>17.6.2</MicrosoftNETTestSdkPackageVersion>
     <MicrosoftSourceLinkGitHubPackageVersion>1.1.1</MicrosoftSourceLinkGitHubPackageVersion>
