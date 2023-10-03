@@ -649,8 +649,11 @@ public class GrpcChannelTests
                 "For more information, see https://aka.ms/aspnet/grpc/netframework.");
     }
 
-    [Test]
-    public void WinHttpHandler_SupportedWindows_Success()
+#pragma warning disable CS0436 // Just need to have a type called WinHttpHandler to activate new behavior.
+    [TestCase(typeof(WinHttpHandler))]
+#pragma warning restore CS0436
+    [TestCase(typeof(WinHttpHandlerInherited))]
+    public void WinHttpHandler_SupportedWindows_Success(Type handlerType)
     {
         // Arrange
         var services = new ServiceCollection();
@@ -660,9 +663,7 @@ public class GrpcChannelTests
             OSVersion = Version.Parse("10.0.20348.169")
         });
 
-#pragma warning disable CS0436 // Just need to have a type called WinHttpHandler to activate new behavior.
-        var winHttpHandler = new WinHttpHandler(new TestHttpMessageHandler());
-#pragma warning restore CS0436
+        var winHttpHandler = (HttpMessageHandler)Activator.CreateInstance(handlerType, new TestHttpMessageHandler())!;
 
         // Act
         var channel = GrpcChannel.ForAddress("https://localhost", new GrpcChannelOptions
@@ -674,6 +675,15 @@ public class GrpcChannelTests
         // Assert
         Assert.AreEqual(HttpHandlerType.WinHttpHandler, channel.HttpHandlerType);
     }
+
+#pragma warning disable CS0436 // Just need to have a type called WinHttpHandler to activate new behavior.
+    private class WinHttpHandlerInherited : WinHttpHandler
+    {
+        public WinHttpHandlerInherited(HttpMessageHandler innerHandler) : base(innerHandler)
+        {
+        }
+    }
+#pragma warning restore CS0436
 
 #if SUPPORT_LOAD_BALANCING
     [Test]
