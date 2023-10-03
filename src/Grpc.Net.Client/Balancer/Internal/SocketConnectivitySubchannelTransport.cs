@@ -190,6 +190,9 @@ internal class SocketConnectivitySubchannelTransport : ISubchannelTransport, IDi
             }
             catch (Exception ex)
             {
+                // Socket is recreated every connect attempt. Explicitly dispose failed socket before next attempt.
+                socket.Dispose();
+
                 SocketConnectivitySubchannelTransportLog.ErrorConnectingSocket(_logger, _subchannel.Id, currentEndPoint, ex);
 
                 if (firstConnectionError == null)
