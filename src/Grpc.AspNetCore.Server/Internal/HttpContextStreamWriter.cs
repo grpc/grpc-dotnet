@@ -41,9 +41,12 @@ internal class HttpContextStreamWriter<TResponse> : IServerStreamWriter<TRespons
     {
         _context = context;
         _serializer = serializer;
+        _writeLock = new object();
+
+        // Copy HttpContext values.
+        // This is done to avoid a race condition when reading them from HttpContext later when running in a separate thread.
         _bodyWriter = context.HttpContext.Response.BodyWriter;
         _cancellationToken = context.HttpContext.RequestAborted;
-        _writeLock = new object();
     }
 
     public WriteOptions? WriteOptions

@@ -39,6 +39,9 @@ internal class HttpContextStreamReader<TRequest> : IAsyncStreamReader<TRequest> 
     {
         _serverCallContext = serverCallContext;
         _deserializer = deserializer;
+
+        // Copy HttpContext values.
+        // This is done to avoid a race condition when reading them from HttpContext later when running in a separate thread.
         _bodyReader = _serverCallContext.HttpContext.Request.BodyReader;
         _cancellationToken = _serverCallContext.HttpContext.RequestAborted;
     }
