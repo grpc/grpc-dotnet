@@ -17,6 +17,7 @@
 #endregion
 
 using System.Diagnostics;
+using System.IO.Pipelines;
 using Grpc.Core;
 using Grpc.Shared;
 
@@ -29,6 +30,8 @@ internal class HttpContextStreamWriter<TResponse> : IServerStreamWriter<TRespons
 {
     private readonly HttpContextServerCallContext _context;
     private readonly Action<TResponse, SerializationContext> _serializer;
+    private readonly PipeWriter _bodyWriter;
+    private readonly CancellationToken _cancellationToken;
     private readonly object _writeLock;
     private Task? _writeTask;
     private bool _completed;
@@ -38,6 +41,8 @@ internal class HttpContextStreamWriter<TResponse> : IServerStreamWriter<TRespons
     {
         _context = context;
         _serializer = serializer;
+        _bodyWriter = context.HttpContext.Response.BodyWriter;
+        _cancellationToken = context.HttpContext.RequestAborted;
         _writeLock = new object();
     }
 
@@ -77,7 +82,7 @@ internal class HttpContextStreamWriter<TResponse> : IServerStreamWriter<TRespons
         {
             cancellationToken.ThrowIfCancellationRequested();
 
-            if (_completed || _context.CancellationToken.IsCancellationRequested)
+            if (_completed || _cancellationToken.IsCancellationRequested)
             {
                 throw new InvalidOperationException("Can't write the message because the request is complete.");
             }
@@ -91,7 +96,7 @@ internal class HttpContextStreamWriter<TResponse> : IServerStreamWriter<TRespons
                 }
 
                 // Save write task to track whether it is complete. Must be set inside lock.
-                _writeTask = _context.HttpContext.Response.BodyWriter.WriteStreamedMessageAsync(message, _context, _serializer, cancellationToken);
+                _writeTask = _bodyWriter.WriteStreamedMessageAsync(message, _context, _serializer, cancellationToken);
             }
 
             await _writeTask;

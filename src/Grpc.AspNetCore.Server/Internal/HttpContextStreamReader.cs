@@ -17,6 +17,7 @@
 #endregion
 
 using System.Diagnostics;
+using System.IO.Pipelines;
 using Grpc.Core;
 using Grpc.Shared;
 
@@ -28,6 +29,8 @@ internal class HttpContextStreamReader<TRequest> : IAsyncStreamReader<TRequest> 
 {
     private readonly HttpContextServerCallContext _serverCallContext;
     private readonly Func<DeserializationContext, TRequest> _deserializer;
+    private readonly PipeReader _bodyReader;
+    private readonly CancellationToken _cancellationToken;
     private bool _completed;
     private long _readCount;
     private bool _endOfStream;
@@ -36,6 +39,8 @@ internal class HttpContextStreamReader<TRequest> : IAsyncStreamReader<TRequest> 
     {
         _serverCallContext = serverCallContext;
         _deserializer = deserializer;
+        _bodyReader = _serverCallContext.HttpContext.Request.BodyReader;
+        _cancellationToken = _serverCallContext.HttpContext.RequestAborted;
     }
 
     public TRequest Current { get; private set; } = default!;
@@ -54,7 +59,7 @@ internal class HttpContextStreamReader<TRequest> : IAsyncStreamReader<TRequest> 
             return Task.FromCanceled<bool>(cancellationToken);
         }
 
-        if (_completed || _serverCallContext.CancellationToken.IsCancellationRequested)
+        if (_completed || _cancellationToken.IsCancellationRequested)
         {
             return Task.FromException<bool>(new InvalidOperationException("Can't read messages after the request is complete."));
         }
@@ -63,7 +68,7 @@ internal class HttpContextStreamReader<TRequest> : IAsyncStreamReader<TRequest> 
         // In a long running stream this can allow the previous value to be GCed.
         Current = null!;
 
-        var request = _serverCallContext.HttpContext.Request.BodyReader.ReadStreamMessageAsync(_serverCallContext, _deserializer, cancellationToken);
+        var request = _bodyReader.ReadStreamMessageAsync(_serverCallContext, _deserializer, cancellationToken);
         if (!request.IsCompletedSuccessfully)
         {
             return MoveNextAsync(request);
