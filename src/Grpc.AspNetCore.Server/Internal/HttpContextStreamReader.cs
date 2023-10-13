@@ -45,7 +45,7 @@ internal class HttpContextStreamReader<TRequest> : IAsyncStreamReader<TRequest> 
         // This is done to avoid a race condition when reading them from HttpContext later when running in a separate thread.
         _bodyReader = _serverCallContext.HttpContext.Request.BodyReader;
         // Copy lifetime feature because HttpContext.RequestAborted on .NET 6 doesn't return the real cancellation token.
-        _requestLifetimeFeature = _serverCallContext.HttpContext.Features.Get<IHttpRequestLifetimeFeature>()!;
+        _requestLifetimeFeature = GrpcProtocolHelpers.GetRequestLifetimeFeature(_serverCallContext.HttpContext);
     }
 
     public TRequest Current { get; private set; } = default!;

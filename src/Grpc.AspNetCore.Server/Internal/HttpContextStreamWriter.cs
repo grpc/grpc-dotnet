@@ -48,7 +48,7 @@ internal class HttpContextStreamWriter<TResponse> : IServerStreamWriter<TRespons
         // This is done to avoid a race condition when reading them from HttpContext later when running in a separate thread.
         _bodyWriter = context.HttpContext.Response.BodyWriter;
         // Copy lifetime feature because HttpContext.RequestAborted on .NET 6 doesn't return the real cancellation token.
-        _requestLifetimeFeature = context.HttpContext.Features.Get<IHttpRequestLifetimeFeature>()!;
+        _requestLifetimeFeature = GrpcProtocolHelpers.GetRequestLifetimeFeature(context.HttpContext);
     }
 
     public WriteOptions? WriteOptions
