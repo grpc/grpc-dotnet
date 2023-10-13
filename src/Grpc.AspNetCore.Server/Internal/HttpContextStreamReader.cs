@@ -20,6 +20,7 @@ using System.Diagnostics;
 using System.IO.Pipelines;
 using Grpc.Core;
 using Grpc.Shared;
+using Microsoft.AspNetCore.Http.Features;
 
 namespace Grpc.AspNetCore.Server.Internal;
 
@@ -30,7 +31,7 @@ internal class HttpContextStreamReader<TRequest> : IAsyncStreamReader<TRequest> 
     private readonly HttpContextServerCallContext _serverCallContext;
     private readonly Func<DeserializationContext, TRequest> _deserializer;
     private readonly PipeReader _bodyReader;
-    private readonly CancellationToken _cancellationToken;
+    private readonly IHttpRequestLifetimeFeature _requestLifetimeFeature;
     private bool _completed;
     private long _readCount;
     private bool _endOfStream;
@@ -43,7 +44,8 @@ internal class HttpContextStreamReader<TRequest> : IAsyncStreamReader<TRequest> 
         // Copy HttpContext values.
         // This is done to avoid a race condition when reading them from HttpContext later when running in a separate thread.
         _bodyReader = _serverCallContext.HttpContext.Request.BodyReader;
-        _cancellationToken = _serverCallContext.HttpContext.RequestAborted;
+        // Copy lifetime feature because HttpContext.RequestAborted on .NET 6 doesn't return the real cancellation token.
+        _requestLifetimeFeature = _serverCallContext.HttpContext.Features.Get<IHttpRequestLifetimeFeature>()!;
     }
 
     public TRequest Current { get; private set; } = default!;
@@ -62,7 +64,7 @@ internal class HttpContextStreamReader<TRequest> : IAsyncStreamReader<TRequest> 
             return Task.FromCanceled<bool>(cancellationToken);
         }
 
-        if (_completed || _cancellationToken.IsCancellationRequested)
+        if (_completed || _requestLifetimeFeature.RequestAborted.IsCancellationRequested)
         {
             return Task.FromException<bool>(new InvalidOperationException("Can't read messages after the request is complete."));
         }

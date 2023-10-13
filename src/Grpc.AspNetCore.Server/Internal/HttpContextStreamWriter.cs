@@ -20,6 +20,7 @@ using System.Diagnostics;
 using System.IO.Pipelines;
 using Grpc.Core;
 using Grpc.Shared;
+using Microsoft.AspNetCore.Http.Features;
 
 namespace Grpc.AspNetCore.Server.Internal;
 
@@ -31,7 +32,7 @@ internal class HttpContextStreamWriter<TResponse> : IServerStreamWriter<TRespons
     private readonly HttpContextServerCallContext _context;
     private readonly Action<TResponse, SerializationContext> _serializer;
     private readonly PipeWriter _bodyWriter;
-    private readonly CancellationToken _cancellationToken;
+    private readonly IHttpRequestLifetimeFeature _requestLifetimeFeature;
     private readonly object _writeLock;
     private Task? _writeTask;
     private bool _completed;
@@ -46,7 +47,8 @@ internal class HttpContextStreamWriter<TResponse> : IServerStreamWriter<TRespons
         // Copy HttpContext values.
         // This is done to avoid a race condition when reading them from HttpContext later when running in a separate thread.
         _bodyWriter = context.HttpContext.Response.BodyWriter;
-        _cancellationToken = context.HttpContext.RequestAborted;
+        // Copy lifetime feature because HttpContext.RequestAborted on .NET 6 doesn't return the real cancellation token.
+        _requestLifetimeFeature = context.HttpContext.Features.Get<IHttpRequestLifetimeFeature>()!;
     }
 
     public WriteOptions? WriteOptions
@@ -85,7 +87,7 @@ internal class HttpContextStreamWriter<TResponse> : IServerStreamWriter<TRespons
         {
             cancellationToken.ThrowIfCancellationRequested();
 
-            if (_completed || _cancellationToken.IsCancellationRequested)
+            if (_completed || _requestLifetimeFeature.RequestAborted.IsCancellationRequested)
             {
                 throw new InvalidOperationException("Can't write the message because the request is complete.");
             }
