@@ -34,11 +34,9 @@ public class DuplexStreamingServerCallHandlerTests
     private static readonly Marshaller<TestMessage> _marshaller = new Marshaller<TestMessage>((message, context) => { context.Complete(Array.Empty<byte>()); }, context => new TestMessage());
 
     [Test]
-    public async Task Invoke_ReadAndWrite_Success()
+    public async Task HandleCallAsync_ConcurrentReadAndWrite_Success()
     {
         // Arrange
-        var serviceActivator = new TestGrpcServiceActivator<TestService>();
-        var ex = new Exception("Exception!");
         var invoker = new DuplexStreamingServerMethodInvoker<TestService, TestMessage, TestMessage>(
             (service, reader, writer, context) =>
             {
@@ -49,7 +47,7 @@ public class DuplexStreamingServerCallHandlerTests
             },
             new Method<TestMessage, TestMessage>(MethodType.DuplexStreaming, "test", "test", _marshaller, _marshaller),
             HttpContextServerCallContextHelper.CreateMethodOptions(),
-            serviceActivator);
+            new TestGrpcServiceActivator<TestService>());
         var handler = new DuplexStreamingServerCallHandler<TestService, TestMessage, TestMessage>(invoker, NullLoggerFactory.Instance);
 
         // Verify there isn't a race condition when reading/writing on seperate threads.
