@@ -1,4 +1,4 @@
-﻿#region Copyright notice and license
+#region Copyright notice and license
 
 // Copyright 2019 The gRPC Authors
 //
@@ -233,5 +233,18 @@ internal static class GrpcProtocolHelpers
     internal static bool ShouldSkipHeader(string name)
     {
         return name.StartsWith(':') || GrpcProtocolConstants.FilteredHeaders.Contains(name);
+    }
+
+    internal static IHttpRequestLifetimeFeature GetRequestLifetimeFeature(HttpContext httpContext)
+    {
+        var lifetimeFeature = httpContext.Features.Get<IHttpRequestLifetimeFeature>();
+        if (lifetimeFeature is null)
+        {
+            // This should only run in tests where the HttpContext is manually created.
+            lifetimeFeature = new HttpRequestLifetimeFeature();
+            httpContext.Features.Set(lifetimeFeature);
+        }
+
+        return lifetimeFeature;
     }
 }
