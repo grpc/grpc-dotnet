@@ -186,7 +186,7 @@ void PrintStatusDetails(RpcException ex)
     if (rpcStatus != null)
     {
         // Decode each message item in the details in turn
-        foreach (var msg in status.UnpackDetailMessage())
+        foreach (var msg in rpcStatus.UnpackDetailMessages())
         {
             switch (msg)
             {
