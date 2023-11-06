@@ -8,9 +8,9 @@
   <ItemGroup>
     <Protobuf Include="..\Proto\certify.proto" GrpcServices="Client" Link="Protos\certify.proto" />
 
-    <PackageReference Include="Google.Protobuf" Version="$(GoogleProtobufPackageVersion)" />
-    <PackageReference Include="Grpc.Net.Client" Version="$(GrpcDotNetPackageVersion)" />
-    <PackageReference Include="Grpc.Tools" Version="$(GrpcToolsPackageVersion)" PrivateAssets="All" />
+    <PackageReference Include="Google.Protobuf" />
+    <PackageReference Include="Grpc.Net.Client" />
+    <PackageReference Include="Grpc.Tools" PrivateAssets="All" />
 
     <None Update="Certs\client.pfx">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>

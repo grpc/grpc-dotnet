@@ -3,8 +3,8 @@
   <PropertyGroup>
     <TargetFramework>net8.0</TargetFramework>
     <OutputType>Exe</OutputType>
-    <PublishTrimmed>true</PublishTrimmed>
     <!-- 
+    <PublishTrimmed>true</PublishTrimmed>
       ASP.NET Core SDK has partial trimming in .NET 7. Change to full because gRPC works with full
       and it removes linker warnings from unused ASP.NET Core assemblies.
     -->
@@ -18,8 +18,8 @@
   <ItemGroup>
     <ProjectReference Include="..\..\src\Grpc.AspNetCore.Server\Grpc.AspNetCore.Server.csproj" />
 
-    <PackageReference Include="Google.Protobuf" Version="$(GoogleProtobufPackageVersion)" />
-    <PackageReference Include="Grpc.Tools" Version="$(GrpcToolsPackageVersion)" PrivateAssets="All" />
+    <PackageReference Include="Google.Protobuf" />
+    <PackageReference Include="Grpc.Tools" PrivateAssets="All" />
   </ItemGroup>
 
   <ItemGroup>

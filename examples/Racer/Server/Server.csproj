@@ -7,7 +7,7 @@
   <ItemGroup>
     <Protobuf Include="..\Proto\race.proto" GrpcServices="Server" Link="Proto\race.proto" />
 
-    <PackageReference Include="Grpc.AspNetCore" Version="$(GrpcDotNetPackageVersion)" />
+    <PackageReference Include="Grpc.AspNetCore" />
   </ItemGroup>
 
 </Project>

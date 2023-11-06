@@ -8,8 +8,8 @@
   <ItemGroup>
     <ProjectReference Include="..\Common\Common.csproj" />
 
-    <PackageReference Include="Microsoft.Extensions.Hosting" Version="$(MicrosoftExtensionsPackageVersion)" />
-    <PackageReference Include="Grpc.Net.ClientFactory" Version="$(GrpcDotNetPackageVersion)" />
+    <PackageReference Include="Microsoft.Extensions.Hosting" />
+    <PackageReference Include="Grpc.Net.ClientFactory" />
   </ItemGroup>
 
 </Project>

@@ -18,7 +18,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="Google.Protobuf" Version="$(GoogleProtobufPackageVersion)" />
+    <PackageReference Include="Google.Protobuf" />
   
     <!-- TODO(jtattermusch): add reference to Grpc.Tools and use it for generating the Reflection.cs and ReflectionGrpc.cs sources -->
   </ItemGroup>
