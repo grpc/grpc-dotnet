@@ -1,4 +1,4 @@
-﻿#region Copyright notice and license
+#region Copyright notice and license
 
 // Copyright 2019 The gRPC Authors
 //
@@ -53,7 +53,7 @@ internal static class HttpRequestHelpers
 
     public static HttpMessageHandler? GetHttpHandlerType(HttpMessageHandler handler, string handlerTypeName)
     {
-        if (handler?.GetType().FullName == handlerTypeName)
+        if (IsType(handler.GetType(), handlerTypeName))
         {
             return handler;
         }
@@ -62,14 +62,28 @@ internal static class HttpRequestHelpers
         while (currentHandler is DelegatingHandler delegatingHandler)
         {
             currentHandler = delegatingHandler.InnerHandler;
-
-            if (currentHandler?.GetType().FullName == handlerTypeName)
+            if (currentHandler != null && IsType(currentHandler.GetType(), handlerTypeName))
             {
                 return currentHandler;
             }
         }
 
         return null;
+    }
+
+    private static bool IsType(Type type, string handlerTypeName)
+    {
+        Type? currentType = type;
+        do
+        {
+            if (currentType.FullName == handlerTypeName)
+            {
+                return true;
+            }
+
+        } while ((currentType = currentType.BaseType) != null);
+
+        return false;
     }
 
     public static bool HasHttpHandlerType<T>(HttpMessageHandler handler) where T : HttpMessageHandler

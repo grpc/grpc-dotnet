@@ -17,8 +17,10 @@
 #endregion
 
 using System.Diagnostics;
+using System.IO.Pipelines;
 using Grpc.Core;
 using Grpc.Shared;
+using Microsoft.AspNetCore.Http.Features;
 
 namespace Grpc.AspNetCore.Server.Internal;
 
@@ -28,6 +30,8 @@ internal class HttpContextStreamReader<TRequest> : IAsyncStreamReader<TRequest> 
 {
     private readonly HttpContextServerCallContext _serverCallContext;
     private readonly Func<DeserializationContext, TRequest> _deserializer;
+    private readonly PipeReader _bodyReader;
+    private readonly IHttpRequestLifetimeFeature _requestLifetimeFeature;
     private bool _completed;
     private long _readCount;
     private bool _endOfStream;
@@ -36,6 +40,12 @@ internal class HttpContextStreamReader<TRequest> : IAsyncStreamReader<TRequest> 
     {
         _serverCallContext = serverCallContext;
         _deserializer = deserializer;
+
+        // Copy HttpContext values.
+        // This is done to avoid a race condition when reading them from HttpContext later when running in a separate thread.
+        _bodyReader = _serverCallContext.HttpContext.Request.BodyReader;
+        // Copy lifetime feature because HttpContext.RequestAborted on .NET 6 doesn't return the real cancellation token.
+        _requestLifetimeFeature = GrpcProtocolHelpers.GetRequestLifetimeFeature(_serverCallContext.HttpContext);
     }
 
     public TRequest Current { get; private set; } = default!;
@@ -54,7 +64,7 @@ internal class HttpContextStreamReader<TRequest> : IAsyncStreamReader<TRequest> 
             return Task.FromCanceled<bool>(cancellationToken);
         }
 
-        if (_completed || _serverCallContext.CancellationToken.IsCancellationRequested)
+        if (_completed || _requestLifetimeFeature.RequestAborted.IsCancellationRequested)
         {
             return Task.FromException<bool>(new InvalidOperationException("Can't read messages after the request is complete."));
         }
@@ -63,7 +73,7 @@ internal class HttpContextStreamReader<TRequest> : IAsyncStreamReader<TRequest> 
         // In a long running stream this can allow the previous value to be GCed.
         Current = null!;
 
-        var request = _serverCallContext.HttpContext.Request.BodyReader.ReadStreamMessageAsync(_serverCallContext, _deserializer, cancellationToken);
+        var request = _bodyReader.ReadStreamMessageAsync(_serverCallContext, _deserializer, cancellationToken);
         if (!request.IsCompletedSuccessfully)
         {
             return MoveNextAsync(request);
