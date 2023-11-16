@@ -34,7 +34,6 @@ public class LinkerTests
     private static readonly TimeSpan Timeout = TimeSpan.FromSeconds(120);
 
     [Test]
-    [Ignore(reason: "TODO: .NET 8 SDK upgrade broke linker website build.")]
     public async Task RunWebsiteAndCallWithClient_Success()
     {
         var projectDirectory = typeof(LinkerTests).Assembly
