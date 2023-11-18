@@ -1,6 +1,4 @@
 <Project>
-  <Import Project="build\sources.props" />
-  <Import Project="build\dependencies.props" />
   <Import Project="build\version.props" />
 
   <PropertyGroup>

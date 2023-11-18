@@ -8,10 +8,10 @@
   <ItemGroup>
     <Protobuf Include="..\Proto\greet.proto" GrpcServices="Client" Link="Protos\greet.proto" />
 
-    <PackageReference Include="Google.Protobuf" Version="$(GoogleProtobufPackageVersion)" />
-    <PackageReference Include="Grpc.Net.Client" Version="$(GrpcDotNetPackageVersion)" />
-    <PackageReference Include="Grpc.Tools" Version="$(GrpcToolsPackageVersion)" PrivateAssets="All" />
+    <PackageReference Include="Google.Protobuf" />
+    <PackageReference Include="Grpc.Net.Client" />
+    <PackageReference Include="Grpc.Tools" PrivateAssets="All" />
 
-    <PackageReference Include="System.Net.Http.WinHttpHandler" Version="$(SystemNetHttpWinHttpHandlerPackageVersion)" />
+    <PackageReference Include="System.Net.Http.WinHttpHandler" />
   </ItemGroup>
 </Project>

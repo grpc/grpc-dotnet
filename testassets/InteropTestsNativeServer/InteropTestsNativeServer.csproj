@@ -12,11 +12,11 @@
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
 
-    <PackageReference Include="CommandLineParser" Version="2.5.0" />
+    <PackageReference Include="CommandLineParser" />
 
-    <PackageReference Include="Google.Protobuf" Version="$(GoogleProtobufPackageVersion)" />
-    <PackageReference Include="Grpc.Core" Version="$(GrpcPackageVersion)" />
-    <PackageReference Include="Grpc.Tools" Version="$(GrpcToolsPackageVersion)" PrivateAssets="All" />
+    <PackageReference Include="Google.Protobuf" />
+    <PackageReference Include="Grpc.Core" />
+    <PackageReference Include="Grpc.Tools" PrivateAssets="All" />
   </ItemGroup>
 
 </Project>

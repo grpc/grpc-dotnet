@@ -7,9 +7,9 @@
   <ItemGroup>
     <Protobuf Include="..\Proto\weather.proto" GrpcServices="Server" Link="Protos\weather.proto" />
 
-    <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly.Server" Version="$(MicrosoftAspNetCoreAppPackageVersion)" />
-    <PackageReference Include="Grpc.AspNetCore" Version="$(GrpcDotNetPackageVersion)" />
-    <PackageReference Include="Grpc.AspNetCore.Web" Version="$(GrpcDotNetPackageVersion)" />
+    <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly.Server" />
+    <PackageReference Include="Grpc.AspNetCore" />
+    <PackageReference Include="Grpc.AspNetCore.Web" />
   </ItemGroup>
 
 </Project>

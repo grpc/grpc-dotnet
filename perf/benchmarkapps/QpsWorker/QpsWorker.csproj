@@ -10,8 +10,8 @@
     <ProjectReference Include="..\..\..\src\Grpc.AspNetCore.Server\Grpc.AspNetCore.Server.csproj" />
     <ProjectReference Include="..\..\..\src\Grpc.Net.Client\Grpc.Net.Client.csproj" />
 
-    <PackageReference Include="Google.Protobuf" Version="$(GoogleProtobufPackageVersion)" />
-    <PackageReference Include="Grpc.Tools" Version="$(GrpcToolsPackageVersion)" PrivateAssets="All" />
+    <PackageReference Include="Google.Protobuf" />
+    <PackageReference Include="Grpc.Tools" PrivateAssets="All" />
 
     <Compile Include="..\Shared\BenchmarkServiceImpl.cs" Link="Services\BenchmarkServiceImpl.cs" />
     <Compile Include="..\Shared\ServiceProvidersMiddleware.cs" Link="Infrastructure\ServiceProvidersMiddleware.cs" />

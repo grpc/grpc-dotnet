@@ -5,7 +5,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="protobuf-net.Grpc" Version="$(ProtobufNetGrpcPackageVersion)" />
+    <PackageReference Include="protobuf-net.Grpc" />
   </ItemGroup>
 
 </Project>

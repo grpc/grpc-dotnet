@@ -18,13 +18,13 @@
     <ProjectReference Include="..\..\src\Grpc.Net.Client.Web\Grpc.Net.Client.Web.csproj" />
     <ProjectReference Include="..\..\src\Grpc.Net.Client\Grpc.Net.Client.csproj" />
 
-    <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly" Version="$(MicrosoftAspNetCoreAppPackageVersion)" />
-    <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly.DevServer" Version="$(MicrosoftAspNetCoreAppPackageVersion)" PrivateAssets="all" />
+    <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly" />
+    <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly.DevServer" PrivateAssets="all" />
 
-    <PackageReference Include="System.Net.Http.WinHttpHandler" Version="$(SystemNetHttpWinHttpHandlerPackageVersion)" />
+    <PackageReference Include="System.Net.Http.WinHttpHandler" />
 
-    <PackageReference Include="Google.Protobuf" Version="$(GoogleProtobufPackageVersion)" />
-    <PackageReference Include="Grpc.Tools" Version="$(GrpcToolsPackageVersion)" PrivateAssets="All" />
+    <PackageReference Include="Google.Protobuf" />
+    <PackageReference Include="Grpc.Tools" PrivateAssets="All" />
 
     <Protobuf Include="..\Proto\grpc\testing\test.proto" GrpcServices="Client" Link="Protos\test.proto" />
     <Protobuf Include="..\Proto\grpc\testing\empty.proto" GrpcServices="None" Link="Protos\empty.proto" />
