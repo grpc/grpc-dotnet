@@ -9,6 +9,7 @@
       and it removes linker warnings from unused ASP.NET Core assemblies.
     -->
     <TrimMode>full</TrimMode>
+    <TrimmerSingleWarn>false</TrimmerSingleWarn>
   </PropertyGroup>
 
   <ItemGroup>

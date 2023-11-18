@@ -139,7 +139,7 @@ public class LinkerTests
         var architecture = RuntimeInformation.OSArchitecture.ToString().ToLower();
         if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
         {
-            return "win10-" + architecture;
+            return "win-" + architecture;
         }
         if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
         {

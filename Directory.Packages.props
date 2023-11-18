@@ -57,7 +57,7 @@
     <PackageVersion Include="BenchmarkDotNet" Version="0.13.1" />
     <PackageVersion Include="CommandLineParser" Version="2.5.0" />
     <PackageVersion Include="Google.Apis.Auth" Version="1.46.0" />
-    <PackageVersion Include="Google.Protobuf" Version="3.25.0" />
+    <PackageVersion Include="Google.Protobuf" Version="3.24.0" />
     <PackageVersion Include="Microsoft.Build.Locator" Version="1.5.5" />
     <PackageVersion Include="Microsoft.Build" Version="16.9.0" />
     <PackageVersion Include="Microsoft.CodeAnalysis.NetAnalyzers" Version="8.0.0-preview.23472.1" />
