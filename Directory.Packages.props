@@ -1,0 +1,84 @@
+<Project>
+  <PropertyGroup>
+    <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
+    <MicrosoftAspNetCoreAppPackageVersion>8.0.0</MicrosoftAspNetCoreAppPackageVersion>
+    <MicrosoftAspNetCoreApp7PackageVersion>7.0.5</MicrosoftAspNetCoreApp7PackageVersion>
+    <MicrosoftAspNetCoreApp6PackageVersion>6.0.11</MicrosoftAspNetCoreApp6PackageVersion>
+    <GrpcDotNetPackageVersion>2.58.0</GrpcDotNetPackageVersion>
+    <OpenTelemetryPackageVersion>1.6.0</OpenTelemetryPackageVersion>
+    <OpenTelemetryIntergationPackageVersion>1.6.0-beta.2</OpenTelemetryIntergationPackageVersion>
+    <MicrosoftExtensionsPackageVersion>8.0.0</MicrosoftExtensionsPackageVersion>
+    <MicrosoftExtensions6PackageVersion>6.0.0</MicrosoftExtensions6PackageVersion>
+  </PropertyGroup>
+  <ItemGroup>
+    <!-- ASP.NET Core -->
+    <PackageVersion Include="Microsoft.AspNetCore.Components.WebAssembly" Version="$(MicrosoftAspNetCoreAppPackageVersion)" />
+    <PackageVersion Include="Microsoft.AspNetCore.Components.WebAssembly.DevServer" Version="$(MicrosoftAspNetCoreAppPackageVersion)" />
+    <PackageVersion Include="Microsoft.AspNetCore.Components.WebAssembly.Server" Version="$(MicrosoftAspNetCoreAppPackageVersion)" />
+    <PackageVersion Include="Microsoft.AspNetCore.Authentication.Certificate" Version="$(MicrosoftAspNetCoreAppPackageVersion)" />
+    <PackageVersion Include="Microsoft.AspNetCore.SpaServices.Extensions" Version="$(MicrosoftAspNetCoreAppPackageVersion)" />
+    <PackageVersion Include="Microsoft.AspNetCore.TestHost" Version="$(MicrosoftAspNetCoreAppPackageVersion)" />
+    <PackageVersion Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="$(MicrosoftAspNetCoreAppPackageVersion)" />
+    <PackageVersion Include="Microsoft.AspNetCore.Grpc.JsonTranscoding" Version="$(MicrosoftAspNetCoreAppPackageVersion)" />
+    <PackageVersion Include="Microsoft.AspNetCore.Grpc.Swagger" Version="0.8.0" />
+
+    <!-- Extensions -->
+    <PackageVersion Include="Microsoft.Extensions.Logging" Version="$(MicrosoftExtensionsPackageVersion)" />
+    <PackageVersion Include="Microsoft.Extensions.Logging.Console" Version="$(MicrosoftExtensionsPackageVersion)" />
+    <PackageVersion Include="Microsoft.Extensions.Hosting" Version="$(MicrosoftExtensionsPackageVersion)" />
+    <PackageVersion Include="Microsoft.Extensions.DependencyInjection" Version="$(MicrosoftExtensionsPackageVersion)" />
+    <PackageVersion Include="Microsoft.Extensions.Logging.Abstractions" Version="$(MicrosoftExtensionsPackageVersion)" />
+
+    <!-- gRPC -->
+    <PackageVersion Include="Grpc.Tools" Version="2.59.0" />
+    <PackageVersion Include="Grpc.Core" Version="2.46.6" />
+    <PackageVersion Include="Grpc.Core.Api" Version="$(GrpcDotNetPackageVersion)"/>
+    <PackageVersion Include="Grpc.Net.Client" Version="$(GrpcDotNetPackageVersion)" />
+    <PackageVersion Include="Grpc.Net.Client.Web" Version="$(GrpcDotNetPackageVersion)" />
+    <PackageVersion Include="Grpc.Net.ClientFactory" Version="$(GrpcDotNetPackageVersion)" />
+    <PackageVersion Include="Grpc.AspNetCore" Version="$(GrpcDotNetPackageVersion)" />
+    <PackageVersion Include="Grpc.AspNetCore.Server" Version="$(GrpcDotNetPackageVersion)" />
+    <PackageVersion Include="Grpc.AspNetCore.Web" Version="$(GrpcDotNetPackageVersion)" />
+    <PackageVersion Include="Grpc.Reflection" Version="$(GrpcDotNetPackageVersion)" />
+    <PackageVersion Include="Grpc.AspNetCore.Server.Reflection" Version="$(GrpcDotNetPackageVersion)" />
+    <PackageVersion Include="Grpc.HealthCheck" Version="$(GrpcDotNetPackageVersion)" />
+    <PackageVersion Include="Grpc.AspNetCore.HealthChecks" Version="$(GrpcDotNetPackageVersion)" />
+    <PackageVersion Include="Grpc.Auth" Version="$(GrpcDotNetPackageVersion)" />
+
+    <!-- OpenTelemetry -->
+    <PackageVersion Include="OpenTelemetry" Version="$(OpenTelemetryPackageVersion)" />
+    <PackageVersion Include="OpenTelemetry.Exporter.Zipkin" Version="$(OpenTelemetryPackageVersion)" />
+    <PackageVersion Include="OpenTelemetry.Extensions.Hosting" Version="$(OpenTelemetryPackageVersion)" />
+    <PackageVersion Include="OpenTelemetry.Instrumentation.AspNetCore" Version="$(OpenTelemetryIntergationPackageVersion)" />
+    <PackageVersion Include="OpenTelemetry.Instrumentation.GrpcNetClient" Version="$(OpenTelemetryIntergationPackageVersion)" />
+    <PackageVersion Include="OpenTelemetry.Instrumentation.Http" Version="$(OpenTelemetryIntergationPackageVersion)" />
+
+    <!-- Other -->
+    <PackageVersion Include="BenchmarkDotNet" Version="0.13.1" />
+    <PackageVersion Include="CommandLineParser" Version="2.5.0" />
+    <PackageVersion Include="Google.Apis.Auth" Version="1.46.0" />
+    <PackageVersion Include="Google.Protobuf" Version="3.24.0" />
+    <PackageVersion Include="Microsoft.Build.Locator" Version="1.5.5" />
+    <PackageVersion Include="Microsoft.Build" Version="16.9.0" />
+    <PackageVersion Include="Microsoft.CodeAnalysis.NetAnalyzers" Version="8.0.0-preview.23472.1" />
+    <PackageVersion Include="Microsoft.Crank.EventSources" Version="0.2.0-alpha.21255.1" />
+    <PackageVersion Include="Microsoft.Extensions.Logging.Testing" Version="2.1.1" />
+    <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="17.6.2" />
+    <PackageVersion Include="Microsoft.SourceLink.GitHub" Version="1.1.1" />
+    <PackageVersion Include="Microsoft.Win32.Registry" Version="4.6.0" />
+    <PackageVersion Include="Moq" Version="4.16.1" />
+    <PackageVersion Include="Newtonsoft.Json" Version="13.0.3" />
+    <PackageVersion Include="Nunit" Version="3.13.3" />
+    <PackageVersion Include="NUnit3TestAdapter" Version="4.5.0" />
+    <PackageVersion Include="protobuf-net.Grpc.AspNetCore" Version="1.0.140" />
+    <PackageVersion Include="protobuf-net.Grpc" Version="1.0.140" />
+    <PackageVersion Include="System.CommandLine" Version="2.0.0-beta4.22272.1" />
+    <PackageVersion Include="System.CommandLine.Rendering" Version="0.4.0-alpha.22272.1" />
+    <PackageVersion Include="System.Diagnostics.DiagnosticSource" Version="6.0.1" />
+    <PackageVersion Include="System.IO.Pipelines" Version="5.0.1" />
+    <PackageVersion Include="System.Memory" Version="4.5.3" />
+    <PackageVersion Include="System.Net.Http.WinHttpHandler" Version="7.0.0" />
+    <PackageVersion Include="System.Security.Principal.Windows" Version="4.7.0" />
+    <PackageVersion Include="System.Threading.Channels" Version="4.6.0" />
+  </ItemGroup>
+</Project>

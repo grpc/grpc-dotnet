@@ -7,9 +7,9 @@
   <ItemGroup>
     <Protobuf Include="..\Proto\test.proto" Link="Protos\test.proto" />
 
-    <PackageReference Include="Google.Protobuf" Version="$(GoogleProtobufPackageVersion)" />
-    <PackageReference Include="Grpc.Tools" Version="$(GrpcToolsPackageVersion)" PrivateAssets="All" />
-    <PackageReference Include="Grpc.Core.Api" Version="$(GrpcDotNetPackageVersion)"/>
+    <PackageReference Include="Google.Protobuf" />
+    <PackageReference Include="Grpc.Tools" PrivateAssets="All" />
+    <PackageReference Include="Grpc.Core.Api" />
   </ItemGroup>
 
 </Project>

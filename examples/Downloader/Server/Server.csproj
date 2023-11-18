@@ -5,7 +5,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Grpc.AspNetCore" Version="$(GrpcDotNetPackageVersion)" />
+    <PackageReference Include="Grpc.AspNetCore" />
 
     <Protobuf Include="..\Proto\download.proto" GrpcServices="Server" Link="Protos\download.proto" />
   </ItemGroup>

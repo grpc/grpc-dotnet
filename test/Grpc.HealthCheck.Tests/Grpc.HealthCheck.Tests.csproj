@@ -8,7 +8,7 @@
     <ProjectReference Include="..\..\src\Grpc.HealthCheck\Grpc.HealthCheck.csproj" />
 
     <!-- TODO(jtattermusch): migrate client/server test to use grpc-dotnet instead of Grpc.Core -->
-    <PackageReference Include="Grpc.Core" Version="$(GrpcPackageVersion)" />
+    <PackageReference Include="Grpc.Core" />
   </ItemGroup>
 
   <ItemGroup Condition=" '$(TargetFramework)' == 'net462' ">
