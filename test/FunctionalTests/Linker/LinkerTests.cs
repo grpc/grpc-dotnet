@@ -33,8 +33,21 @@ public class LinkerTests
 {
     private static readonly TimeSpan Timeout = TimeSpan.FromSeconds(120);
 
+#if NET8_0_OR_GREATER
     [Test]
-    public async Task RunWebsiteAndCallWithClient_Success()
+    public async Task RunWebsiteAndCallWithClient_Aot_Success()
+    {
+        await RunWebsiteAndCallWithClient(publishAot: true);
+    }
+#endif
+
+    [Test]
+    public async Task RunWebsiteAndCallWithClient_Trimming_Success()
+    {
+        await RunWebsiteAndCallWithClient(publishAot: false);
+    }
+
+    private async Task RunWebsiteAndCallWithClient(bool publishAot)
     {
         var projectDirectory = typeof(LinkerTests).Assembly
             .GetCustomAttributes<AssemblyMetadataAttribute>()
@@ -51,13 +64,11 @@ public class LinkerTests
         try
         {
             using var cts = new CancellationTokenSource();
-            using var websiteProcess = new WebsiteProcess();
-            using var clientProcess = new DotNetProcess();
 
             try
             {
-                var publishWebsiteTask = PublishAppAsync(projectDirectory + @"\..\..\testassets\LinkerTestsWebsite\LinkerTestsWebsite.csproj", linkerTestsWebsitePath, cts.Token);
-                var publishClientTask = PublishAppAsync(projectDirectory + @"\..\..\testassets\LinkerTestsClient\LinkerTestsClient.csproj", linkerTestsClientPath, cts.Token);
+                var publishWebsiteTask = PublishAppAsync(projectDirectory + @"\..\..\testassets\LinkerTestsWebsite\LinkerTestsWebsite.csproj", linkerTestsWebsitePath, publishAot, cts.Token);
+                var publishClientTask = PublishAppAsync(projectDirectory + @"\..\..\testassets\LinkerTestsClient\LinkerTestsClient.csproj", linkerTestsClientPath, publishAot, cts.Token);
 
                 await Task.WhenAll(publishWebsiteTask, publishClientTask).TimeoutAfter(Timeout);
                 Console.WriteLine("Successfully published app.");
@@ -67,12 +78,15 @@ public class LinkerTests
                 cts.Dispose();
             }
 
+            using var websiteProcess = new WebsiteProcess();
+            using var clientProcess = new DotNetProcess();
+
             try
             {
-                websiteProcess.Start(Path.Combine(linkerTestsWebsitePath, "LinkerTestsWebsite.dll"));
+                websiteProcess.Start(BuildStartPath(linkerTestsWebsitePath, "LinkerTestsWebsite"), arguments: null);
                 await websiteProcess.WaitForReadyAsync().TimeoutAfter(Timeout);
 
-                clientProcess.Start(Path.Combine(linkerTestsClientPath, $"LinkerTestsClient.dll {websiteProcess.ServerPort}"));
+                clientProcess.Start(BuildStartPath(linkerTestsClientPath, "LinkerTestsClient"), arguments: websiteProcess.ServerPort!.ToString());
                 await clientProcess.WaitForExitAsync().TimeoutAfter(Timeout);
             }
             finally
@@ -92,6 +106,15 @@ public class LinkerTests
         }
     }
 
+    private static string BuildStartPath(string path, string projectName)
+    {
+        if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+        {
+            projectName += ".exe";
+        }
+        return Path.Combine(path, projectName);
+    }
+
     private static void EnsureDeleted(string path)
     {
         if (Directory.Exists(path))
@@ -100,7 +123,7 @@ public class LinkerTests
         }
     }
 
-    private static async Task PublishAppAsync(string path, string outputPath, CancellationToken cancellationToken)
+    private static async Task PublishAppAsync(string path, string outputPath, bool publishAot, CancellationToken cancellationToken)
     {
         var resolvedPath = Path.GetFullPath(path);
         Console.WriteLine($"Publishing {resolvedPath}");
@@ -110,7 +133,9 @@ public class LinkerTests
 
         try
         {
-            process.Start($"publish {resolvedPath} -r {GetRuntimeIdentifier()} -c Release -o {outputPath} --self-contained");
+            // The AppPublishAot parameter is used to tell the compiler to publish as AOT.
+            // AppPublishAot is used instead of PublishAot because dependency projects have non-AOT targets. Setting "PublishAot=true" causes build errors.
+            process.Start("dotnet", $"publish {resolvedPath} -r {GetRuntimeIdentifier()} -c Release -o {outputPath} -p:AppPublishAot={publishAot} --self-contained");
             await process.WaitForExitAsync().TimeoutAfter(Timeout);
         }
         catch (Exception ex)

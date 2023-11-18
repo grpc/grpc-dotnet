@@ -1,4 +1,4 @@
-﻿#region Copyright notice and license
+#region Copyright notice and license
 
 // Copyright 2019 The gRPC Authors
 //
@@ -54,9 +54,10 @@ public class DotNetProcess : IDisposable
     public int ExitCode => Process.ExitCode;
     public bool HasExited => Process.HasExited;
 
-    public void Start(string arguments)
+    public void Start(string fileName, string? arguments)
     {
-        Process.StartInfo.Arguments = arguments;
+        Process.StartInfo.FileName = fileName;
+        Process.StartInfo.Arguments = arguments ?? string.Empty;
         Process.Start();
 
         Process.BeginOutputReadLine();
