@@ -17,31 +17,23 @@
 #endregion
 
 using Microsoft.AspNetCore.Server.Kestrel.Core;
+using Server;
 
-namespace Server;
-
-public class Program
+var builder = WebApplication.CreateSlimBuilder(args);
+builder.Logging.SetMinimumLevel(LogLevel.Trace);
+builder.WebHost.ConfigureKestrel(options =>
 {
-    public static void Main(string[] args)
+    options.ListenAnyIP(0, listenOptions =>
     {
-        CreateHostBuilder(args).Build().Run();
-    }
+        listenOptions.Protocols = HttpProtocols.Http2;
+    });
+});
 
-    public static IHostBuilder CreateHostBuilder(string[] args) =>
-        Host.CreateDefaultBuilder(args)
-            .ConfigureWebHostDefaults(webBuilder =>
-            {
-                webBuilder.UseStartup<Startup>();
-                webBuilder.ConfigureKestrel(options =>
-                {
-                    options.ListenAnyIP(0, listenOptions =>
-                    {
-                        listenOptions.Protocols = HttpProtocols.Http2;
-                    });
-                });
-            })
-            .ConfigureLogging(logging =>
-            {
-                logging.SetMinimumLevel(LogLevel.Trace);
-            });
-}
+builder.Services.AddGrpc();
+
+var app = builder.Build();
+
+app.MapGrpcService<GreeterService>();
+
+app.Lifetime.ApplicationStarted.Register(() => Console.WriteLine("Application started. Press Ctrl+C to shut down."));
+app.Run();

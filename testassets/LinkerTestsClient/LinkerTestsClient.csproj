@@ -5,6 +5,9 @@
     <OutputType>Exe</OutputType>
     <PublishTrimmed>true</PublishTrimmed>
     <PublishAot>$(AppPublishAot)</PublishAot>
+
+    <IlcGenerateMstatFile>$(GenerateAotDiaganostics)</IlcGenerateMstatFile>
+    <IlcGenerateDgmlFile>$(GenerateAotDiaganostics)</IlcGenerateDgmlFile>
   </PropertyGroup>
 
   <ItemGroup>

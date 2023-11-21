@@ -11,6 +11,9 @@
     -->
     <TrimMode>full</TrimMode>
     <TrimmerSingleWarn>false</TrimmerSingleWarn>
+
+    <IlcGenerateMstatFile>$(GenerateAotDiaganostics)</IlcGenerateMstatFile>
+    <IlcGenerateDgmlFile>$(GenerateAotDiaganostics)</IlcGenerateDgmlFile>
   </PropertyGroup>
 
   <ItemGroup>
