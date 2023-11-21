@@ -17,7 +17,7 @@
 #endregion
 
 // Skip running load running tests in debug configuration
-#if !DEBUG
+#if true
 
 using System.Reflection;
 using System.Runtime.InteropServices;
@@ -108,10 +108,8 @@ public class LinkerTests
 
     private static string BuildStartPath(string path, string projectName)
     {
-        if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
-        {
-            projectName += ".exe";
-        }
+        // Executable on Windows has an *.exe extension.
+        // We don't need to add it to the start path because *.exe is in the PATHEXT env var.
         return Path.Combine(path, projectName);
     }
 
