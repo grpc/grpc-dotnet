@@ -17,7 +17,7 @@
 #endregion
 
 // Skip running load running tests in debug configuration
-#if true
+#if !DEBUG
 
 using System.Reflection;
 using System.Runtime.InteropServices;
