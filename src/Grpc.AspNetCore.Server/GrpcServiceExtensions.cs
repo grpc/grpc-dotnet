@@ -58,12 +58,14 @@ public static class GrpcServicesExtensions
     {
         ArgumentNullThrowHelper.ThrowIfNull(services);
 
-        services.AddRouting(options =>
-        {
-            // Unimplemented constraint is added to the route as an inline constraint to avoid RoutePatternFactory.Parse overload that includes parameter policies. That overload infers strings as regex constraints, which brings in
-            // the regex engine when publishing trimmed or AOT apps. This change reduces Native AOT gRPC server app size by about 1 MB.
-            AddParameterPolicy<GrpcUnimplementedConstraint>(options, GrpcServerConstants.GrpcUnimplementedConstraintPrefix);
-        });
+#if NET8_0_OR_GREATER
+        // Prefer AddRoutingCore when available.
+        // AddRoutingCore doesn't register a regex constraint and produces smaller result from trimming.
+        services.AddRoutingCore();
+        services.Configure<RouteOptions>(ConfigureRouting);
+#else
+        services.AddRouting(ConfigureRouting);
+#endif
         services.AddOptions();
         services.TryAddSingleton<GrpcMarkerService>();
         services.TryAddSingleton(typeof(ServerCallHandlerFactory<>));
@@ -77,6 +79,13 @@ public static class GrpcServicesExtensions
         services.TryAddEnumerable(ServiceDescriptor.Singleton(typeof(IServiceMethodProvider<>), typeof(BinderServiceMethodProvider<>)));
 
         return new GrpcServerBuilder(services);
+
+        static void ConfigureRouting(RouteOptions options)
+        {
+            // Unimplemented constraint is added to the route as an inline constraint to avoid RoutePatternFactory.Parse overload that includes parameter policies. That overload infers strings as regex constraints, which brings in
+            // the regex engine when publishing trimmed or AOT apps. This change reduces Native AOT gRPC server app size by about 1 MB.
+            AddParameterPolicy<GrpcUnimplementedConstraint>(options, GrpcServerConstants.GrpcUnimplementedConstraintPrefix);
+        }
 
         // This ensures the policy's constructors are preserved in .NET 6 with trimming. Remove when .NET 6 is no longer supported.
         static void AddParameterPolicy<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors)] T>(RouteOptions options, string name)
