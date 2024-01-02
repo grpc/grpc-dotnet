@@ -549,6 +549,7 @@ internal abstract partial class RetryCallBase<TRequest, TResponse> : IGrpcCall<T
                 }
                 else
                 {
+                    // Replace the OCE from CancellationTokenSource with an OCE that has the passed in cancellation token if it is canceled.
                     if (Options.CancellationToken.IsCancellationRequested && Options.CancellationToken != operationCanceledException.CancellationToken)
                     {
                         ex = new OperationCanceledException(Options.CancellationToken);
