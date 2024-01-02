@@ -529,7 +529,7 @@ internal abstract partial class RetryCallBase<TRequest, TResponse> : IGrpcCall<T
         CommitReason commitReason;
 
         // Cancellation token triggered by dispose could throw here.
-        if (ex is OperationCanceledException && CancellationTokenSource.IsCancellationRequested)
+        if (ex is OperationCanceledException operationCanceledException && CancellationTokenSource.IsCancellationRequested)
         {
             // Cancellation could have been caused by an exceeded deadline.
             if (IsDeadlineExceeded())
@@ -542,7 +542,20 @@ internal abstract partial class RetryCallBase<TRequest, TResponse> : IGrpcCall<T
             else
             {
                 commitReason = CommitReason.Canceled;
-                resolvedCall = CreateStatusCall(Disposed ? GrpcProtocolConstants.CreateDisposeCanceledStatus(ex) : GrpcProtocolConstants.CreateClientCanceledStatus(ex));
+                Status status;
+                if (Disposed)
+                {
+                    status = GrpcProtocolConstants.CreateDisposeCanceledStatus(exception: null);
+                }
+                else
+                {
+                    if (Options.CancellationToken.IsCancellationRequested && Options.CancellationToken != operationCanceledException.CancellationToken)
+                    {
+                        ex = new OperationCanceledException(Options.CancellationToken);
+                    }
+                    status = GrpcProtocolConstants.CreateClientCanceledStatus(ex);
+                }
+                resolvedCall = CreateStatusCall(status);
             }
         }
         else
