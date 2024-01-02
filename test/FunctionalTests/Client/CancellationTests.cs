@@ -510,6 +510,39 @@ public class CancellationTests : FunctionalTestBase
     }
 
     [Test]
+    public async Task Unary_Retry_CancellationImmediately_TokenMatchesSource()
+    {
+        var tcs = new TaskCompletionSource<object?>(TaskCreationOptions.RunContinuationsAsynchronously);
+        async Task<DataMessage> UnaryMethod(DataMessage request, ServerCallContext context)
+        {
+            await tcs.Task;
+            return new DataMessage();
+        }
+
+        SetExpectedErrorsFilter(writeContext =>
+        {
+            return true;
+        });
+
+        // Arrange
+        var method = Fixture.DynamicGrpc.AddUnaryMethod<DataMessage, DataMessage>(UnaryMethod);
+        var serviceConfig = ServiceConfigHelpers.CreateRetryServiceConfig();
+        var channel = CreateChannel(throwOperationCanceledOnCancellation: true, serviceConfig: serviceConfig);
+        var client = TestClientFactory.Create(channel, method);
+
+        // Act
+        var cts = new CancellationTokenSource();
+        cts.Cancel();
+
+        var call = client.UnaryCall(new DataMessage(), new CallOptions(cancellationToken: cts.Token));
+
+        // Assert
+        var ex = await ExceptionAssert.ThrowsAsync<OperationCanceledException>(() => call.ResponseAsync).DefaultTimeout();
+        Assert.AreEqual(cts.Token, ex.CancellationToken);
+        Assert.AreEqual(StatusCode.Cancelled, call.GetStatus().StatusCode);
+    }
+
+    [Test]
     public async Task ServerStreaming_CancellationDuringCall_TokenMatchesSource()
     {
         var tcs = new TaskCompletionSource<object?>(TaskCreationOptions.RunContinuationsAsynchronously);

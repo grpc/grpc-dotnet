@@ -56,12 +56,21 @@ internal sealed class StatusGrpcCall<TRequest, TResponse> : IGrpcCall<TRequest, 
 
     public Task<TResponse> GetResponseAsync()
     {
-        return Task.FromException<TResponse>(new RpcException(_status));
+        return CreateErrorTask<TResponse>();
     }
 
     public Task<Metadata> GetResponseHeadersAsync()
     {
-        return Task.FromException<Metadata>(new RpcException(_status));
+        return CreateErrorTask<Metadata>();
+    }
+
+    private Task<T> CreateErrorTask<T>()
+    {
+        if (_channel.ThrowOperationCanceledOnCancellation && _status.DebugException is OperationCanceledException ex)
+        {
+            return Task.FromException<T>(ex);
+        }
+        return Task.FromException<T>(new RpcException(_status));
     }
 
     public Status GetStatus()
