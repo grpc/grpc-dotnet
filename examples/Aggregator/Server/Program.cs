@@ -28,14 +28,23 @@ builder.Services.AddSingleton<IncrementingCounter>();
 
 if (bool.TryParse(builder.Configuration["EnableOpenTelemetry"], out var enableOpenTelemetry) && enableOpenTelemetry)
 {
-    builder.Services.AddOpenTelemetryTracing(telemetry =>
-    {
-        telemetry.SetResourceBuilder(ResourceBuilder.CreateDefault().AddService("aggregator"));
-        telemetry.AddZipkinExporter();
-        telemetry.AddGrpcClientInstrumentation();
-        telemetry.AddHttpClientInstrumentation();
-        telemetry.AddAspNetCoreInstrumentation();
-    });
+    builder.Services.AddOpenTelemetry()
+        .WithTracing(tracing =>
+        {
+            tracing.SetResourceBuilder(ResourceBuilder.CreateDefault().AddService("aggregator"));
+
+            if (builder.Environment.IsDevelopment())
+            {
+                // We want to view all traces in development
+                tracing.SetSampler(new AlwaysOnSampler());
+            }
+
+            tracing.AddAspNetCoreInstrumentation()
+                   .AddGrpcClientInstrumentation()
+                   .AddHttpClientInstrumentation();
+
+            tracing.AddZipkinExporter();
+        });
 }
 
 // These clients will call back to the server

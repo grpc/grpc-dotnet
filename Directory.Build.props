@@ -1,6 +1,4 @@
 <Project>
-  <Import Project="build\sources.props" />
-  <Import Project="build\dependencies.props" />
   <Import Project="build\version.props" />
 
   <PropertyGroup>
@@ -23,7 +21,7 @@
     <NoWarn>$(NoWarn);NETSDK1195;NETSDK1210</NoWarn>
 
     <EmbedUntrackedSources>true</EmbedUntrackedSources>
-    <LangVersion>11.0</LangVersion>
+    <LangVersion>12.0</LangVersion>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
   </PropertyGroup>

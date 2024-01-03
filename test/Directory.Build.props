@@ -2,10 +2,10 @@
   <Import Project="..\Directory.Build.props" />
 
   <ItemGroup>
-    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="$(MicrosoftNETTestSdkPackageVersion)" />
-    <PackageReference Include="Moq" Version="$(MoqPackageVersion)" />
-    <PackageReference Include="nunit" Version="$(NunitPackageVersion)" />
-    <PackageReference Include="NUnit3TestAdapter" Version="$(Nunit3TestAdapterPackageVersion)" />
+    <PackageReference Include="Microsoft.NET.Test.Sdk" />
+    <PackageReference Include="Moq" />
+    <PackageReference Include="NUnit" />
+    <PackageReference Include="NUnit3TestAdapter" />
   </ItemGroup>
 
 </Project>

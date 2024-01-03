@@ -22,72 +22,65 @@ using Grpc.Net.Client;
 using Microsoft.Extensions.DependencyInjection;
 using Unimplemented;
 
-namespace Client;
-
 // This app tests clients created directly from channel and clients created from factory.
 // Because of the vagaries of trimming, there is a small chance that testing both in the same app could
 // cause them to work when alone they might fail. Consider splitting into different client apps.
-public class Program
+
+try
 {
-    static async Task<int> Main(string[] args)
+    if (args.Length != 1 || !int.TryParse(args[0], out var port))
     {
-        try
-        {
-            if (args.Length != 1 || !int.TryParse(args[0], out var port))
-            {
-                throw new Exception("Port must be passed as an argument.");
-            }
-
-            var address = new Uri($"http://localhost:{port}");
-
-            // Basic channel
-            using var channel = GrpcChannel.ForAddress(address);
-            await CallGreeter(new Greeter.GreeterClient(channel));
-            await CallUnimplemented(new UnimplementedService.UnimplementedServiceClient(channel));
-
-            // Client factory
-            var services = new ServiceCollection();
-            services.AddGrpcClient<Greeter.GreeterClient>(op =>
-            {
-                op.Address = address;
-            });
-            services.AddGrpcClient<UnimplementedService.UnimplementedServiceClient>(op =>
-            {
-                op.Address = address;
-            });
-            var serviceProvider = services.BuildServiceProvider();
-            
-            await CallGreeter(serviceProvider.GetRequiredService<Greeter.GreeterClient>());
-            await CallUnimplemented(serviceProvider.GetRequiredService<UnimplementedService.UnimplementedServiceClient>());
-
-            Console.WriteLine("Shutting down");
-            return 0;
-        }
-        catch (Exception ex)
-        {
-            Console.Error.WriteLine(ex.ToString());
-            return 1;
-        }
+        throw new Exception("Port must be passed as an argument.");
     }
 
-    private static async Task CallGreeter(Greeter.GreeterClient client)
+    var address = new Uri($"http://localhost:{port}");
+
+    // Basic channel
+    using var channel = GrpcChannel.ForAddress(address);
+    await CallGreeter(new Greeter.GreeterClient(channel));
+    await CallUnimplemented(new UnimplementedService.UnimplementedServiceClient(channel));
+
+    // Client factory
+    var services = new ServiceCollection();
+    services.AddGrpcClient<Greeter.GreeterClient>(op =>
     {
-        var reply = await client.SayHelloAsync(new HelloRequest { Name = "GreeterClient" });
-        Console.WriteLine("Greeting: " + reply.Message);
+        op.Address = address;
+    });
+    services.AddGrpcClient<UnimplementedService.UnimplementedServiceClient>(op =>
+    {
+        op.Address = address;
+    });
+    var serviceProvider = services.BuildServiceProvider();
+
+    await CallGreeter(serviceProvider.GetRequiredService<Greeter.GreeterClient>());
+    await CallUnimplemented(serviceProvider.GetRequiredService<UnimplementedService.UnimplementedServiceClient>());
+
+    Console.WriteLine("Shutting down");
+    return 0;
+}
+catch (Exception ex)
+{
+    Console.Error.WriteLine(ex.ToString());
+    return 1;
+}
+
+static async Task CallGreeter(Greeter.GreeterClient client)
+{
+    var reply = await client.SayHelloAsync(new HelloRequest { Name = "GreeterClient" });
+    Console.WriteLine("Greeting: " + reply.Message);
+}
+
+static async Task CallUnimplemented(UnimplementedService.UnimplementedServiceClient client)
+{
+    var reply = client.DuplexData();
+
+    try
+    {
+        await reply.ResponseStream.MoveNext();
+        throw new Exception("Expected error status.");
     }
-
-    private static async Task CallUnimplemented(UnimplementedService.UnimplementedServiceClient client)
+    catch (RpcException ex) when (ex.StatusCode == StatusCode.Unimplemented)
     {
-        var reply = client.DuplexData();
-
-        try
-        {
-            await reply.ResponseStream.MoveNext();
-            throw new Exception("Expected error status.");
-        }
-        catch (RpcException ex) when (ex.StatusCode == StatusCode.Unimplemented)
-        {
-            Console.WriteLine("Unimplemented status correctly returned.");
-        }
+        Console.WriteLine("Unimplemented status correctly returned.");
     }
 }

@@ -7,7 +7,7 @@
   <ItemGroup>
     <ProjectReference Include="..\..\src\Grpc.StatusProto\Grpc.StatusProto.csproj" />
     
-    <PackageReference Include="Google.Api.CommonProtos" Version="$(GoogleApiCommonProtosPackageVersion)" />
+    <PackageReference Include="Google.Api.CommonProtos" />
   </ItemGroup>
 
 </Project>

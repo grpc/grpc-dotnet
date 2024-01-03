@@ -11,7 +11,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Google.Api.CommonProtos" Version="$(GoogleApiCommonProtosPackageVersion)" />
+    <PackageReference Include="Google.Api.CommonProtos" />
   </ItemGroup>
   
   <ItemGroup>

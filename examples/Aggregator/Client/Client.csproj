@@ -10,9 +10,9 @@
     <Protobuf Include="..\Proto\greet.proto" GrpcServices="None" Link="Protos\greet.proto"/>
     <Protobuf Include="..\Proto\count.proto" GrpcServices="None" Link="Protos\count.proto"/>
     
-    <PackageReference Include="Google.Protobuf" Version="$(GoogleProtobufPackageVersion)" />
-    <PackageReference Include="Grpc.Net.Client" Version="$(GrpcDotNetPackageVersion)" />
-    <PackageReference Include="Grpc.Tools" Version="$(GrpcToolsPackageVersion)" PrivateAssets="All" />
+    <PackageReference Include="Google.Protobuf" />
+    <PackageReference Include="Grpc.Net.Client" />
+    <PackageReference Include="Grpc.Tools" PrivateAssets="All" />
   </ItemGroup>
   
 </Project>
