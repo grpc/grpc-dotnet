@@ -18,7 +18,7 @@ using System.Text;
 using Google.Rpc;
 using NUnit.Framework;
 
-namespace Grpc.StatusProto.Tests;
+namespace Grpc.Core.Tests;
 
 /// <summary>
 /// Tests for ExceptionExtensions

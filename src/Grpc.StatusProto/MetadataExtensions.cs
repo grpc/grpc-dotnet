@@ -13,10 +13,9 @@
 // limitations under the License.
 
 using Google.Protobuf;
-using Grpc.Core;
 using Grpc.Shared;
 
-namespace Grpc.StatusProto;
+namespace Grpc.Core;
 
 /// <summary>
 /// Extension methods for the Grpc.Core.Metadata
@@ -34,13 +33,14 @@ public static class MetadataExtensions
     /// Note: experimental API that can change or be removed without any prior notice.
     /// </summary>
     /// <param name="metadata"></param>
-    /// <param name="throwOnParseError">if true then <see cref="Google.Protobuf.InvalidProtocolBufferException"/>
-    /// is thrown if the metadata cannot be parsed. Otherwise null is returned on a parsing error.</param>
+    /// <param name="ignoreParseError">if true then null is returned on a parsing error,
+    /// otherwise <see cref="Google.Protobuf.InvalidProtocolBufferException"/>
+    /// will be thrown if the metadata cannot be parsed.</param>
     /// <returns>
     /// The found <see cref="Google.Rpc.Status"/> or null if it was
     /// not present or could the data could not be parsed.
     /// </returns>
-    public static Google.Rpc.Status? GetRpcStatus(this Metadata metadata, bool throwOnParseError = false)
+    public static Google.Rpc.Status? GetRpcStatus(this Metadata metadata, bool ignoreParseError = false)
     {
         ArgumentNullThrowHelper.ThrowIfNull(metadata);
 
@@ -53,9 +53,9 @@ public static class MetadataExtensions
         {
             return Google.Rpc.Status.Parser.ParseFrom(entry.ValueBytes);
         }
-        catch when (!throwOnParseError)
+        catch when (ignoreParseError)
         {
-            // By default if the message is malformed, just report there's no information.
+            // If the message is malformed just report there's no information.
             return null;
         }
     }

@@ -18,9 +18,8 @@ using Google.Protobuf;
 using Google.Protobuf.WellKnownTypes;
 using Google.Rpc;
 using NUnit.Framework;
-using Grpc.Core;
 
-namespace Grpc.StatusProto.Tests;
+namespace Grpc.Core.Tests;
 
 /// <summary>
 /// Tests for RpcStatusExtensions

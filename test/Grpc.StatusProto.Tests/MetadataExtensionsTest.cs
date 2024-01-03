@@ -17,10 +17,9 @@
 using Google.Protobuf.WellKnownTypes;
 using Google.Rpc;
 using NUnit.Framework;
-using Grpc.Core;
 using Google.Protobuf;
 
-namespace Grpc.StatusProto.Tests;
+namespace Grpc.Core.Tests;
 
 /// <summary>
 /// Tests for MetadataExtensions
@@ -139,7 +138,7 @@ public class MetadataExtensionsTest
         };
 
         // Act - try and retrieve the badly formed status from the metadata
-        var sts = metadata.GetRpcStatus();
+        var sts = metadata.GetRpcStatus(ignoreParseError: true);
 
         // Assert - not found as it could not be decoded
         Assert.IsNull(sts);
@@ -157,7 +156,7 @@ public class MetadataExtensionsTest
         // Act and Assert
         // Try and retrieve the status from the metadata and expect an exception
         // because it could not be decoded
-        _ = Assert.Throws<InvalidProtocolBufferException>(() => metadata.GetRpcStatus(throwOnParseError: true));
+        _ = Assert.Throws<InvalidProtocolBufferException>(() => metadata.GetRpcStatus(ignoreParseError: false));
     }
 
 }

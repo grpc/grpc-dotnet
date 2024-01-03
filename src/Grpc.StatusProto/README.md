@@ -161,7 +161,7 @@ void PrintError(RpcException ex)
         Console.WriteLine($"Google.Rpc Status: Code: {rpcStatus.Code}, Message: {rpcStatus.Message}");
 
         // Try and get the ErrorInfo from the details
-        ErrorInfo? errorInfo = rpcStatus.GetDetail<ErrorInfo>(); // Extension method
+        ErrorInfo? errorInfo = rpcStatus.GetDetail<ErrorInfo>();
         if (errorInfo != null)
         {
             Console.WriteLine($"\tErrorInfo: Reason: {errorInfo.Reason}, Domain: {errorInfo.Domain}");
@@ -248,8 +248,7 @@ message WidgetRsp {
 
 Note: the  [status.proto](https://github.com/googleapis/googleapis/blob/master/google/rpc/status.proto)
 and [error_details.proto](https://github.com/googleapis/googleapis/blob/master/google/rpc/error_details.proto)
-files are not currently provided in any NuGet packages. If you wish to use these in
-your own message definitions then you will need to copy these into your own project.
+files are provided in the `Google.Api.CommonProtos` NuGet package.
 
 Example server code fragment:
 ```C#
@@ -296,7 +295,6 @@ foreach (var request in requests)
     await call.RequestStream.WriteAsync(request);
 }
 ```
-
 
 ## See also
 * [gRPC richer error model](https://grpc.io/docs/guides/error/#richer-error-model)

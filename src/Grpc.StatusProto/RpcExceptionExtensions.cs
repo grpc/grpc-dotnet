@@ -12,10 +12,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-using Grpc.Core;
 using Grpc.Shared;
 
-namespace Grpc.StatusProto;
+namespace Grpc.Core;
 
 /// <summary>
 /// Extensions to <see cref="Grpc.Core.RpcException"/> for handling rich error model.

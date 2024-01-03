@@ -15,7 +15,7 @@
 using Google.Rpc;
 using Grpc.Shared;
 
-namespace Grpc.StatusProto;
+namespace Grpc.Core;
 
 /// <summary>
 /// Extensions methods for <see cref="System.Exception"/>
