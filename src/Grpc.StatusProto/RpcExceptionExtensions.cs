@@ -17,7 +17,7 @@ using Grpc.Shared;
 namespace Grpc.Core;
 
 /// <summary>
-/// Extensions to <see cref="Grpc.Core.RpcException"/> for handling rich error model.
+/// Extension methods for getting <see cref="Google.Rpc.Status"/> from <see cref="RpcException"/>.
 /// </summary>
 public static class RpcExceptionExtensions
 {
@@ -26,7 +26,7 @@ public static class RpcExceptionExtensions
     /// from the trailers in an <see cref="RpcException"/>, if present.
     /// Note: experimental API that can change or be removed without any prior notice.
     /// </summary>
-    /// <param name="ex">The RPC exception to retrieve details from. Must not be null.</param>
+    /// <param name="ex">The <see cref="RpcException"/> to retrieve details from. Must not be null.</param>
     /// <returns>The <see cref="Google.Rpc.Status"/> message specified in the exception, or null
     /// if there is no such information.</returns>
     public static Google.Rpc.Status? GetRpcStatus(this RpcException ex)

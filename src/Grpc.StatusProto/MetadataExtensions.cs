@@ -18,26 +18,24 @@ using Grpc.Shared;
 namespace Grpc.Core;
 
 /// <summary>
-/// Extension methods for the Grpc.Core.Metadata
+/// Extension methods for using <see cref="Google.Rpc.Status"/> with <see cref="Metadata"/>.
 /// </summary>
 public static class MetadataExtensions
 {
     /// <summary>
-    /// Name of key in the metadata for the binary encoding of
-    /// <see cref="Google.Rpc.Status"/>
+    /// Name of key in the metadata for the binary encoding of <see cref="Google.Rpc.Status"/>.
     /// </summary>
     public const string StatusDetailsTrailerName = "grpc-status-details-bin";
 
     /// <summary>
-    /// Get the <see cref="Google.Rpc.Status"/> from the metadata.
+    /// Get <see cref="Google.Rpc.Status"/> from the metadata with the <c>grpc-status-details-bin</c> key.
     /// Note: experimental API that can change or be removed without any prior notice.
     /// </summary>
-    /// <param name="metadata"></param>
-    /// <param name="ignoreParseError">if true then null is returned on a parsing error,
-    /// otherwise <see cref="Google.Protobuf.InvalidProtocolBufferException"/>
-    /// will be thrown if the metadata cannot be parsed.</param>
+    /// <param name="metadata">The metadata.</param>
+    /// <param name="ignoreParseError">If true then <see langword="null"/> is returned on a parsing error,
+    /// otherwise an error will be thrown if the metadata cannot be parsed.</param>
     /// <returns>
-    /// The found <see cref="Google.Rpc.Status"/> or null if it was
+    /// The <see cref="Google.Rpc.Status"/> or <see langword="null"/> if <c>grpc-status-details-bin</c> was
     /// not present or could the data could not be parsed.
     /// </returns>
     public static Google.Rpc.Status? GetRpcStatus(this Metadata metadata, bool ignoreParseError = false)
@@ -61,12 +59,12 @@ public static class MetadataExtensions
     }
 
     /// <summary>
-    /// Add <see cref="Google.Rpc.Status"/> to the metadata.
-    /// Any existing status in the metadata will be overwritten.
+    /// Add <see cref="Google.Rpc.Status"/> to the metadata with the <c>grpc-status-details-bin</c> key.
+    /// An existing status in the metadata will be overwritten.
     /// Note: experimental API that can change or be removed without any prior notice.
     /// </summary>
-    /// <param name="metadata"></param>
-    /// <param name="status">Status to add</param>
+    /// <param name="metadata">The metadata.</param>
+    /// <param name="status">The status to add.</param>
     public static void SetRpcStatus(this Metadata metadata, Google.Rpc.Status status)
     {
         ArgumentNullThrowHelper.ThrowIfNull(metadata);
