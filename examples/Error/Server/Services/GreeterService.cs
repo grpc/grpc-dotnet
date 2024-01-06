@@ -21,43 +21,15 @@ using Google.Protobuf.WellKnownTypes;
 using Google.Rpc;
 using Greet;
 using Grpc.Core;
-using Grpc.StatusProto;
 
-namespace Server
+namespace Server;
+
+public class GreeterService : Greeter.GreeterBase
 {
-    public class GreeterService : Greeter.GreeterBase
+    public override Task<HelloReply> SayHello(HelloRequest request, ServerCallContext context)
     {
-        public override Task<HelloReply> SayHello(HelloRequest request, ServerCallContext context)
-        {
-            ArgumentNotNullOrEmpty(request.Name);
+        GrpcValidation.ArgumentNotNullOrEmpty(request.Name);
 
-            return Task.FromResult(new HelloReply { Message = "Hello " + request.Name });
-        }
-
-        private static void ArgumentNotNullOrEmpty(string value, [CallerArgumentExpression(nameof(value))] string? paramName = null)
-        {
-            if (string.IsNullOrEmpty(value))
-            {
-                throw new Google.Rpc.Status
-                {
-                    Code = (int)Code.InvalidArgument,
-                    Message = "Bad request",
-                    Details =
-                    {
-                        Any.Pack(new BadRequest
-                        {
-                            FieldViolations =
-                            {
-                                new BadRequest.Types.FieldViolation
-                                {
-                                    Field = paramName,
-                                    Description = "Value is null or empty"
-                                }
-                            }
-                        })
-                    }
-                }.ToRpcException();
-            }
-        }
+        return Task.FromResult(new HelloReply { Message = "Hello " + request.Name });
     }
 }

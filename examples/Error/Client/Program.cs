@@ -20,7 +20,6 @@ using Google.Rpc;
 using Greet;
 using Grpc.Core;
 using Grpc.Net.Client;
-using Grpc.StatusProto;
 
 using var channel = GrpcChannel.ForAddress("https://localhost:5001");
 var client = new Greeter.GreeterClient(channel);
@@ -44,7 +43,7 @@ while (true)
     {
         Console.WriteLine($"Server error: {ex.Status.Detail}");
 
-        var badRequest = ex.GetRpcStatus()?.GetStatusDetail<BadRequest>();
+        var badRequest = ex.GetRpcStatus()?.GetDetail<BadRequest>();
         if (badRequest != null)
         {
             foreach (var fieldViolation in badRequest.FieldViolations)
