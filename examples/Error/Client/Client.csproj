@@ -13,6 +13,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <!-- Project references required until Grpc.StatusProto is on nuget.org -->
     <ProjectReference Include="..\..\..\src\Grpc.Net.Client\Grpc.Net.Client.csproj" />
     <ProjectReference Include="..\..\..\src\Grpc.StatusProto\Grpc.StatusProto.csproj" />
   </ItemGroup>
