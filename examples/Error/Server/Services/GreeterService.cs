@@ -16,9 +16,6 @@
 
 #endregion
 
-using System.Runtime.CompilerServices;
-using Google.Protobuf.WellKnownTypes;
-using Google.Rpc;
 using Greet;
 using Grpc.Core;
 
