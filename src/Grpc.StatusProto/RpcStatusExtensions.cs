@@ -17,38 +17,40 @@ using Grpc.Shared;
 namespace Grpc.Core;
 
 /// <summary>
-/// Extensions for <see cref="Google.Rpc.Status"/> to retrieve detailed error information.
-/// Based on ideas from:
-/// https://github.com/googleapis/gax-dotnet/blob/main/Google.Api.Gax.Grpc/RpcExceptionExtensions.cs
+/// Extensions methods for converting <see cref="Google.Rpc.Status"/> to <see cref="RpcException"/>.
 /// </summary>
 public static class RpcStatusExtensions
 {
     /// <summary>
-    /// Create a <see cref="RpcException"/> from the <see cref="Google.Rpc.Status"/>
+    /// Create a <see cref="RpcException"/> from the <see cref="Google.Rpc.Status"/>.
     /// Note: experimental API that can change or be removed without any prior notice.
     /// </summary>
     /// <remarks>
     /// <para>
-    /// The <see cref="Grpc.Core.Status.StatusCode"/> and <see cref="Grpc.Core.Status.Detail"/> in the
-    /// <see cref="Grpc.Core.Status"/> within the exception are populated from the details in the
-    /// <see cref="Google.Rpc.Status"/>
+    /// The <see cref="Grpc.Core.Status.StatusCode"/> and <see cref="Grpc.Core.Status.Detail"/> on
+    /// <see cref="Grpc.Core.Status"/> within the exception are populated from the details from
+    /// <see cref="Google.Rpc.Status"/>.
     /// </para>
     /// <para>
     /// <example>
     /// Example:
     /// <code>
-    /// throw new Google.Rpc.Status {
-    ///   Code = (int) StatusCode.NotFound,
-    ///   Message = "Simple error message",
-    ///   Details = {
-    ///     Any.Pack(new ErrorInfo { Domain = "example", Reason = "some reason" })
-    ///   }
-    /// }.ToRpcException();
+    /// var status = new Google.Rpc.Status
+    /// {
+    ///     Code = (int) StatusCode.NotFound,
+    ///     Message = "Simple error message",
+    ///     Details =
+    ///     {
+    ///         Any.Pack(new ErrorInfo { Domain = "example", Reason = "some reason" })
+    ///     }
+    /// };
+    ///
+    /// throw status.ToRpcException();
     /// </code>
     /// </example>
     /// </para>
     /// </remarks>
-    /// <param name="status">The RPC status. Must not be null</param>
+    /// <param name="status">The <see cref="Google.Rpc.Status"/>. Must not be null</param>
     /// <returns>A <see cref="RpcException"/> populated with the details from the status.</returns>
     public static RpcException ToRpcException(this Google.Rpc.Status status)
     {
@@ -66,12 +68,12 @@ public static class RpcStatusExtensions
         //
         // Check here that we can convert Google.Rpc.Status.Code to Grpc.Core.StatusCode,
         // and if not use StatusCode.Unknown.
-        var statusCode = System.Enum.IsDefined(typeof(StatusCode), status.Code) ? (StatusCode)status.Code : StatusCode.Unknown;
+        var statusCode = Enum.IsDefined(typeof(StatusCode), status.Code) ? (StatusCode)status.Code : StatusCode.Unknown;
         return status.ToRpcException(statusCode, status.Message);
     }
 
     /// <summary>
-    /// Create a <see cref="RpcException"/> from the <see cref="Google.Rpc.Status"/>
+    /// Create a <see cref="RpcException"/> from the <see cref="Google.Rpc.Status"/>.
     /// Note: experimental API that can change or be removed without any prior notice.
     /// </summary>
     /// <remarks>
@@ -84,29 +86,31 @@ public static class RpcStatusExtensions
     /// <example>
     /// Example:
     /// <code>
-    /// throw new Google.Rpc.Status {
-    ///   Code = (int) StatusCode.NotFound,
-    ///   Message = "Simple error message",
-    ///   Details = {
-    ///     Any.Pack(new ErrorInfo { Domain = "example", Reason = "some reason" })
-    ///   }
-    /// }.ToRpcException(StatusCode.NotFound, "status message");
+    /// var status = new Google.Rpc.Status
+    /// {
+    ///     Code = (int) StatusCode.NotFound,
+    ///     Message = "Simple error message",
+    ///     Details =
+    ///     {
+    ///         Any.Pack(new ErrorInfo { Domain = "example", Reason = "some reason" })
+    ///     }
+    /// };
+    ///
+    /// throw status.ToRpcException(StatusCode.NotFound, "status message");
     /// </code>
     /// </example>
     /// </para>
     /// </remarks>
-    /// <param name="status"></param>
-    /// <param name="statusCode">The status to set in the contained <see cref="Grpc.Core.Status"/></param>
-    /// <param name="message">The details to set in the contained <see cref="Grpc.Core.Status"/></param>
-    /// <returns></returns>
+    /// <param name="status">The <see cref="Google.Rpc.Status"/>. Must not be null</param>
+    /// <param name="statusCode">The status to set in the exception's <see cref="Grpc.Core.Status"/></param>
+    /// <param name="message">The details to set in the exception's <see cref="Grpc.Core.Status"/></param>
+    /// <returns>A <see cref="RpcException"/> populated with the details from the status.</returns>
     public static RpcException ToRpcException(this Google.Rpc.Status status, StatusCode statusCode, string message)
     {
         ArgumentNullThrowHelper.ThrowIfNull(status);
 
         var metadata = new Metadata();
         metadata.SetRpcStatus(status);
-        return new RpcException(
-             new Grpc.Core.Status(statusCode, message),
-             metadata);
+        return new RpcException(new Status(statusCode, message), metadata);
     }
 }
