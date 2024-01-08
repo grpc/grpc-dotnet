@@ -18,12 +18,12 @@ using Grpc.Shared;
 namespace Grpc.Core;
 
 /// <summary>
-/// Extensions methods for <see cref="System.Exception"/>
+/// Extensions methods for converting <see cref="Exception"/> to <see cref="DebugInfo"/>.
 /// </summary>
 public static class ExceptionExtensions
 {
     /// <summary>
-    /// Create a <see cref="Google.Rpc.DebugInfo"/> from an <see cref="System.Exception"/>,
+    /// Create a <see cref="DebugInfo"/> from an <see cref="Exception"/>,
     /// populating the Message and StackTrace from the exception.
     /// Note: experimental API that can change or be removed without any prior notice.
     /// </summary>
@@ -31,27 +31,32 @@ public static class ExceptionExtensions
     /// <example>
     /// For example:
     /// <code>
-    /// try { /* ... */
+    /// try
+    /// {
+    ///     /* ... */
     /// }
-    /// catch (Exception e) {
-    ///    Google.Rpc.Status status = new() {
-    ///        Code = (int)StatusCode.Internal,
-    ///        Message = "Internal error",
-    ///        Details = {
-    ///            // populate debugInfo from the exception
-    ///            Any.Pack(e.ToRpcDebugInfo())
-    ///        }
-    ///    };
-    ///    // ...
+    /// catch (Exception e)
+    /// {
+    ///     Google.Rpc.Status status = new()
+    ///     {
+    ///         Code = (int)StatusCode.Internal,
+    ///         Message = "Internal error",
+    ///         Details =
+    ///         {
+    ///             // populate debugInfo from the exception
+    ///             Any.Pack(e.ToRpcDebugInfo())
+    ///         }
+    ///     };
+    ///     // ...
     /// }
     /// </code>
     /// </example>
     /// </remarks>
-    /// <param name="exception"></param>
+    /// <param name="exception">The exception to create a <see cref="DebugInfo"/> from.</param>
     /// <param name="innerDepth">Maximum number of inner exceptions to include in the StackTrace. Defaults
     /// to not including any inner exceptions</param>
     /// <returns>
-    /// A new <see cref="Google.Rpc.DebugInfo"/> populated from the exception.
+    /// A new <see cref="DebugInfo"/> populated from the exception.
     /// </returns>
     public static DebugInfo ToRpcDebugInfo(this Exception exception, int innerDepth = 0)
     {
