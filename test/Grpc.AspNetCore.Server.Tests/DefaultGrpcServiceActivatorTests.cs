@@ -21,7 +21,6 @@ using Grpc.Tests.Shared;
 using Microsoft.Extensions.DependencyInjection;
 using Moq;
 using NUnit.Framework;
-using static Grpc.AspNetCore.Server.Tests.DefaultGrpcInterceptorActivatorTests;
 
 namespace Grpc.AspNetCore.Server.Tests;
 
