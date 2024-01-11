@@ -18,6 +18,7 @@
 
 using Grpc.AspNetCore.Server.Internal;
 using Grpc.Tests.Shared;
+using Microsoft.Extensions.DependencyInjection;
 using Moq;
 using NUnit.Framework;
 
@@ -46,6 +47,22 @@ public class DefaultGrpcServiceActivatorTests
             return default;
         }
     }
+#if NET8_0_OR_GREATER
+    public class GrpcServiceWithKeyedService
+    {
+        public GrpcServiceWithKeyedService([FromKeyedServices("test")] KeyedClass c)
+        {
+            C = c;
+        }
+
+        public KeyedClass C { get; }
+    }
+
+    public class KeyedClass
+    {
+        public required string Key { get; init; }
+    }
+#endif
 
     [Test]
     public void Create_NotResolvedFromServiceProvider_CreatedByActivator()
@@ -60,6 +77,25 @@ public class DefaultGrpcServiceActivatorTests
         Assert.NotNull(handle.Instance);
         Assert.IsTrue(handle.Created);
     }
+
+#if NET8_0_OR_GREATER
+    [Test]
+    public void Create_KeyedService_CreatedByActivator()
+    {
+        // Arrange
+        var activator = new DefaultGrpcServiceActivator<GrpcServiceWithKeyedService>();
+        var services = new ServiceCollection();
+        services.AddKeyedSingleton("test", new KeyedClass { Key = "test" });
+        var serviceProvider = services.BuildServiceProvider();
+
+        // Act
+        var handle = activator.Create(serviceProvider);
+
+        // Assert
+        var interceptor = handle.Instance;
+        Assert.AreEqual("test", interceptor.C.Key);
+    }
+#endif
 
     [Test]
     public void Create_ResolvedFromServiceProvider_NotCreatedByActivator()

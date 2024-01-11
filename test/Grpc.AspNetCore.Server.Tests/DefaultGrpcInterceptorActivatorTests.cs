@@ -19,6 +19,7 @@
 using Grpc.AspNetCore.Server.Internal;
 using Grpc.Core.Interceptors;
 using Grpc.Tests.Shared;
+using Microsoft.Extensions.DependencyInjection;
 using Moq;
 using NUnit.Framework;
 
@@ -48,6 +49,23 @@ public class DefaultGrpcInterceptorActivatorTests
         public bool Disposed { get; private set; }
         public void Dispose() => Disposed = true;
     }
+
+#if NET8_0_OR_GREATER
+    public class GrpcKeyServiceArgumentInterceptor : Interceptor
+    {
+        public GrpcKeyServiceArgumentInterceptor([FromKeyedServices("test")] KeyedClass c)
+        {
+            C = c;
+        }
+
+        public KeyedClass C { get; }
+    }
+
+    public class KeyedClass
+    {
+        public required string Key { get; init; }
+    }
+#endif
 
     public class GrpcIntMutexArgumentInterceptor : Interceptor
     {
@@ -93,6 +111,25 @@ public class DefaultGrpcInterceptorActivatorTests
         Assert.NotNull(handle.Instance);
         Assert.IsTrue(handle.Created);
     }
+
+#if NET8_0_OR_GREATER
+    [Test]
+    public void Create_KeyService_CreatedByActivator()
+    {
+        // Arrange
+        var activator = new DefaultGrpcInterceptorActivator<GrpcKeyServiceArgumentInterceptor>();
+        var services = new ServiceCollection();
+        services.AddKeyedSingleton("test", new KeyedClass { Key = "test" });
+        var serviceProvider = services.BuildServiceProvider();
+
+        // Act
+        var handle = activator.Create(serviceProvider, CreateRegistration<GrpcKeyServiceArgumentInterceptor>());
+
+        // Assert
+        var interceptor = (GrpcKeyServiceArgumentInterceptor)handle.Instance;
+        Assert.AreEqual("test", interceptor.C.Key);
+    }
+#endif
 
     [Test]
     public void Create_ResolvedFromServiceProvider_NotCreatedByActivator()
