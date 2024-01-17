@@ -200,10 +200,10 @@ public sealed class GrpcChannel : ChannelBase, IDisposable
     {
         // Grpc.Net.Client + .NET Framework + WinHttpHandler requires features in WinHTTP, shipped in Windows, to work correctly.
         // This scenario is supported in these versions of Windows or later:
-        // - Windows Server 2019 and Windows Server 2022 have partial support.
+        // -Windows Server 2019 and Windows Server 2022 have partial support.
         //    -Unary and server streaming methods are supported.
         //    -Client and bidi streaming methods aren't supported.
-        // - Windows 11 has full support.
+        // -Windows 11 has full support.
         const int WinServer2022BuildVersion = 20348;
         const int WinServer2019BuildVersion = 17763;
 
