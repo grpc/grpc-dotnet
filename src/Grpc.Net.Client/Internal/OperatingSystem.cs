@@ -25,6 +25,7 @@ internal interface IOperatingSystem
     bool IsBrowser { get; }
     bool IsAndroid { get; }
     bool IsWindows { get; }
+    bool IsWindowsServer { get; }
     Version OSVersion { get; }
 }
 
@@ -32,9 +33,12 @@ internal sealed class OperatingSystem : IOperatingSystem
 {
     public static readonly OperatingSystem Instance = new OperatingSystem();
 
+    private readonly Lazy<bool> _isWindowsServer;
+
     public bool IsBrowser { get; }
     public bool IsAndroid { get; }
     public bool IsWindows { get; }
+    public bool IsWindowsServer => _isWindowsServer.Value;
     public Version OSVersion { get; }
 
     private OperatingSystem()
@@ -44,6 +48,19 @@ internal sealed class OperatingSystem : IOperatingSystem
         IsWindows = System.OperatingSystem.IsWindows();
         IsBrowser = System.OperatingSystem.IsBrowser();
         OSVersion = Environment.OSVersion.Version;
+
+        // Windows Server detection requires a P/Invoke call to RtlGetVersion.
+        // Get the value lazily so that it is only called if needed.
+        _isWindowsServer = new Lazy<bool>(() =>
+        {
+            if (IsWindows)
+            {
+                NtDll.DetectWindowsVersion(out _, out var isWindowsServer);
+                return isWindowsServer;
+            }
+
+            return false;
+        }, LazyThreadSafetyMode.ExecutionAndPublication);
 #else
         IsAndroid = false;
         IsWindows = RuntimeInformation.IsOSPlatform(OSPlatform.Windows);
@@ -55,7 +72,17 @@ internal sealed class OperatingSystem : IOperatingSystem
         //
         // Get correct Windows version directly from Windows by calling RtlGetVersion.
         // https://www.pinvoke.net/default.aspx/ntdll/RtlGetVersion.html
-        OSVersion = IsWindows ? NtDll.DetectWindowsVersion() : Environment.OSVersion.Version;
+        if (IsWindows)
+        {
+            NtDll.DetectWindowsVersion(out var windowsVersion, out var windowsServer);
+            OSVersion = windowsVersion;
+            _isWindowsServer = new Lazy<bool>(() => windowsServer, LazyThreadSafetyMode.ExecutionAndPublication);
+        }
+        else
+        {
+            OSVersion = Environment.OSVersion.Version;
+            _isWindowsServer = new Lazy<bool>(() => false, LazyThreadSafetyMode.ExecutionAndPublication);
+        }
 #endif
     }
 }

@@ -614,6 +614,7 @@ public class GrpcChannelTests
         public bool IsBrowser { get; set; }
         public bool IsAndroid { get; set; }
         public bool IsWindows { get; set; }
+        public bool IsWindowsServer { get; }
         public Version OSVersion { get; set; } = new Version(1, 2, 3, 4);
     }
 

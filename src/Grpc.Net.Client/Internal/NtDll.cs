@@ -16,8 +16,6 @@
 
 #endregion
 
-#if !NET5_0_OR_GREATER
-
 using System.Runtime.InteropServices;
 
 namespace Grpc.Net.Client.Internal;
@@ -27,19 +25,25 @@ namespace Grpc.Net.Client.Internal;
 /// </summary>
 internal static class NtDll
 {
+#pragma warning disable SYSLIB1054 // Use 'LibraryImportAttribute' instead of 'DllImportAttribute' to generate P/Invoke marshalling code at compile time
     [DllImport("ntdll.dll", SetLastError = true, CharSet = CharSet.Unicode)]
     internal static extern NTSTATUS RtlGetVersion(ref OSVERSIONINFOEX versionInfo);
+#pragma warning restore SYSLIB1054 // Use 'LibraryImportAttribute' instead of 'DllImportAttribute' to generate P/Invoke marshalling code at compile time
 
-    internal static Version DetectWindowsVersion()
+    internal static void DetectWindowsVersion(out Version version, out bool isWindowsServer)
     {
-        var osVersionInfo = new OSVERSIONINFOEX { OSVersionInfoSize = Marshal.SizeOf(typeof(OSVERSIONINFOEX)) };
+        // https://learn.microsoft.com/en-us/windows/win32/api/winnt/ns-winnt-osversioninfoexa
+        const byte VER_NT_SERVER = 3;
+
+        var osVersionInfo = new OSVERSIONINFOEX { OSVersionInfoSize = Marshal.SizeOf<OSVERSIONINFOEX>() };
 
         if (RtlGetVersion(ref osVersionInfo) != NTSTATUS.STATUS_SUCCESS)
         {
             throw new InvalidOperationException($"Failed to call internal {nameof(RtlGetVersion)}.");
         }
 
-        return new Version(osVersionInfo.MajorVersion, osVersionInfo.MinorVersion, osVersionInfo.BuildNumber, 0);
+        version = new Version(osVersionInfo.MajorVersion, osVersionInfo.MinorVersion, osVersionInfo.BuildNumber, 0);
+        isWindowsServer = osVersionInfo.ProductType == VER_NT_SERVER;
     }
 
     internal enum NTSTATUS : uint
@@ -68,5 +72,3 @@ internal static class NtDll
         public byte Reserved;
     }
 }
-
-#endif

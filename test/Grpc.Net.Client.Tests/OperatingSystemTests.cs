@@ -29,15 +29,28 @@ public class OperatingSystemTests
     [Platform("Win", Reason = "Only runs on Windows where ntdll.dll is present.")]
     public void DetectWindowsVersion_Windows_MatchesEnvironment()
     {
-        // It is safe to compare Environment.OSVersion.Version on netfx because tests have no compatibilty setting.
-        Assert.AreEqual(Environment.OSVersion.Version, NtDll.DetectWindowsVersion());
+        NtDll.DetectWindowsVersion(out var version, out _);
+
+        // It is safe to compare Environment.OSVersion.Version on netfx because tests have no compatibility setting.
+        Assert.AreEqual(Environment.OSVersion.Version, version);
+    }
+
+    [Test]
+    [Platform("Win", Reason = "Only runs on Windows where ntdll.dll is present.")]
+    public void InstanceAndIsWindowsServer_Windows_MatchesEnvironment()
+    {
+        NtDll.DetectWindowsVersion(out var version, out var isWindowsServer);
+
+        Assert.AreEqual(true, OperatingSystem.Instance.IsWindows);
+        Assert.AreEqual(version, OperatingSystem.Instance.OSVersion);
+        Assert.AreEqual(isWindowsServer, OperatingSystem.Instance.IsWindowsServer);
     }
 #endif
 
     [Test]
     public void OSVersion_ModernDotNet_MatchesEnvironment()
     {
-        // It is safe to compare Environment.OSVersion.Version on netfx because tests have no compatibilty setting.
+        // It is safe to compare Environment.OSVersion.Version on netfx because tests have no compatibility setting.
         Assert.AreEqual(Environment.OSVersion.Version, OperatingSystem.Instance.OSVersion);
     }
 }
