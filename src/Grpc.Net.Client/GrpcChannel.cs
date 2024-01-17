@@ -185,7 +185,9 @@ public sealed class GrpcChannel : ChannelBase, IDisposable
             Log.AddressPathUnused(Logger, Address.OriginalString);
         }
 
-        if (HttpHandlerType == HttpHandlerType.WinHttpHandler && OperatingSystem.IsWindows && !ValidateWinHttpHandlerOperatingSystemVersion())
+        if (HttpHandlerType == HttpHandlerType.WinHttpHandler &&
+            OperatingSystem.IsWindows &&
+            !ValidateWinHttpHandlerOperatingSystemVersion())
         {
             throw new InvalidOperationException("The channel configuration isn't valid on this operating system. " +
                 "The channel is configured to use WinHttpHandler and the current version of Windows " +
