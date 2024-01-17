@@ -185,7 +185,7 @@ public sealed class GrpcChannel : ChannelBase, IDisposable
             Log.AddressPathUnused(Logger, Address.OriginalString);
         }
 
-        if (HttpHandlerType == HttpHandlerType.WinHttpHandler && !OperatingSystemSupportsWinHttpHandler())
+        if (HttpHandlerType == HttpHandlerType.WinHttpHandler && OperatingSystem.IsWindows && !ValidateWinHttpHandlerOperatingSystemVersion())
         {
             throw new InvalidOperationException("The channel configuration isn't valid on this operating system. " +
                 "The channel is configured to use WinHttpHandler and the current version of Windows " +
@@ -194,7 +194,7 @@ public sealed class GrpcChannel : ChannelBase, IDisposable
         }
     }
 
-    private bool OperatingSystemSupportsWinHttpHandler()
+    private bool ValidateWinHttpHandlerOperatingSystemVersion()
     {
         // Grpc.Net.Client + .NET Framework + WinHttpHandler requires features in WinHTTP, shipped in Windows, to work correctly.
         // This scenario is supported in these versions of Windows or later:
@@ -207,7 +207,7 @@ public sealed class GrpcChannel : ChannelBase, IDisposable
 
         // Validate the Windows version is WinServer2022 or later. Win11 version number is greater than WinServer2022.
         // Note that this doesn't block using unsupported client and bidi streaming methods on WinServer2022.
-        if (OperatingSystem.IsWindows && OperatingSystem.OSVersion.Build >= WinServer2022BuildVersion)
+        if (OperatingSystem.OSVersion.Build >= WinServer2022BuildVersion)
         {
             return true;
         }
