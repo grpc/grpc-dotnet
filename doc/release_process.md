@@ -40,7 +40,7 @@ release that the new release depends on.
 - Build the signed nuget packages and push them to nuget.org (internal process). **These are the stable grpc-dotnet packages.**
 
 - Create a new release and tag in https://github.com/grpc/grpc-dotnet/releases (by creating the tag from the current release branch).
-  This is the stable release. Fill in the release notes.
+  This is the stable release. Fill in the release notes and list changes since the previous _stable_ version.
 
 ### After the release
 
