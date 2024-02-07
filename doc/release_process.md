@@ -10,7 +10,7 @@ release that the new release depends on.
 ## Releasing a new version of grpc-dotnet (every 6 weeks)
 
 - Before cutting the release branch
-    - If needed, on the master branch update the `<GrpcToolsPackageVersion>` and `<GrpcPackageVersion>` dependency versions in [dependencies.props](https://github.com/grpc/grpc-dotnet/blob/master/build/dependencies.props)
+    - If needed, on the master branch update the `Grpc.Tools` and `Grpc.Core` dependency versions in [Directory.Packages.props](https://github.com/grpc/grpc-dotnet/blob/master/Directory.Packages.props)
       to the latest pre-release of `Grpc.Tools` or `Grpc.Core` (that was released as part of the grpc/grpc release process) 
     
     - Make sure that any patches/bugfixes from the last released branch have been applied to the master branch as well.
