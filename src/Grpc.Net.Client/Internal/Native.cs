@@ -51,6 +51,12 @@ internal static class Native
 
     internal static bool IsUwp(Version version)
     {
+        if (RuntimeInformation.FrameworkDescription.StartsWith(".NET Native", StringComparison.OrdinalIgnoreCase))
+        {
+            return true;
+        }
+
+        // From https://github.com/dotnet/runtime/blob/d752f9a19f2d4bc4559e0e303e9374e4042a916e/src/libraries/Common/tests/TestUtilities/System/PlatformDetection.Windows.cs#L190
         const int Windows8Build = 9200;
         if (version.Build < Windows8Build)
         {
