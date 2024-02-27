@@ -10,6 +10,7 @@
       connections: 100
       warmup: 5
       duration: 5
+      streams: 1
       scenario: unary
       protocol: h2c
       logLevel: none
