@@ -49,9 +49,9 @@ internal static class Native
         isWindowsServer = osVersionInfo.ProductType == VER_NT_SERVER;
     }
 
-    internal static bool IsUwp(Version version)
+    internal static bool IsUwp(string frameworkDescription, Version version)
     {
-        if (RuntimeInformation.FrameworkDescription.StartsWith(".NET Native", StringComparison.OrdinalIgnoreCase))
+        if (frameworkDescription.StartsWith(".NET Native", StringComparison.OrdinalIgnoreCase))
         {
             return true;
         }

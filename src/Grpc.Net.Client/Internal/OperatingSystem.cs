@@ -53,7 +53,8 @@ internal sealed class OperatingSystem : IOperatingSystem
         // Get the value lazily so that it is only called if needed.
         _isWindowsServer = new Lazy<bool>(() =>
         {
-            if (IsWindows && !Native.IsUwp(Environment.OSVersion.Version))
+            // RtlGetVersion is not available on UWP. Check it first.
+            if (IsWindows && !Native.IsUwp(RuntimeInformation.FrameworkDescription, Environment.OSVersion.Version))
             {
                 Native.DetectWindowsVersion(out _, out var isWindowsServer);
                 return isWindowsServer;
@@ -72,7 +73,9 @@ internal sealed class OperatingSystem : IOperatingSystem
         //
         // Get correct Windows version directly from Windows by calling RtlGetVersion.
         // https://www.pinvoke.net/default.aspx/ntdll/RtlGetVersion.html
-        if (IsWindows && !Native.IsUwp(Environment.OSVersion.Version))
+        //
+        // RtlGetVersion is not available on UWP. Check it first.
+        if (IsWindows && !Native.IsUwp(RuntimeInformation.FrameworkDescription, Environment.OSVersion.Version))
         {
             Native.DetectWindowsVersion(out var windowsVersion, out var windowsServer);
             OSVersion = windowsVersion;
