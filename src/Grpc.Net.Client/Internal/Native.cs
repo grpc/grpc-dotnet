@@ -23,11 +23,14 @@ namespace Grpc.Net.Client.Internal;
 /// <summary>
 /// Types for calling RtlGetVersion. See https://www.pinvoke.net/default.aspx/ntdll/RtlGetVersion.html
 /// </summary>
-internal static class NtDll
+internal static class Native
 {
 #pragma warning disable SYSLIB1054 // Use 'LibraryImportAttribute' instead of 'DllImportAttribute' to generate P/Invoke marshalling code at compile time
     [DllImport("ntdll.dll", SetLastError = true, CharSet = CharSet.Unicode)]
     internal static extern NTSTATUS RtlGetVersion(ref OSVERSIONINFOEX versionInfo);
+
+    [DllImport("kernel32.dll", ExactSpelling = true)]
+    private static extern int GetCurrentApplicationUserModelId(ref uint applicationUserModelIdLength, byte[] applicationUserModelId);
 #pragma warning restore SYSLIB1054 // Use 'LibraryImportAttribute' instead of 'DllImportAttribute' to generate P/Invoke marshalling code at compile time
 
     internal static void DetectWindowsVersion(out Version version, out bool isWindowsServer)
@@ -44,6 +47,40 @@ internal static class NtDll
 
         version = new Version(osVersionInfo.MajorVersion, osVersionInfo.MinorVersion, osVersionInfo.BuildNumber, 0);
         isWindowsServer = osVersionInfo.ProductType == VER_NT_SERVER;
+    }
+
+    internal static bool IsUwp(string frameworkDescription, Version version)
+    {
+        if (frameworkDescription.StartsWith(".NET Native", StringComparison.OrdinalIgnoreCase))
+        {
+            return true;
+        }
+
+        // From https://github.com/dotnet/runtime/blob/d752f9a19f2d4bc4559e0e303e9374e4042a916e/src/libraries/Common/tests/TestUtilities/System/PlatformDetection.Windows.cs#L190
+        const int Windows8Build = 9200;
+        if (version.Build < Windows8Build)
+        {
+            return false;
+        }
+        else
+        {
+            var bufferSize = 0U;
+            var result = GetCurrentApplicationUserModelId(ref bufferSize, Array.Empty<byte>());
+            switch (result)
+            {
+                case 15703: // APPMODEL_ERROR_NO_APPLICATION
+                    return false;
+                case 0:     // ERROR_SUCCESS
+                case 122:   // ERROR_INSUFFICIENT_BUFFER
+                            // Success is actually insufficient buffer as we're really only looking for
+                            // not NO_APPLICATION and we're not actually giving a buffer here. The
+                            // API will always return NO_APPLICATION if we're not running under a
+                            // WinRT process, no matter what size the buffer is.
+                    return true;
+                default:
+                    throw new InvalidOperationException($"Failed to get AppModelId, result was {result}.");
+            }
+        }
     }
 
     internal enum NTSTATUS : uint
