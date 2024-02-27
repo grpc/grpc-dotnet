@@ -78,7 +78,7 @@ internal static class Native
                             // WinRT process, no matter what size the buffer is.
                     return true;
                 default:
-                    throw new InvalidOperationException($"Failed to get AppId, result was {result}.");
+                    throw new InvalidOperationException($"Failed to get AppModelId, result was {result}.");
             }
         }
     }
