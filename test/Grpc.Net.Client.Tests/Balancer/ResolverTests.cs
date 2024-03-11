@@ -45,6 +45,7 @@ public class ResolverTests
     [Test]
     public async Task Refresh_BlockInsideResolveAsync_ResolverNotBlocked()
     {
+        // Arrange
         var waitHandle = new ManualResetEvent(false);
 
         var services = new ServiceCollection();
@@ -59,16 +60,18 @@ public class ResolverTests
         var logger = loggerFactory.CreateLogger<ResolverTests>();
         logger.LogInformation("Starting.");
 
-        var ss = new LockingPollingResolver(loggerFactory, waitHandle);
-        ss.Start(result => { });
+        var lockingResolver = new LockingPollingResolver(loggerFactory, waitHandle);
+        lockingResolver.Start(result => { });
 
+        // Act
         logger.LogInformation("Refresh call 1. This should block.");
-        var refreshTask1 = Task.Run(ss.Refresh);
+        var refreshTask1 = Task.Run(lockingResolver.Refresh);
 
         logger.LogInformation("Refresh call 2. This should complete.");
-        var refreshTask2 = Task.Run(ss.Refresh);
+        var refreshTask2 = Task.Run(lockingResolver.Refresh);
 
-        await Task.WhenAny(refreshTask1, refreshTask2);
+        // Assert
+        await Task.WhenAny(refreshTask1, refreshTask2).DefaultTimeout();
 
         logger.LogInformation("Setting wait handle.");
         waitHandle.Set();
@@ -96,14 +99,14 @@ public class ResolverTests
                     _waitHandle.WaitOne();
                     _waitHandle = null;
                 }
+            }
 
-                Listener(ResolverResult.ForResult(new List<BalancerAddress>
+            Listener(ResolverResult.ForResult(new List<BalancerAddress>
                 {
                     new BalancerAddress("localhost", 80)
                 }));
 
-                return Task.CompletedTask;
-            }
+            return Task.CompletedTask;
         }
     }
 
