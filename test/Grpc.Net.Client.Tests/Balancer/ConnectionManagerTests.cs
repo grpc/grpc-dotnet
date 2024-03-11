@@ -409,6 +409,7 @@ public class ClientChannelTests
         services.AddNUnitLogger();
         await using var serviceProvider = services.BuildServiceProvider();
         var loggerFactory = serviceProvider.GetRequiredService<ILoggerFactory>();
+        var logger = loggerFactory.CreateLogger(GetType());
 
         var resolver = new TestResolver(loggerFactory);
 
@@ -427,11 +428,17 @@ public class ClientChannelTests
             clientChannel));
 
         // Act
+        logger.LogInformation("Client connecting.");
         var connectTask = clientChannel.ConnectAsync(waitForReady: true, cancellationToken: CancellationToken.None);
+
+        logger.LogInformation("Starting pick on connecting channel.");
         var pickTask = clientChannel.PickAsync(
             new PickContext { Request = new HttpRequestMessage() },
             waitForReady: true,
             CancellationToken.None).AsTask();
+
+        logger.LogInformation("Waiting for resolve to complete.");
+        await resolver.HasResolvedTask.DefaultTimeout();
 
         resolver.UpdateAddresses(new List<BalancerAddress>
         {
@@ -439,10 +446,11 @@ public class ClientChannelTests
         });
         await Task.WhenAll(connectTask, pickTask).DefaultTimeout();
 
-        // Simulate transport/network issue
+        logger.LogInformation("Simulate transport/network issue.");
         transportFactory.Transports.ForEach(t => t.Disconnect());
         resolver.UpdateError(new Status(StatusCode.Unavailable, "Test error"));
 
+        logger.LogInformation("Starting pick on disconnected channel.");
         pickTask = clientChannel.PickAsync(
             new PickContext { Request = new HttpRequestMessage() },
             waitForReady: true,
@@ -454,7 +462,10 @@ public class ClientChannelTests
 
         // Assert
         // Should not timeout (deadlock)
+        logger.LogInformation("Wait for pick task to complete.");
         await pickTask.DefaultTimeout();
+
+        logger.LogInformation("Done.");
     }
 
     [Test]
@@ -488,6 +499,8 @@ public class ClientChannelTests
             new PickContext { Request = new HttpRequestMessage() },
             waitForReady: true,
             CancellationToken.None).AsTask();
+
+        await resolver.HasResolvedTask.DefaultTimeout();
 
         resolver.UpdateAddresses(new List<BalancerAddress>
         {
@@ -559,6 +572,8 @@ public class ClientChannelTests
             new PickContext { Request = new HttpRequestMessage() },
             waitForReady: true,
             CancellationToken.None).AsTask();
+
+        await resolver.HasResolvedTask.DefaultTimeout();
 
         resolver.UpdateAddresses(new List<BalancerAddress>
         {

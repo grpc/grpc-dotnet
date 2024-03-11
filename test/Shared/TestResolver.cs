@@ -1,4 +1,4 @@
-﻿#region Copyright notice and license
+#region Copyright notice and license
 
 // Copyright 2019 The gRPC Authors
 //
@@ -34,6 +34,7 @@ internal class TestResolver : PollingResolver
 {
     private readonly Func<Task>? _onRefreshAsync;
     private readonly TaskCompletionSource<object?> _hasResolvedTcs;
+    private readonly ILogger _logger;
     private ResolverResult? _result;
 
     public Task HasResolvedTask => _hasResolvedTcs.Task;
@@ -46,15 +47,18 @@ internal class TestResolver : PollingResolver
     {
         _onRefreshAsync = onRefreshAsync;
         _hasResolvedTcs = new TaskCompletionSource<object?>(TaskCreationOptions.RunContinuationsAsynchronously);
+        _logger = (ILogger?)loggerFactory?.CreateLogger<TestResolver>() ?? NullLogger.Instance;
     }
 
     public void UpdateAddresses(List<BalancerAddress> addresses, ServiceConfig? serviceConfig = null, Status? serviceConfigStatus = null)
     {
+        _logger.LogInformation("Updating result addresses: {Addresses}", string.Join(", ", addresses));
         UpdateResult(ResolverResult.ForResult(addresses, serviceConfig, serviceConfigStatus));
     }
 
     public void UpdateError(Status status)
     {
+        _logger.LogInformation("Updating result error: {Status}", status);
         UpdateResult(ResolverResult.ForFailure(status));
     }
 
