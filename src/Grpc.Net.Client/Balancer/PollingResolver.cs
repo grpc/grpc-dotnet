@@ -136,7 +136,7 @@ public abstract class PollingResolver : Resolver
             if (_resolveTask.IsCompleted)
             {
                 // Run ResolveAsync in a background task.
-                // This is done to prevent a deadlock inside ResolveAsync from blocking future Refresh calls.
+                // This is done to prevent synchronous block inside ResolveAsync from blocking future Refresh calls.
                 _resolveTask = Task.Run(() => ResolveNowAsync(_cts.Token), _cts.Token);
                 _resolveTask.ContinueWith(static (t, state) =>
                 {
