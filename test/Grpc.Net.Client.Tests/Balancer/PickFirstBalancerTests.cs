@@ -196,6 +196,8 @@ public class PickFirstBalancerTests
         _ = channel.ConnectAsync();
 
         // Assert
+        await resolver.HasResolvedTask.DefaultTimeout();
+
         var subchannels = channel.ConnectionManager.GetSubchannels();
         Assert.AreEqual(1, subchannels.Count);
 

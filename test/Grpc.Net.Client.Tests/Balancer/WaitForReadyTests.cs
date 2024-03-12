@@ -58,20 +58,25 @@ public class WaitForReadyTests
         });
 
         var services = new ServiceCollection();
+        services.AddNUnitLogger();
 
-        var resolver = new TestResolver();
-
-        services.AddSingleton<ResolverFactory>(new TestResolverFactory(resolver));
+        services.AddSingleton<TestResolver>();
+        services.AddSingleton<ResolverFactory>(s => new TestResolverFactory(s.GetRequiredService<TestResolver>()));
         services.AddSingleton<ISubchannelTransportFactory>(new TestSubchannelTransportFactory());
+        var serviceProvider = services.BuildServiceProvider();
+
+        var resolver = serviceProvider.GetRequiredService<TestResolver>();
 
         var invoker = HttpClientCallInvokerFactory.Create(testMessageHandler, "test:///localhost", configure: o =>
         {
             o.Credentials = ChannelCredentials.Insecure;
-            o.ServiceProvider = services.BuildServiceProvider();
+            o.ServiceProvider = serviceProvider;
         });
 
         // Act
         var call = invoker.AsyncUnaryCall<HelloRequest, HelloReply>(ClientTestHelpers.ServiceMethod, string.Empty, new CallOptions().WithWaitForReady(), new HelloRequest());
+
+        await resolver.HasResolvedTask.DefaultTimeout();
 
         var responseTask = call.ResponseAsync;
 

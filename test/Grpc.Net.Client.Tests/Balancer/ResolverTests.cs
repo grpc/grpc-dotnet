@@ -43,6 +43,74 @@ namespace Grpc.Net.Client.Tests.Balancer;
 public class ResolverTests
 {
     [Test]
+    public async Task Refresh_BlockInsideResolveAsync_ResolverNotBlocked()
+    {
+        // Arrange
+        var waitHandle = new ManualResetEvent(false);
+
+        var services = new ServiceCollection();
+        var testSink = new TestSink();
+        services.AddLogging(b =>
+        {
+            b.AddProvider(new TestLoggerProvider(testSink));
+        });
+        services.AddNUnitLogger();
+        var loggerFactory = services.BuildServiceProvider().GetRequiredService<ILoggerFactory>();
+
+        var logger = loggerFactory.CreateLogger<ResolverTests>();
+        logger.LogInformation("Starting.");
+
+        var lockingResolver = new LockingPollingResolver(loggerFactory, waitHandle);
+        lockingResolver.Start(result => { });
+
+        // Act
+        logger.LogInformation("Refresh call 1. This should block.");
+        var refreshTask1 = Task.Run(lockingResolver.Refresh);
+
+        logger.LogInformation("Refresh call 2. This should complete.");
+        var refreshTask2 = Task.Run(lockingResolver.Refresh);
+
+        // Assert
+        await Task.WhenAny(refreshTask1, refreshTask2).DefaultTimeout();
+
+        logger.LogInformation("Setting wait handle.");
+        waitHandle.Set();
+
+        logger.LogInformation("Finishing.");
+    }
+
+    private class LockingPollingResolver : PollingResolver
+    {
+        private ManualResetEvent? _waitHandle;
+        private readonly object _lock = new();
+
+        public LockingPollingResolver(ILoggerFactory loggerFactory, ManualResetEvent waitHandle) : base(loggerFactory)
+        {
+            _waitHandle = waitHandle;
+        }
+
+        protected override Task ResolveAsync(CancellationToken cancellationToken)
+        {
+            lock (_lock)
+            {
+                // Block the first caller.
+                if (_waitHandle != null)
+                {
+                    _waitHandle.WaitOne();
+                    _waitHandle = null;
+                }
+            }
+
+            Listener(ResolverResult.ForResult(new List<BalancerAddress>
+                {
+                    new BalancerAddress("localhost", 80)
+                }));
+
+            return Task.CompletedTask;
+        }
+    }
+
+    [Test]
     public async Task Resolver_ResolveNameFromServices_Success()
     {
         // Arrange
