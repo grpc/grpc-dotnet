@@ -187,7 +187,10 @@ public class RoundRobinBalancerTests
         _ = channel.ConnectAsync();
 
         // Assert
+        await resolver.HasResolvedTask.DefaultTimeout();
+
         var subchannels = channel.ConnectionManager.GetSubchannels();
+
         Assert.AreEqual(1, subchannels.Count);
 
         Assert.AreEqual(1, subchannels[0]._addresses.Count);
