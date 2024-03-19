@@ -231,4 +231,7 @@
   <data name="LogNoReferences" xml:space="preserve">
     <value>No protobuf references in the gRPC project.</value>
   </data>
+  <data name="RecursiveOptionDescription" xml:space="preserve">
+    <value>Whether to add the protobuf file references recursively. Default value is false.</value>
+  </data>
 </root>
