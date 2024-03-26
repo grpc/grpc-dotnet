@@ -32,7 +32,7 @@ and the [Google APIs overview of the error model](https://cloud.google.com/apis/
 
 ## .NET implementation of the richer error model
 
-The error model is define by the protocol buffers files [status.proto](https://github.com/googleapis/googleapis/blob/master/google/rpc/status.proto)
+The error model is defined by the protocol buffers files [status.proto](https://github.com/googleapis/googleapis/blob/master/google/rpc/status.proto)
 and [error_details.proto](https://github.com/googleapis/googleapis/blob/master/google/rpc/error_details.proto),
 and the `Google.Api.CommonProtos` NuGet package that provides the generated .NET classes
 from these proto files.
@@ -97,7 +97,7 @@ in [grpc/status.h](https://github.com/grpc/grpc/blob/master/include/grpc/status.
 
 The recommendation is to use the values in `Google.Rpc.Code` as a convention.
 This is a must for Google APIs and strongly recommended for third party services.
-But users can use a different domain of values if they want and and as long as their
+But users can use a different domain of values if they want to and as long as their
 services are mutually compatible, things will work fine.
 
 In the richer error model the `RpcException` will contain both a `Grpc.Core.Status` (for the
