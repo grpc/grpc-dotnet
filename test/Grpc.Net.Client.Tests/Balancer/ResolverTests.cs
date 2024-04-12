@@ -642,7 +642,7 @@ public class ResolverTests
             ServiceProvider = services.BuildServiceProvider(),
         };
 
-        // Act & Assert
+        // Act
         var channel = GrpcChannel.ForAddress("test:///test_addr", channelOptions);
 
         logger.LogInformation("Client connecting.");
@@ -668,6 +668,7 @@ public class ResolverTests
             waitForReady: true,
             CancellationToken.None);
 
+        // Assert
         logger.LogInformation("TryConnectData count: {Count}", tryConnectData.Count);
         foreach (var data in tryConnectData)
         {
