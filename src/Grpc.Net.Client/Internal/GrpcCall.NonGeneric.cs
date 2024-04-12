@@ -147,14 +147,17 @@ internal abstract class GrpcCall
 
     internal static Status? ValidateHeaders(HttpResponseMessage httpResponse, out Metadata? trailers)
     {
-        // gRPC status can be returned in the header when there is no message (e.g. unimplemented status)
+        // gRPC status is usually returned by the trailer,
+        // but may also be returned by the header if there is no message (this is called "Trailers-Only").
+        // https://github.com/grpc/grpc/blob/e5131b524344675451522b86a98f1a13f074a88e/doc/PROTOCOL-HTTP2.md#responses
         // An explicitly specified status header has priority over other failing statuses
-        if (GrpcProtocolHelpers.TryGetStatusCore(httpResponse.Headers, out var status))
+        foreach (var entries in new []{httpResponse.TrailingHeaders(), httpResponse.Headers})
         {
-            // Trailers are in the header because there is no message.
-            // Note that some default headers will end up in the trailers (e.g. Date, Server).
-            trailers = GrpcProtocolHelpers.BuildMetadata(httpResponse.Headers);
-            return status;
+            if (GrpcProtocolHelpers.TryGetStatusCore(entries, out var status))
+            {
+                trailers = GrpcProtocolHelpers.BuildMetadata(entries);
+                return status;
+            }
         }
 
         trailers = null;
