@@ -188,7 +188,7 @@ public class ClientChannelTests
             new BalancerAddress("localhost", 80)
         });
 
-        var transportFactory = new TestSubchannelTransportFactory((s, c) =>
+        var transportFactory = TestSubchannelTransportFactory.Create((s, c) =>
         {
             return Task.FromException<TryConnectResult>(new Exception("Test error!"));
         });
@@ -357,7 +357,7 @@ public class ClientChannelTests
 
         var syncPoint = new SyncPoint(runContinuationsAsynchronously: true);
 
-        var transportFactory = new TestSubchannelTransportFactory(async (s, c) =>
+        var transportFactory = TestSubchannelTransportFactory.Create(async (s, c) =>
         {
             c.Register(state => ((SyncPoint)state!).Continue(), syncPoint);
 
@@ -548,7 +548,7 @@ public class ClientChannelTests
 
         var callbackAsyncLocalValues = new List<object>();
 
-        var transportFactory = new TestSubchannelTransportFactory((subchannel, cancellationToken) =>
+        var transportFactory = TestSubchannelTransportFactory.Create((subchannel, cancellationToken) =>
         {
             callbackAsyncLocalValues.Add(asyncLocal.Value);
             if (callbackAsyncLocalValues.Count >= 2)

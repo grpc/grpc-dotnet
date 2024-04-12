@@ -934,7 +934,7 @@ public class GrpcChannelTests
         var services = new ServiceCollection();
         services.AddNUnitLogger();
         services.AddSingleton<ResolverFactory, ChannelTestResolverFactory>();
-        services.AddSingleton<ISubchannelTransportFactory>(new TestSubchannelTransportFactory(async (s, c) =>
+        services.AddSingleton<ISubchannelTransportFactory>(TestSubchannelTransportFactory.Create(async (s, c) =>
         {
             await syncPoint.WaitToContinue();
             return new TryConnectResult(currentConnectivityState);
@@ -998,7 +998,7 @@ public class GrpcChannelTests
         var services = new ServiceCollection();
         services.AddNUnitLogger();
         services.AddSingleton<ResolverFactory, ChannelTestResolverFactory>();
-        services.AddSingleton<ISubchannelTransportFactory>(new TestSubchannelTransportFactory(async (s, c) =>
+        services.AddSingleton<ISubchannelTransportFactory>(TestSubchannelTransportFactory.Create(async (s, c) =>
         {
             await syncPoint.WaitToContinue();
             return new TryConnectResult(currentConnectivityState);

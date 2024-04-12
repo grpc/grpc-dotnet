@@ -165,6 +165,8 @@ public sealed class Subchannel : IDisposable
     /// <param name="addresses"></param>
     public void UpdateAddresses(IReadOnlyList<BalancerAddress> addresses)
     {
+        SubchannelLog.AddressesUpdated(_logger, Id, addresses);
+
         var requireReconnect = false;
         lock (Lock)
         {
@@ -278,6 +280,8 @@ public sealed class Subchannel : IDisposable
                 _connectContext.CancelConnect();
                 _connectContext.Dispose();
             }
+
+            _delayInterruptTcs?.TrySetResult(null);
         }
     }
 
@@ -313,7 +317,7 @@ public sealed class Subchannel : IDisposable
                     }
                 }
 
-                switch (await _transport.TryConnectAsync(connectContext).ConfigureAwait(false))
+                switch (await _transport.TryConnectAsync(connectContext, attempt).ConfigureAwait(false))
                 {
                     case ConnectResult.Success:
                         return;
@@ -345,17 +349,21 @@ public sealed class Subchannel : IDisposable
                 {
                     // Task.Delay won. Check CTS to see if it won because of cancellation.
                     delayCts.Token.ThrowIfCancellationRequested();
+                    SubchannelLog.ConnectBackoffComplete(_logger, Id);
                 }
                 else
                 {
                     SubchannelLog.ConnectBackoffInterrupted(_logger, Id);
 
-                    // Delay interrupt was triggered. Reset back-off.
-                    backoffPolicy = _manager.BackoffPolicyFactory.Create();
-
                     // Cancel the Task.Delay that's no longer needed.
                     // https://github.com/davidfowl/AspNetCoreDiagnosticScenarios/blob/519ef7d231c01116f02bc04354816a735f2a36b6/AsyncGuidance.md#using-a-timeout
                     delayCts.Cancel();
+
+                    // Check to connect context token to see if the delay was interrupted because of a connect cancellation.
+                    connectContext.CancellationToken.ThrowIfCancellationRequested();
+
+                    // Delay interrupt was triggered. Reset back-off.
+                    backoffPolicy = _manager.BackoffPolicyFactory.Create();
                 }
             }
         }
@@ -532,6 +540,12 @@ internal static class SubchannelLog
     private static readonly Action<ILogger, string, Exception?> _cancelingConnect =
         LoggerMessage.Define<string>(LogLevel.Debug, new EventId(17, "CancelingConnect"), "Subchannel id '{SubchannelId}' canceling connect.");
 
+    private static readonly Action<ILogger, string, Exception?> _connectBackoffComplete =
+        LoggerMessage.Define<string>(LogLevel.Trace, new EventId(18, "ConnectBackoffComplete"), "Subchannel id '{SubchannelId}' connect backoff complete.");
+
+    private static readonly Action<ILogger, string, string, Exception?> _addressesUpdated =
+        LoggerMessage.Define<string, string>(LogLevel.Trace, new EventId(19, "AddressesUpdated"), "Subchannel id '{SubchannelId}' updated with addresses: {Addresses}");
+
     public static void SubchannelCreated(ILogger logger, string subchannelId, IReadOnlyList<BalancerAddress> addresses)
     {
         if (logger.IsEnabled(LogLevel.Debug))
@@ -619,6 +633,20 @@ internal static class SubchannelLog
     public static void CancelingConnect(ILogger logger, string subchannelId)
     {
         _cancelingConnect(logger, subchannelId, null);
+    }
+
+    public static void ConnectBackoffComplete(ILogger logger, string subchannelId)
+    {
+        _connectBackoffComplete(logger, subchannelId, null);
+    }
+
+    public static void AddressesUpdated(ILogger logger, string subchannelId, IReadOnlyList<BalancerAddress> addresses)
+    {
+        if (logger.IsEnabled(LogLevel.Trace))
+        {
+            var addressesText = string.Join(", ", addresses.Select(a => a.EndPoint.Host + ":" + a.EndPoint.Port));
+            _addressesUpdated(logger, subchannelId, addressesText, null);
+        }
     }
 }
 #endif

@@ -34,7 +34,7 @@ internal interface ISubchannelTransport : IDisposable
     TransportStatus TransportStatus { get; }
 
     ValueTask<Stream> GetStreamAsync(DnsEndPoint endPoint, CancellationToken cancellationToken);
-    ValueTask<ConnectResult> TryConnectAsync(ConnectContext context);
+    ValueTask<ConnectResult> TryConnectAsync(ConnectContext context, int attempt);
 
     void Disconnect();
 }
