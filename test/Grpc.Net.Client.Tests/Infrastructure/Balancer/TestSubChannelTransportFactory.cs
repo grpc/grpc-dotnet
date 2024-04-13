@@ -1,4 +1,4 @@
-﻿#region Copyright notice and license
+#region Copyright notice and license
 
 // Copyright 2019 The gRPC Authors
 //
@@ -34,22 +34,36 @@ internal record TryConnectResult(ConnectivityState ConnectivityState, ConnectRes
 
 internal class TestSubchannelTransportFactory : ISubchannelTransportFactory
 {
-    private readonly Func<Subchannel, CancellationToken, Task<TryConnectResult>>? _onSubchannelTryConnect;
+    private readonly Func<Subchannel, int, CancellationToken, Task<TryConnectResult>>? _onSubchannelTryConnect;
 
     public List<TestSubchannelTransport> Transports { get; } = new List<TestSubchannelTransport>();
     public TimeSpan? ConnectTimeout { get; set; }
 
-    public TestSubchannelTransportFactory(Func<Subchannel, CancellationToken, Task<TryConnectResult>>? onSubchannelTryConnect = null)
+    public TestSubchannelTransportFactory()
+    {
+    }
+
+    private TestSubchannelTransportFactory(Func<Subchannel, int, CancellationToken, Task<TryConnectResult>>? onSubchannelTryConnect = null)
     {
         _onSubchannelTryConnect = onSubchannelTryConnect;
     }
 
+    public static TestSubchannelTransportFactory Create(Func<Subchannel, int, CancellationToken, Task<TryConnectResult>> onSubchannelTryConnect)
+    {
+        return new TestSubchannelTransportFactory(onSubchannelTryConnect);
+    }
+
+    public static TestSubchannelTransportFactory Create(Func<Subchannel, CancellationToken, Task<TryConnectResult>> onSubchannelTryConnect)
+    {
+        return Create((subchannel, attempt, cancellationToken) => onSubchannelTryConnect(subchannel, cancellationToken));
+    }
+
     public ISubchannelTransport Create(Subchannel subchannel)
     {
-        Func<CancellationToken, Task<TryConnectResult>>? onTryConnect = null;
+        Func<int, CancellationToken, Task<TryConnectResult>>? onTryConnect = null;
         if (_onSubchannelTryConnect != null)
         {
-            onTryConnect = (c) => _onSubchannelTryConnect(subchannel, c);
+            onTryConnect = (attempt, c) => _onSubchannelTryConnect(subchannel, attempt, c);
         }
 
         var transport = new TestSubchannelTransport(this, subchannel, onTryConnect);

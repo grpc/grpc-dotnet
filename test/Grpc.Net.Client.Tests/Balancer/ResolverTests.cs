@@ -19,6 +19,7 @@
 #if SUPPORT_LOAD_BALANCING
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Net;
 using System.Threading;
@@ -298,7 +299,7 @@ public class ResolverTests
         var currentConnectivityState = ConnectivityState.Ready;
 
         services.AddSingleton<ResolverFactory>(new TestResolverFactory(resolver));
-        services.AddSingleton<ISubchannelTransportFactory>(new TestSubchannelTransportFactory(async (s, c) =>
+        services.AddSingleton<ISubchannelTransportFactory>(TestSubchannelTransportFactory.Create(async (s, i, c) =>
         {
             await syncPoint.WaitToContinue();
             return new TryConnectResult(currentConnectivityState);
@@ -550,6 +551,135 @@ public class ResolverTests
     {
         var balancer = (ChildHandlerLoadBalancer)channel.ConnectionManager._balancer!;
         return (T?)balancer._current?.LoadBalancer;
+    }
+
+    internal class TestBackoffPolicyFactory : IBackoffPolicyFactory
+    {
+        private readonly TimeSpan _backoff;
+
+        public TestBackoffPolicyFactory() : this(TimeSpan.FromSeconds(20))
+        {
+        }
+
+        public TestBackoffPolicyFactory(TimeSpan backoff)
+        {
+            _backoff = backoff;
+        }
+
+        public IBackoffPolicy Create()
+        {
+            return new TestBackoffPolicy(_backoff);
+        }
+
+        private class TestBackoffPolicy : IBackoffPolicy
+        {
+            private readonly TimeSpan _backoff;
+
+            public TestBackoffPolicy(TimeSpan backoff)
+            {
+                _backoff = backoff;
+            }
+
+            public TimeSpan NextBackoff()
+            {
+                return _backoff;
+            }
+        }
+    }
+
+    [Test]
+    public async Task Resolver_UpdateResultsAfterPreviousConnect_InterruptConnect()
+    {
+        // Arrange
+        var services = new ServiceCollection();
+
+        // add logger
+        services.AddNUnitLogger();
+        var loggerFactory = services.BuildServiceProvider().GetRequiredService<ILoggerFactory>();
+        var logger = loggerFactory.CreateLogger<ResolverTests>();
+
+        // add resolver and balancer
+        var resolver = new TestResolver(loggerFactory);
+        var result = ResolverResult.ForResult(new List<BalancerAddress> { new BalancerAddress("localhost", 80) }, serviceConfig: null, serviceConfigStatus: null);
+        resolver.UpdateResult(result);
+
+        services.AddSingleton<ResolverFactory>(new TestResolverFactory(resolver));
+        services.AddSingleton<IBackoffPolicyFactory>(new TestBackoffPolicyFactory(TimeSpan.FromSeconds(0.2)));
+
+        var tryConnectData = new List<(IReadOnlyList<BalancerAddress> BalancerAddresses, int Attempt, bool IsCancellationRequested)>();
+
+        var tryConnectCount = 0;
+        services.AddSingleton<ISubchannelTransportFactory>(
+            TestSubchannelTransportFactory.Create((subchannel, attempt, cancellationToken) =>
+            {
+                var addresses = subchannel.GetAddresses();
+                var isCancellationRequested = cancellationToken.IsCancellationRequested;
+                ConnectivityState state;
+
+                var i = Interlocked.Increment(ref tryConnectCount);
+                if (i == 1)
+                {
+                    state = ConnectivityState.Ready;
+                }
+                else
+                {
+                    state = attempt >= 2 ? ConnectivityState.Ready : ConnectivityState.TransientFailure;
+                }
+
+                logger.LogInformation("TryConnect attempt {Attempt} to addresses {Addresses}. State: {ConnectivityState}, IsCancellationRequested: {IsCancellationRequested}", attempt, string.Join(", ", addresses), state, isCancellationRequested);
+
+                lock (tryConnectData)
+                {
+                    tryConnectData.Add((addresses, attempt, isCancellationRequested));
+                }
+
+                return Task.FromResult(new TryConnectResult(state));
+            }));
+
+        var channelOptions = new GrpcChannelOptions
+        {
+            Credentials = ChannelCredentials.Insecure,
+            ServiceProvider = services.BuildServiceProvider(),
+        };
+
+        // Act
+        var channel = GrpcChannel.ForAddress("test:///test_addr", channelOptions);
+
+        logger.LogInformation("Client connecting.");
+        await channel.ConnectionManager.ConnectAsync(waitForReady: true, CancellationToken.None);
+
+        logger.LogInformation("Client updating resolver.");
+        result = ResolverResult.ForResult(new List<BalancerAddress> { new BalancerAddress("localhost", 81) }, serviceConfig: null, serviceConfigStatus: null);
+        resolver.UpdateResult(result);
+
+        logger.LogInformation("Client picking.");
+        await ExceptionAssert.ThrowsAsync<RpcException>(async () => await channel.ConnectionManager.PickAsync(
+            new PickContext(),
+            waitForReady: false,
+            CancellationToken.None));
+
+        logger.LogInformation("Client updating Resolver.");
+        result = ResolverResult.ForResult(new List<BalancerAddress> { new BalancerAddress("localhost", 82) }, serviceConfig: null, serviceConfigStatus: null);
+        resolver.UpdateResult(result);
+
+        logger.LogInformation("Client picking and waiting for ready.");
+        await channel.ConnectionManager.PickAsync(
+            new PickContext(),
+            waitForReady: true,
+            CancellationToken.None);
+
+        // Assert
+        logger.LogInformation("TryConnectData count: {Count}", tryConnectData.Count);
+        foreach (var data in tryConnectData)
+        {
+            logger.LogInformation("Attempt: {Attempt}, BalancerAddresses: {BalancerAddresses}, IsCancellationRequested: {IsCancellationRequested}", data.Attempt, string.Join(", ", data.BalancerAddresses), data.IsCancellationRequested);
+        }
+
+        var duplicate = tryConnectData.GroupBy(d => new { Address = d.BalancerAddresses.Single(), d.Attempt }).FirstOrDefault(g => g.Count() >= 2);
+        if (duplicate != null)
+        {
+            Assert.Fail($"Duplicate attempts to address. Count: {duplicate.Count()}, Address: {duplicate.Key.Address}");
+        }
     }
 }
 #endif

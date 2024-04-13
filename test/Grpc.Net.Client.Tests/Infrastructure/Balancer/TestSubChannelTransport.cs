@@ -34,7 +34,7 @@ internal class TestSubchannelTransport : ISubchannelTransport
 
     private readonly TaskCompletionSource<object?> _connectTcs;
     private readonly TestSubchannelTransportFactory _factory;
-    private readonly Func<CancellationToken, Task<TryConnectResult>>? _onTryConnect;
+    private readonly Func<int, CancellationToken, Task<TryConnectResult>>? _onTryConnect;
 
     public Subchannel Subchannel { get; }
 
@@ -44,7 +44,7 @@ internal class TestSubchannelTransport : ISubchannelTransport
 
     public Task TryConnectTask => _connectTcs.Task;
 
-    public TestSubchannelTransport(TestSubchannelTransportFactory factory, Subchannel subchannel, Func<CancellationToken, Task<TryConnectResult>>? onTryConnect)
+    public TestSubchannelTransport(TestSubchannelTransportFactory factory, Subchannel subchannel, Func<int, CancellationToken, Task<TryConnectResult>>? onTryConnect)
     {
         _factory = factory;
         Subchannel = subchannel;
@@ -79,9 +79,9 @@ internal class TestSubchannelTransport : ISubchannelTransport
 #else
         Task<ConnectResult>
 #endif
-        TryConnectAsync(ConnectContext context)
+        TryConnectAsync(ConnectContext context, int attempt)
     {
-        var (newState, connectResult) = await (_onTryConnect?.Invoke(context.CancellationToken) ?? Task.FromResult(new TryConnectResult(ConnectivityState.Ready)));
+        var (newState, connectResult) = await (_onTryConnect?.Invoke(attempt, context.CancellationToken) ?? Task.FromResult(new TryConnectResult(ConnectivityState.Ready)));
 
         CurrentEndPoint = Subchannel._addresses[0].EndPoint;
         var newStatus = newState == ConnectivityState.TransientFailure ? new Status(StatusCode.Internal, "") : Status.DefaultSuccess;
