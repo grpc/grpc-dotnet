@@ -144,7 +144,7 @@ internal class SocketConnectivitySubchannelTransport : ISubchannelTransport, IDi
         _currentEndPoint = null;
     }
 
-    public async ValueTask<ConnectResult> TryConnectAsync(ConnectContext context)
+    public async ValueTask<ConnectResult> TryConnectAsync(ConnectContext context, int attempt)
     {
         Debug.Assert(CurrentEndPoint == null);
 

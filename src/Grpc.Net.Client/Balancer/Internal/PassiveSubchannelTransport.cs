@@ -52,7 +52,7 @@ internal class PassiveSubchannelTransport : ISubchannelTransport, IDisposable
         _subchannel.UpdateConnectivityState(ConnectivityState.Idle, "Disconnected.");
     }
 
-    public ValueTask<ConnectResult> TryConnectAsync(ConnectContext context)
+    public ValueTask<ConnectResult> TryConnectAsync(ConnectContext context, int attempt)
     {
         Debug.Assert(_subchannel._addresses.Count == 1);
         Debug.Assert(CurrentEndPoint == null);

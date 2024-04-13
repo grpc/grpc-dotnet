@@ -58,7 +58,7 @@ public class PickFirstBalancerTests
         services.AddSingleton<ResolverFactory>(new TestResolverFactory(resolver));
 
         var subChannelConnections = new List<Subchannel>();
-        var transportFactory = new TestSubchannelTransportFactory((s, c) =>
+        var transportFactory = TestSubchannelTransportFactory.Create((s, c) =>
         {
             lock (subChannelConnections)
             {
@@ -176,7 +176,7 @@ public class PickFirstBalancerTests
             new BalancerAddress("localhost", 80)
         });
 
-        var transportFactory = new TestSubchannelTransportFactory((s, c) => Task.FromResult(new TryConnectResult(ConnectivityState.TransientFailure)));
+        var transportFactory = TestSubchannelTransportFactory.Create((s, c) => Task.FromResult(new TryConnectResult(ConnectivityState.TransientFailure)));
         services.AddSingleton<ResolverFactory>(new TestResolverFactory(resolver));
         services.AddSingleton<ISubchannelTransportFactory>(transportFactory);
         var serviceProvider = services.BuildServiceProvider();
@@ -234,7 +234,7 @@ public class PickFirstBalancerTests
         var connectivityState = ConnectivityState.TransientFailure;
 
         services.AddSingleton<ResolverFactory>(new TestResolverFactory(resolver));
-        services.AddSingleton<ISubchannelTransportFactory>(new TestSubchannelTransportFactory(async (s, c) =>
+        services.AddSingleton<ISubchannelTransportFactory>(TestSubchannelTransportFactory.Create(async (s, c) =>
         {
             await syncPoint.WaitToContinue();
             return new TryConnectResult(connectivityState);
@@ -290,7 +290,7 @@ public class PickFirstBalancerTests
         });
 
         var transportConnectCount = 0;
-        var transportFactory = new TestSubchannelTransportFactory((s, c) =>
+        var transportFactory = TestSubchannelTransportFactory.Create((s, c) =>
         {
             transportConnectCount++;
             return Task.FromResult(new TryConnectResult(ConnectivityState.Ready));
@@ -340,7 +340,7 @@ public class PickFirstBalancerTests
         resolver.UpdateAddresses(new List<BalancerAddress> { new BalancerAddress("localhost", 80) });
 
         var transportConnectCount = 0;
-        var transportFactory = new TestSubchannelTransportFactory((s, c) =>
+        var transportFactory = TestSubchannelTransportFactory.Create((s, c) =>
         {
             transportConnectCount++;
             return Task.FromResult(new TryConnectResult(ConnectivityState.Ready));
@@ -385,7 +385,7 @@ public class PickFirstBalancerTests
         resolver.UpdateAddresses(new List<BalancerAddress> { new BalancerAddress("localhost", 80) });
 
         var transportConnectCount = 0;
-        var transportFactory = new TestSubchannelTransportFactory((s, c) =>
+        var transportFactory = TestSubchannelTransportFactory.Create((s, c) =>
         {
             transportConnectCount++;
             return Task.FromResult(new TryConnectResult(ConnectivityState.Ready));
@@ -448,7 +448,7 @@ public class PickFirstBalancerTests
 
         var tcs = new TaskCompletionSource<object?>(TaskCreationOptions.RunContinuationsAsynchronously);
         var transportConnectCount = 0;
-        var transportFactory = new TestSubchannelTransportFactory((s, c) =>
+        var transportFactory = TestSubchannelTransportFactory.Create((s, c) =>
         {
             transportConnectCount++;
 
@@ -510,7 +510,7 @@ public class PickFirstBalancerTests
 
         var tcs = new TaskCompletionSource<object?>(TaskCreationOptions.RunContinuationsAsynchronously);
         var transportConnectCount = 0;
-        var transportFactory = new TestSubchannelTransportFactory((s, c) =>
+        var transportFactory = TestSubchannelTransportFactory.Create((s, c) =>
         {
             transportConnectCount++;
 
@@ -576,7 +576,7 @@ public class PickFirstBalancerTests
         var resolver = new TestResolver();
         resolver.UpdateAddresses(new List<BalancerAddress> { new BalancerAddress("localhost", 80) });
 
-        var transportFactory = new TestSubchannelTransportFactory((s, c) =>
+        var transportFactory = TestSubchannelTransportFactory.Create((s, c) =>
         {
             return Task.FromResult(new TryConnectResult(ConnectivityState.Connecting));
         });
@@ -640,7 +640,7 @@ public class PickFirstBalancerTests
         resolver.UpdateAddresses(new List<BalancerAddress> { new BalancerAddress("localhost", 80) });
 
         var tryConnectTcs = new TaskCompletionSource<TryConnectResult>(TaskCreationOptions.RunContinuationsAsynchronously);
-        var transportFactory = new TestSubchannelTransportFactory((s, ct) =>
+        var transportFactory = TestSubchannelTransportFactory.Create((s, ct) =>
         {
             return tryConnectTcs.Task;
         });
