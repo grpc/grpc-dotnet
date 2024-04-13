@@ -165,8 +165,6 @@ public sealed class Subchannel : IDisposable
     /// <param name="addresses"></param>
     public void UpdateAddresses(IReadOnlyList<BalancerAddress> addresses)
     {
-        SubchannelLog.AddressesUpdated(_logger, Id, addresses);
-
         var requireReconnect = false;
         lock (Lock)
         {
@@ -175,6 +173,8 @@ public sealed class Subchannel : IDisposable
                 // Don't do anything if new addresses match existing addresses.
                 return;
             }
+
+            SubchannelLog.AddressesUpdated(_logger, Id, addresses);
 
             // Get a copy of the current address before updating addresses.
             // Updating addresses to not contain this value changes the property to return null.
