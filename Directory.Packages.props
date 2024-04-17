@@ -60,6 +60,7 @@
     <PackageVersion Include="Google.Api.CommonProtos" Version="2.13.0" />
     <PackageVersion Include="Google.Apis.Auth" Version="1.46.0" />
     <PackageVersion Include="Google.Protobuf" Version="3.24.0" />
+    <PackageVersion Include="Microsoft.Bcl.AsyncInterfaces" Version="6.0.0" />
     <PackageVersion Include="Microsoft.Build.Locator" Version="1.5.5" />
     <PackageVersion Include="Microsoft.Build" Version="16.9.0" />
     <PackageVersion Include="Microsoft.CodeAnalysis.NetAnalyzers" Version="8.0.0-preview.23472.1" />

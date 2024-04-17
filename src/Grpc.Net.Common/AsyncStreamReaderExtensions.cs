@@ -16,8 +16,6 @@
 
 #endregion
 
-#if !NETSTANDARD2_0 && !NET462
-
 using System.Runtime.CompilerServices;
 using Grpc.Shared;
 
@@ -50,5 +48,3 @@ public static class AsyncStreamReaderExtensions
         }
     }
 }
-
-#endif

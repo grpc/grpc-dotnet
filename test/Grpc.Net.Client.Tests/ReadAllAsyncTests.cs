@@ -23,8 +23,6 @@ using Grpc.Net.Client.Tests.Infrastructure;
 using Grpc.Tests.Shared;
 using NUnit.Framework;
 
-#if !NET462
-
 namespace Grpc.Net.Client.Tests;
 
 [TestFixture]
@@ -275,5 +273,3 @@ public class ReadAllAsyncTests
         Assert.AreEqual(StatusCode.Cancelled, call.GetStatus().StatusCode);
     }
 }
-
-#endif

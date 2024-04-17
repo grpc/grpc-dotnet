@@ -16,4 +16,8 @@
     <ProjectReference Include="..\Grpc.Core.Api\Grpc.Core.Api.csproj" />
   </ItemGroup>
 
+  <ItemGroup Condition="'$(TargetFramework)' == 'netstandard2.0'">
+    <PackageReference Include="Microsoft.Bcl.AsyncInterfaces" />
+  </ItemGroup>
+
 </Project>
