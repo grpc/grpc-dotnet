@@ -7,6 +7,7 @@
     <GrpcDotNetPackageVersion>2.58.0</GrpcDotNetPackageVersion>
     <OpenTelemetryPackageVersion>1.6.0</OpenTelemetryPackageVersion>
     <OpenTelemetryIntergationPackageVersion>1.8.1</OpenTelemetryIntergationPackageVersion>
+    <OpenTelemetryGrpcPackageVersion>1.8.0-beta.1</OpenTelemetryGrpcPackageVersion>
     <MicrosoftExtensionsPackageVersion>8.0.0</MicrosoftExtensionsPackageVersion>
     <MicrosoftExtensions6PackageVersion>6.0.0</MicrosoftExtensions6PackageVersion>
   </PropertyGroup>
@@ -50,7 +51,7 @@
     <PackageVersion Include="OpenTelemetry.Exporter.Zipkin" Version="$(OpenTelemetryPackageVersion)" />
     <PackageVersion Include="OpenTelemetry.Extensions.Hosting" Version="$(OpenTelemetryPackageVersion)" />
     <PackageVersion Include="OpenTelemetry.Instrumentation.AspNetCore" Version="$(OpenTelemetryIntergationPackageVersion)" />
-    <PackageVersion Include="OpenTelemetry.Instrumentation.GrpcNetClient" Version="1.8.0-beta.1" />
+    <PackageVersion Include="OpenTelemetry.Instrumentation.GrpcNetClient" Version="$(OpenTelemetryGrpcPackageVersion)" />
     <PackageVersion Include="OpenTelemetry.Instrumentation.Http" Version="$(OpenTelemetryIntergationPackageVersion)" />
 
     <!-- Other -->
