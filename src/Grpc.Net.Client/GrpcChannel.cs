@@ -545,7 +545,7 @@ public sealed class GrpcChannel : ChannelBase, IDisposable
         {
             // Test the disposed flag inside the lock to ensure there is no chance of a race and adding a call after dispose.
             // Note that a GrpcCall has been created but hasn't been started. The error will prevent it from starting.
-            ObjectDisposedThrowHelper.ThrowIf(Disposed, nameof(GrpcChannel));
+            ObjectDisposedThrowHelper.ThrowIf(Disposed, typeof(GrpcChannel));
 
             _activeCalls.Add(grpcCall);
         }
