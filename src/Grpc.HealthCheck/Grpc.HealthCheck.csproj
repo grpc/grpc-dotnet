@@ -19,8 +19,9 @@
 
   <ItemGroup>
     <PackageReference Include="Google.Protobuf" />
+    <PackageReference Include="Grpc.Tools" PrivateAssets="All" />
 
-    <!-- TODO(jtattermusch): add reference to Grpc.Tools and use it for generating the Health.cs and HealthGrpc.cs sources -->
+    <Protobuf Include="health.proto" GrpcServices="Both" />
   </ItemGroup>
 
   <ItemGroup Condition=" '$(TargetFramework)' == 'net462' or '$(TargetFramework)' == 'netstandard2.0'">

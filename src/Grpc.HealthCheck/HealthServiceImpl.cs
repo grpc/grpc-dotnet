@@ -157,7 +157,7 @@ public class HealthServiceImpl : Grpc.Health.V1.Health.HealthBase
 
         lock (watchersLock)
         {
-            if (!watchers.TryGetValue(service, out List<ChannelWriter<HealthCheckResponse>> channelWriters))
+            if (!watchers.TryGetValue(service, out List<ChannelWriter<HealthCheckResponse>>? channelWriters))
             {
                 channelWriters = new List<ChannelWriter<HealthCheckResponse>>();
                 watchers.Add(service, channelWriters);
@@ -170,7 +170,7 @@ public class HealthServiceImpl : Grpc.Health.V1.Health.HealthBase
         context.CancellationToken.Register(() => {
             lock (watchersLock)
             {
-                if (watchers.TryGetValue(service, out List<ChannelWriter<HealthCheckResponse>> channelWriters))
+                if (watchers.TryGetValue(service, out List<ChannelWriter<HealthCheckResponse>>? channelWriters))
                 {
                     // Remove the writer from the watchers
                     if (channelWriters.Remove(channel.Writer))
@@ -196,7 +196,7 @@ public class HealthServiceImpl : Grpc.Health.V1.Health.HealthBase
         // Loop will exit when the call is canceled and the writer is marked as complete.
         while (await channel.Reader.WaitToReadAsync().ConfigureAwait(false))
         {
-            if (channel.Reader.TryRead(out HealthCheckResponse item))
+            if (channel.Reader.TryRead(out HealthCheckResponse? item))
             {
                 await responseStream.WriteAsync(item).ConfigureAwait(false);
             }
@@ -207,7 +207,7 @@ public class HealthServiceImpl : Grpc.Health.V1.Health.HealthBase
     {
         lock (watchersLock)
         {
-            if (watchers.TryGetValue(service, out List<ChannelWriter<HealthCheckResponse>> channelWriters))
+            if (watchers.TryGetValue(service, out List<ChannelWriter<HealthCheckResponse>>? channelWriters))
             {
                 HealthCheckResponse response = new HealthCheckResponse { Status = status };
 
