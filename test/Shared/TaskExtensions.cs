@@ -1,4 +1,4 @@
-﻿#region Copyright notice and license
+#region Copyright notice and license
 
 // Copyright 2019 The gRPC Authors
 //
@@ -102,7 +102,6 @@ internal static class TaskExtensions
         ? $"The operation timed out after reaching the limit of {timeout.TotalMilliseconds}ms."
         : $"The operation at {filePath}:{lineNumber} timed out after reaching the limit of {timeout.TotalMilliseconds}ms.";
 
-#if !NET462
     public static IAsyncEnumerable<T> DefaultTimeout<T>(this IAsyncEnumerable<T> enumerable,
         [CallerFilePath] string? filePath = null,
         [CallerLineNumber] int lineNumber = default)
@@ -169,5 +168,4 @@ internal static class TaskExtensions
             return new ValueTask<bool>(_enumerator.MoveNextAsync().AsTask().TimeoutAfter(_timeout, _filePath, _lineNumber));
         }
     }
-#endif
 }

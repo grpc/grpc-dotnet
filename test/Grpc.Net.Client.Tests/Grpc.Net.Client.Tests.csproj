@@ -46,6 +46,8 @@
   
   <ItemGroup Condition="'$(TargetFramework)'=='net462'">
     <Reference Include="System.Net.Http" />
+    
+    <PackageReference Include="Microsoft.Bcl.AsyncInterfaces" />
   </ItemGroup>
 
 </Project>
