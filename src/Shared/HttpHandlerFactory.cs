@@ -38,7 +38,12 @@ internal static class HttpHandlerFactory
 #endif
 
 #if NET462
-        return new WinHttpHandler();
+        // Create SocketsHttpHandler with EnableMultipleHttp2Connections set to true. That will
+        // allow a gRPC channel to create new connections if the maximum allow concurrency is exceeded.
+        return new WinHttpHandler
+        {
+            EnableMultipleHttp2Connections = true
+        };
 #elif !NETSTANDARD2_0
         return new HttpClientHandler();
 #else
