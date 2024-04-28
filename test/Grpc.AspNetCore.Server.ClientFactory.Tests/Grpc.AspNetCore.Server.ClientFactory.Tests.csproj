@@ -20,6 +20,7 @@
     <Compile Include="..\Shared\TaskExtensions.cs" Link="Infrastructure\TaskExtensions.cs" />
     <Compile Include="..\Shared\TestHttpMessageHandler.cs" Link="Infrastructure\TestHttpMessageHandler.cs" />
     <Compile Include="..\Shared\TestServerCallContext.cs" Link="Infrastructure\TestServerCallContext.cs" />
+    <Compile Include="..\Shared\TestHelpers.cs" Link="Infrastructure\TestHelpers.cs" />
 
     <ProjectReference Include="..\..\src\Grpc.Core.Api\Grpc.Core.Api.csproj" />
     <ProjectReference Include="..\..\src\Grpc.AspNetCore.Server.ClientFactory\Grpc.AspNetCore.Server.ClientFactory.csproj" />
