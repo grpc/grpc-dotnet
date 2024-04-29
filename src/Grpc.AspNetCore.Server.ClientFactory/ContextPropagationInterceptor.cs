@@ -22,7 +22,6 @@ using Grpc.Core;
 using Grpc.Core.Interceptors;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Options;
 
 namespace Grpc.AspNetCore.ClientFactory;
 
@@ -53,14 +52,15 @@ internal class ContextPropagationInterceptor : Interceptor
         }
         else
         {
+            var state = CreateContextState(call, cts);
             return new AsyncClientStreamingCall<TRequest, TResponse>(
                 requestStream: call.RequestStream,
-                responseAsync: call.ResponseAsync,
+                responseAsync: OnResponseAsync(call.ResponseAsync, state),
                 responseHeadersAsync: ClientStreamingCallbacks<TRequest, TResponse>.GetResponseHeadersAsync,
                 getStatusFunc: ClientStreamingCallbacks<TRequest, TResponse>.GetStatus,
                 getTrailersFunc: ClientStreamingCallbacks<TRequest, TResponse>.GetTrailers,
                 disposeAction: ClientStreamingCallbacks<TRequest, TResponse>.Dispose,
-                CreateContextState(call, cts));
+                state);
         }
     }
 
@@ -73,14 +73,15 @@ internal class ContextPropagationInterceptor : Interceptor
         }
         else
         {
+            var state = CreateContextState(call, cts);
             return new AsyncDuplexStreamingCall<TRequest, TResponse>(
                 requestStream: call.RequestStream,
-                responseStream: call.ResponseStream,
+                responseStream: new ResponseStreamWrapper<TResponse>(call.ResponseStream, state),
                 responseHeadersAsync: DuplexStreamingCallbacks<TRequest, TResponse>.GetResponseHeadersAsync,
                 getStatusFunc: DuplexStreamingCallbacks<TRequest, TResponse>.GetStatus,
                 getTrailersFunc: DuplexStreamingCallbacks<TRequest, TResponse>.GetTrailers,
                 disposeAction: DuplexStreamingCallbacks<TRequest, TResponse>.Dispose,
-                CreateContextState(call, cts));
+                state);
         }
     }
 
@@ -93,13 +94,14 @@ internal class ContextPropagationInterceptor : Interceptor
         }
         else
         {
+            var state = CreateContextState(call, cts);
             return new AsyncServerStreamingCall<TResponse>(
-                responseStream: call.ResponseStream,
+                responseStream: new ResponseStreamWrapper<TResponse>(call.ResponseStream, state),
                 responseHeadersAsync: ServerStreamingCallbacks<TResponse>.GetResponseHeadersAsync,
                 getStatusFunc: ServerStreamingCallbacks<TResponse>.GetStatus,
                 getTrailersFunc: ServerStreamingCallbacks<TResponse>.GetTrailers,
                 disposeAction: ServerStreamingCallbacks<TResponse>.Dispose,
-                CreateContextState(call, cts));
+                state);
         }
     }
 
@@ -112,13 +114,14 @@ internal class ContextPropagationInterceptor : Interceptor
         }
         else
         {
+            var state = CreateContextState(call, cts);
             return new AsyncUnaryCall<TResponse>(
-                responseAsync: call.ResponseAsync,
+                responseAsync: OnResponseAsync(call.ResponseAsync, state),
                 responseHeadersAsync: UnaryCallbacks<TResponse>.GetResponseHeadersAsync,
                 getStatusFunc: UnaryCallbacks<TResponse>.GetStatus,
                 getTrailersFunc: UnaryCallbacks<TResponse>.GetTrailers,
                 disposeAction: UnaryCallbacks<TResponse>.Dispose,
-                CreateContextState(call, cts));
+                state);
         }
     }
 
@@ -127,6 +130,19 @@ internal class ContextPropagationInterceptor : Interceptor
         var response = continuation(request, ConfigureContext(context, out var cts));
         cts?.Dispose();
         return response;
+    }
+
+    // Automatically dispose state after awaiting the response.
+    private static async Task<TResponse> OnResponseAsync<TResponse>(Task<TResponse> task, IDisposable state)
+    {
+        try
+        {
+            return await task.ConfigureAwait(false);
+        }
+        finally
+        {
+            state.Dispose();
+        }
     }
 
     private ClientInterceptorContext<TRequest, TResponse> ConfigureContext<TRequest, TResponse>(ClientInterceptorContext<TRequest, TResponse> context, out CancellationTokenSource? linkedCts)
@@ -197,7 +213,7 @@ internal class ContextPropagationInterceptor : Interceptor
     private ContextState<TCall> CreateContextState<TCall>(TCall call, CancellationTokenSource cancellationTokenSource) where TCall : IDisposable =>
         new ContextState<TCall>(call, cancellationTokenSource);
 
-    private class ContextState<TCall> : IDisposable where TCall : IDisposable
+    private sealed class ContextState<TCall> : IDisposable where TCall : IDisposable
     {
         public ContextState(TCall call, CancellationTokenSource cancellationTokenSource)
         {
@@ -212,6 +228,33 @@ internal class ContextPropagationInterceptor : Interceptor
         {
             Call.Dispose();
             CancellationTokenSource.Dispose();
+        }
+    }
+
+    // Automatically dispose state after reading to the end of the stream.
+    private sealed class ResponseStreamWrapper<TResponse> : IAsyncStreamReader<TResponse>
+    {
+        private readonly IAsyncStreamReader<TResponse> _inner;
+        private readonly IDisposable _state;
+        private bool _disposed;
+
+        public ResponseStreamWrapper(IAsyncStreamReader<TResponse> inner, IDisposable state)
+        {
+            _inner = inner;
+            _state = state;
+        }
+
+        public TResponse Current => _inner.Current;
+
+        public async Task<bool> MoveNext(CancellationToken cancellationToken)
+        {
+            var result = await _inner.MoveNext(cancellationToken);
+            if (!result && !_disposed)
+            {
+                _state.Dispose();
+                _disposed = true;
+            }
+            return result;
         }
     }
 
