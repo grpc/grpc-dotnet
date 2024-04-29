@@ -17,6 +17,7 @@
 #endregion
 
 #if SUPPORT_LOAD_BALANCING
+using System.Diagnostics;
 using System.Net;
 using Grpc.Core;
 using Grpc.Net.Client.Balancer.Internal;
@@ -214,7 +215,10 @@ public sealed class Subchannel : IDisposable
 
         if (requireReconnect)
         {
-            CancelInProgressConnect();
+            lock (Lock)
+            {
+                CancelInProgressConnectUnsynchronized();
+            }
             _transport.Disconnect();
             RequestConnection();
         }
@@ -269,33 +273,31 @@ public sealed class Subchannel : IDisposable
         }
     }
 
-    private void CancelInProgressConnect()
+    private void CancelInProgressConnectUnsynchronized()
     {
-        lock (Lock)
+        Debug.Assert(Monitor.IsEntered(Lock));
+
+        if (_connectContext != null && !_connectContext.Disposed)
         {
-            if (_connectContext != null && !_connectContext.Disposed)
-            {
-                SubchannelLog.CancelingConnect(_logger, Id);
+            SubchannelLog.CancelingConnect(_logger, Id);
 
-                // Cancel connect cancellation token.
-                _connectContext.CancelConnect();
-                _connectContext.Dispose();
-            }
-
-            _delayInterruptTcs?.TrySetResult(null);
+            // Cancel connect cancellation token.
+            _connectContext.CancelConnect();
+            _connectContext.Dispose();
         }
+
+        _delayInterruptTcs?.TrySetResult(null);
     }
 
-    private ConnectContext GetConnectContext()
+    private ConnectContext GetConnectContextUnsynchronized()
     {
-        lock (Lock)
-        {
-            // There shouldn't be a previous connect in progress, but cancel the CTS to ensure they're no longer running.
-            CancelInProgressConnect();
+        Debug.Assert(Monitor.IsEntered(Lock));
 
-            var connectContext = _connectContext = new ConnectContext(_transport.ConnectTimeout ?? Timeout.InfiniteTimeSpan);
-            return connectContext;
-        }
+        // There shouldn't be a previous connect in progress, but cancel the CTS to ensure they're no longer running.
+        CancelInProgressConnectUnsynchronized();
+
+        var connectContext = _connectContext = new ConnectContext(_transport.ConnectTimeout ?? Timeout.InfiniteTimeSpan);
+        return connectContext;
     }
 
     private async Task ConnectTransportAsync()
@@ -310,7 +312,7 @@ public sealed class Subchannel : IDisposable
                 return;
             }
 
-            connectContext = GetConnectContext();
+            connectContext = GetConnectContextUnsynchronized();
 
             // Use a semaphore to limit one connection attempt at a time. This is done to prevent a race conditional where a canceled connect
             // overwrites the status of a successful connect.
@@ -522,7 +524,7 @@ public sealed class Subchannel : IDisposable
 
         lock (Lock)
         {
-            CancelInProgressConnect();
+            CancelInProgressConnectUnsynchronized();
             _transport.Dispose();
             _connectSemaphore.Dispose();
         }
