@@ -62,6 +62,39 @@ public class PickFirstBalancerTests : FunctionalTestBase
     }
 
     [Test]
+    public async Task UnaryCall_CallAfterConnectionTimeout_Success()
+    {
+        // Ignore errors
+        SetExpectedErrorsFilter(writeContext =>
+        {
+            return true;
+        });
+
+        string? host = null;
+        Task<HelloReply> UnaryMethod(HelloRequest request, ServerCallContext context)
+        {
+            host = context.Host;
+            return Task.FromResult(new HelloReply { Message = request.Name });
+        }
+
+        // Arrange
+        using var endpoint = BalancerHelpers.CreateGrpcEndpoint<HelloRequest, HelloReply>(50051, UnaryMethod, nameof(UnaryMethod));
+        endpoint.Dispose();
+
+        var channel = await BalancerHelpers.CreateChannel(LoggerFactory, new PickFirstConfig(), new[] { endpoint.Address }, connectTimeout: TimeSpan.FromMilliseconds(200)).DefaultTimeout();
+        var client = TestClientFactory.Create(channel, endpoint.Method);
+
+        // Assert
+        var ex = await ExceptionAssert.ThrowsAsync<RpcException>(() => client.UnaryCall(new HelloRequest { Name = "Balancer" }).ResponseAsync).DefaultTimeout();
+        Assert.AreEqual(StatusCode.Unavailable, ex.StatusCode);
+        Assert.IsInstanceOf(typeof(TimeoutException), ex.InnerException);
+
+        using var endpoint1 = BalancerHelpers.CreateGrpcEndpoint<HelloRequest, HelloReply>(50051, UnaryMethod, nameof(UnaryMethod));
+
+        await client.UnaryCall(new HelloRequest { Name = "Balancer" }).ResponseAsync.DefaultTimeout();
+    }
+
+    [Test]
     public async Task UnaryCall_CallAfterCancellation_Success()
     {
         // Ignore errors

@@ -167,7 +167,7 @@ public class ConnectionTests : FunctionalTestBase
             connectionIdleTimeout: connectionIdleTimeout).DefaultTimeout();
 
         Logger.LogInformation("Connecting channel.");
-        await channel.ConnectAsync();
+        await channel.ConnectAsync().DefaultTimeout();
 
         // Wait for timeout plus a little extra to avoid issues from imprecise timers.
         await Task.Delay(connectionIdleTimeout + TimeSpan.FromMilliseconds(50));

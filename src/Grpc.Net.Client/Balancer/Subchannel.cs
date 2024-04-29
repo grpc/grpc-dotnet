@@ -17,7 +17,6 @@
 #endregion
 
 #if SUPPORT_LOAD_BALANCING
-using System.Diagnostics;
 using System.Net;
 using Grpc.Core;
 using Grpc.Net.Client.Balancer.Internal;
@@ -54,6 +53,7 @@ public sealed class Subchannel : IDisposable
 
     internal readonly ConnectionManager _manager;
     private readonly ILogger _logger;
+    private readonly SemaphoreSlim _semaphore;
 
     private ISubchannelTransport _transport = default!;
     private ConnectContext? _connectContext;
@@ -89,6 +89,7 @@ public sealed class Subchannel : IDisposable
     {
         Lock = new object();
         _logger = manager.LoggerFactory.CreateLogger(GetType());
+        _semaphore = new SemaphoreSlim(1);
 
         Id = manager.GetNextId();
         _addresses = addresses.ToList();
@@ -299,12 +300,45 @@ public sealed class Subchannel : IDisposable
 
     private async Task ConnectTransportAsync()
     {
-        var connectContext = GetConnectContext();
+        ConnectContext connectContext;
+        Task? waitSemaporeTask = null;
+        lock (Lock)
+        {
+            if (_state == ConnectivityState.Shutdown)
+            {
+                return;
+            }
 
-        var backoffPolicy = _manager.BackoffPolicyFactory.Create();
+            connectContext = GetConnectContext();
+
+            // Use a semaphore to limit one connection attempt at a time. This is done to prevent a race conditional where a canceled connect
+            // overwrites the status of a successful connect.
+            //
+            // Try to get semaphore without waiting. If semaphore is already taken then start a task to wait for it to be released.
+            // Start this inside a lock to make sure subchannel isn't shutdown before waiting for semaphore.
+            if (!_semaphore.Wait(0))
+            {
+                SubchannelLog.QueuingConnect(_logger, Id);
+                waitSemaporeTask = _semaphore.WaitAsync(connectContext.CancellationToken);
+            }
+        }
+
+        if (waitSemaporeTask != null)
+        {
+            try
+            {
+                await waitSemaporeTask.ConfigureAwait(false);
+            }
+            catch (OperationCanceledException)
+            {
+                return;
+            }
+        }
 
         try
         {
+            var backoffPolicy = _manager.BackoffPolicyFactory.Create();
+
             SubchannelLog.ConnectingTransport(_logger, Id);
 
             for (var attempt = 0; ; attempt++)
@@ -385,6 +419,8 @@ public sealed class Subchannel : IDisposable
                 // Want to clean up the connect timeout timer.
                 connectContext.Dispose();
             }
+
+            _semaphore.Release();
         }
     }
 
@@ -482,8 +518,12 @@ public sealed class Subchannel : IDisposable
         }
         _stateChangedRegistrations.Clear();
 
-        CancelInProgressConnect();
-        _transport.Dispose();
+        lock (Lock)
+        {
+            CancelInProgressConnect();
+            _transport.Dispose();
+            _semaphore.Dispose();
+        }
     }
 }
 
@@ -505,7 +545,7 @@ internal static class SubchannelLog
         LoggerMessage.Define<string, ConnectivityState>(LogLevel.Debug, new EventId(5, "ConnectionRequestedInNonIdleState"), "Subchannel id '{SubchannelId}' connection requested in non-idle state of {State}.");
 
     private static readonly Action<ILogger, string, Exception?> _connectingTransport =
-        LoggerMessage.Define<string>(LogLevel.Trace, new EventId(6, "ConnectingTransport"), "Subchannel id '{SubchannelId}' connecting to transport.");
+        LoggerMessage.Define<string>(LogLevel.Debug, new EventId(6, "ConnectingTransport"), "Subchannel id '{SubchannelId}' connecting to transport.");
 
     private static readonly Action<ILogger, string, TimeSpan, Exception?> _startingConnectBackoff =
         LoggerMessage.Define<string, TimeSpan>(LogLevel.Trace, new EventId(7, "StartingConnectBackoff"), "Subchannel id '{SubchannelId}' starting connect backoff of {BackoffDuration}.");
@@ -514,7 +554,7 @@ internal static class SubchannelLog
         LoggerMessage.Define<string>(LogLevel.Trace, new EventId(8, "ConnectBackoffInterrupted"), "Subchannel id '{SubchannelId}' connect backoff interrupted.");
 
     private static readonly Action<ILogger, string, Exception?> _connectCanceled =
-        LoggerMessage.Define<string>(LogLevel.Trace, new EventId(9, "ConnectCanceled"), "Subchannel id '{SubchannelId}' connect canceled.");
+        LoggerMessage.Define<string>(LogLevel.Debug, new EventId(9, "ConnectCanceled"), "Subchannel id '{SubchannelId}' connect canceled.");
 
     private static readonly Action<ILogger, string, Exception?> _connectError =
         LoggerMessage.Define<string>(LogLevel.Error, new EventId(10, "ConnectError"), "Subchannel id '{SubchannelId}' unexpected error while connecting to transport.");
@@ -545,6 +585,9 @@ internal static class SubchannelLog
 
     private static readonly Action<ILogger, string, string, Exception?> _addressesUpdated =
         LoggerMessage.Define<string, string>(LogLevel.Trace, new EventId(19, "AddressesUpdated"), "Subchannel id '{SubchannelId}' updated with addresses: {Addresses}");
+
+    private static readonly Action<ILogger, string, Exception?> _queuingConnect =
+        LoggerMessage.Define<string>(LogLevel.Debug, new EventId(20, "QueuingConnect"), "Subchannel id '{SubchannelId}' queuing connect because a connect is already in progress.");
 
     public static void SubchannelCreated(ILogger logger, string subchannelId, IReadOnlyList<BalancerAddress> addresses)
     {
@@ -647,6 +690,11 @@ internal static class SubchannelLog
             var addressesText = string.Join(", ", addresses.Select(a => a.EndPoint.Host + ":" + a.EndPoint.Port));
             _addressesUpdated(logger, subchannelId, addressesText, null);
         }
+    }
+
+    public static void QueuingConnect(ILogger logger, string subchannelId)
+    {
+        _queuingConnect(logger, subchannelId, null);
     }
 }
 #endif
