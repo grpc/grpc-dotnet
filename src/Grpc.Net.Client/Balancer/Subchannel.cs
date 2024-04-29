@@ -422,9 +422,14 @@ public sealed class Subchannel : IDisposable
                 // Dispose context because it might have been created with a connect timeout.
                 // Want to clean up the connect timeout timer.
                 connectContext.Dispose();
-            }
 
-            _connectSemaphore.Release();
+                // Subchannel could have been disposed while connect is running.
+                // If subchannel is shutting down then don't release semaphore to avoid ObjectDisposedException.
+                if (_state != ConnectivityState.Shutdown)
+                {
+                    _connectSemaphore.Release();
+                }
+            }
         }
     }
 
