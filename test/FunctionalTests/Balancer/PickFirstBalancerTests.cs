@@ -79,17 +79,23 @@ public class PickFirstBalancerTests : FunctionalTestBase
 
         // Arrange
         using var endpoint = BalancerHelpers.CreateGrpcEndpoint<HelloRequest, HelloReply>(50051, UnaryMethod, nameof(UnaryMethod));
-        endpoint.Dispose();
 
-        var channel = await BalancerHelpers.CreateChannel(LoggerFactory, new PickFirstConfig(), new[] { endpoint.Address }, connectTimeout: TimeSpan.FromMilliseconds(200)).DefaultTimeout();
+        var connectCount = 0;
+        var channel = await BalancerHelpers.CreateChannel(LoggerFactory, new PickFirstConfig(), new[] { endpoint.Address }, connectTimeout: TimeSpan.FromMilliseconds(200), socketConnect:
+            async (socket, endpoint, cancellationToken) =>
+            {
+                if (Interlocked.Increment(ref connectCount) == 1)
+                {
+                    await Task.Delay(1000, cancellationToken);
+                }
+                await socket.ConnectAsync(endpoint, cancellationToken);
+            }).DefaultTimeout();
         var client = TestClientFactory.Create(channel, endpoint.Method);
 
         // Assert
         var ex = await ExceptionAssert.ThrowsAsync<RpcException>(() => client.UnaryCall(new HelloRequest { Name = "Balancer" }).ResponseAsync).DefaultTimeout();
         Assert.AreEqual(StatusCode.Unavailable, ex.StatusCode);
         Assert.IsInstanceOf(typeof(TimeoutException), ex.InnerException);
-
-        using var endpoint1 = BalancerHelpers.CreateGrpcEndpoint<HelloRequest, HelloReply>(50051, UnaryMethod, nameof(UnaryMethod));
 
         await client.UnaryCall(new HelloRequest { Name = "Balancer" }).ResponseAsync.DefaultTimeout();
     }

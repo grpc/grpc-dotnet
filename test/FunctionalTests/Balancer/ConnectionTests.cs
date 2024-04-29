@@ -93,8 +93,11 @@ public class ConnectionTests : FunctionalTestBase
 
         var client = TestClientFactory.Create(channel, endpoint.Method);
 
+        // Act
         var ex = await ExceptionAssert.ThrowsAsync<RpcException>(() => client.UnaryCall(new HelloRequest()).ResponseAsync).DefaultTimeout();
         Assert.AreEqual("A connection could not be established within the configured ConnectTimeout.", ex.Status.DebugException!.Message);
+
+        await ExceptionAssert.ThrowsAsync<OperationCanceledException>(() => connectTcs.Task).DefaultTimeout();
     }
 
     [Test]
