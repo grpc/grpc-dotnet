@@ -1,4 +1,4 @@
-﻿#region Copyright notice and license
+#region Copyright notice and license
 
 // Copyright 2019 The gRPC Authors
 //
@@ -81,7 +81,7 @@ public class ClientFactoryTests : FunctionalTestBase
         Assert.AreEqual("Hello world", response2.Message);
     }
 
-#if NET6_0_OR_GREATER
+#if NET7_0_OR_GREATER
     [Test]
     [RequireHttp3]
     public async Task ClientFactory_Http3_Success()
