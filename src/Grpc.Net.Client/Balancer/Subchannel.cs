@@ -53,7 +53,7 @@ public sealed class Subchannel : IDisposable
 
     internal readonly ConnectionManager _manager;
     private readonly ILogger _logger;
-    private readonly SemaphoreSlim _semaphore;
+    private readonly SemaphoreSlim _connectSemaphore;
 
     private ISubchannelTransport _transport = default!;
     private ConnectContext? _connectContext;
@@ -89,7 +89,7 @@ public sealed class Subchannel : IDisposable
     {
         Lock = new object();
         _logger = manager.LoggerFactory.CreateLogger(GetType());
-        _semaphore = new SemaphoreSlim(1);
+        _connectSemaphore = new SemaphoreSlim(1);
 
         Id = manager.GetNextId();
         _addresses = addresses.ToList();
@@ -304,6 +304,7 @@ public sealed class Subchannel : IDisposable
         Task? waitSemaporeTask = null;
         lock (Lock)
         {
+            // Don't start connecting if the subchannel has been shutdown. Transport/semaphore will be disposed if shutdown.
             if (_state == ConnectivityState.Shutdown)
             {
                 return;
@@ -316,10 +317,10 @@ public sealed class Subchannel : IDisposable
             //
             // Try to get semaphore without waiting. If semaphore is already taken then start a task to wait for it to be released.
             // Start this inside a lock to make sure subchannel isn't shutdown before waiting for semaphore.
-            if (!_semaphore.Wait(0))
+            if (!_connectSemaphore.Wait(0))
             {
                 SubchannelLog.QueuingConnect(_logger, Id);
-                waitSemaporeTask = _semaphore.WaitAsync(connectContext.CancellationToken);
+                waitSemaporeTask = _connectSemaphore.WaitAsync(connectContext.CancellationToken);
             }
         }
 
@@ -420,7 +421,7 @@ public sealed class Subchannel : IDisposable
                 connectContext.Dispose();
             }
 
-            _semaphore.Release();
+            _connectSemaphore.Release();
         }
     }
 
@@ -522,7 +523,7 @@ public sealed class Subchannel : IDisposable
         {
             CancelInProgressConnect();
             _transport.Dispose();
-            _semaphore.Dispose();
+            _connectSemaphore.Dispose();
         }
     }
 }
