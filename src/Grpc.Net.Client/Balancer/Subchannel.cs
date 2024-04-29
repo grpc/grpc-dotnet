@@ -332,6 +332,7 @@ public sealed class Subchannel : IDisposable
             }
             catch (OperationCanceledException)
             {
+                // Canceled while waiting for semaphore.
                 return;
             }
         }
