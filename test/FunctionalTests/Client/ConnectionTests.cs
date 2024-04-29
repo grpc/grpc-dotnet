@@ -98,7 +98,7 @@ public class ConnectionTests : FunctionalTestBase
     }
 #endif
 
-#if NET6_0_OR_GREATER
+#if NET7_0_OR_GREATER
     [Test]
     [RequireHttp3]
     public async Task Http3()
