@@ -1,4 +1,4 @@
-﻿#region Copyright notice and license
+#region Copyright notice and license
 
 // Copyright 2019 The gRPC Authors
 //
@@ -20,6 +20,7 @@ using System.Net;
 using Greet;
 using Grpc.AspNetCore.Server.ClientFactory.Tests.TestObjects;
 using Grpc.Core;
+using Grpc.Core.Interceptors;
 using Grpc.Net.ClientFactory;
 using Grpc.Net.ClientFactory.Internal;
 using Grpc.Tests.Shared;
@@ -89,6 +90,155 @@ public class DefaultGrpcClientFactoryTests
         // Assert
         Assert.AreEqual(deadline, options.Deadline);
         Assert.AreEqual(cancellationToken, options.CancellationToken);
+    }
+
+    [Test]
+    public async Task CreateClient_Unary_ServerCallContextHasValues_StateDisposed()
+    {
+        // Arrange
+        var baseAddress = new Uri("http://localhost");
+        var deadline = DateTime.UtcNow.AddDays(1);
+        var cancellationToken = new CancellationTokenSource().Token;
+
+        var interceptor = new OnDisposedInterceptor();
+
+        var services = new ServiceCollection();
+        services.AddOptions();
+        services.AddSingleton(CreateHttpContextAccessorWithServerCallContext(deadline: deadline, cancellationToken: cancellationToken));
+        services
+            .AddGrpcClient<Greeter.GreeterClient>(o =>
+            {
+                o.Address = baseAddress;
+            })
+            .EnableCallContextPropagation()
+            .AddInterceptor(() => interceptor)
+            .ConfigurePrimaryHttpMessageHandler(() => ClientTestHelpers.CreateTestMessageHandler(new HelloReply()));
+
+        var serviceProvider = services.BuildServiceProvider(validateScopes: true);
+
+        var clientFactory = CreateGrpcClientFactory(serviceProvider);
+        var client = clientFactory.CreateClient<Greeter.GreeterClient>(nameof(Greeter.GreeterClient));
+
+        // Checking that token register calls don't build up on CTS and create a memory leak.
+        var cts = new CancellationTokenSource();
+
+        // Act
+        // Send calls in a different method so there is no chance that a stack reference
+        // to a gRPC call is still alive after calls are complete.
+        var response = await client.SayHelloAsync(new HelloRequest(), cancellationToken: cts.Token);
+
+        // Assert
+        Assert.IsTrue(interceptor.ContextDisposed);
+    }
+
+    [Test]
+    public async Task CreateClient_ServerStreaming_ServerCallContextHasValues_StateDisposed()
+    {
+        // Arrange
+        var baseAddress = new Uri("http://localhost");
+        var deadline = DateTime.UtcNow.AddDays(1);
+        var cancellationToken = new CancellationTokenSource().Token;
+
+        var interceptor = new OnDisposedInterceptor();
+
+        var services = new ServiceCollection();
+        services.AddOptions();
+        services.AddSingleton(CreateHttpContextAccessorWithServerCallContext(deadline: deadline, cancellationToken: cancellationToken));
+        services
+            .AddGrpcClient<Greeter.GreeterClient>(o =>
+            {
+                o.Address = baseAddress;
+            })
+            .EnableCallContextPropagation()
+            .AddInterceptor(() => interceptor)
+            .ConfigurePrimaryHttpMessageHandler(() => ClientTestHelpers.CreateTestMessageHandler(new HelloReply()));
+
+        var serviceProvider = services.BuildServiceProvider(validateScopes: true);
+
+        var clientFactory = CreateGrpcClientFactory(serviceProvider);
+        var client = clientFactory.CreateClient<Greeter.GreeterClient>(nameof(Greeter.GreeterClient));
+
+        // Checking that token register calls don't build up on CTS and create a memory leak.
+        var cts = new CancellationTokenSource();
+
+        // Act
+        // Send calls in a different method so there is no chance that a stack reference
+        // to a gRPC call is still alive after calls are complete.
+        var call = client.SayHellos(new HelloRequest(), cancellationToken: cts.Token);
+
+        Assert.IsTrue(await call.ResponseStream.MoveNext());
+        Assert.IsFalse(await call.ResponseStream.MoveNext());
+
+        // Assert
+        Assert.IsTrue(interceptor.ContextDisposed);
+    }
+
+    private sealed class OnDisposedInterceptor : Interceptor
+    {
+        public bool ContextDisposed { get; private set; }
+
+        public override TResponse BlockingUnaryCall<TRequest, TResponse>(TRequest request, ClientInterceptorContext<TRequest, TResponse> context, BlockingUnaryCallContinuation<TRequest, TResponse> continuation)
+        {
+            return continuation(request, context);
+        }
+
+        public override AsyncUnaryCall<TResponse> AsyncUnaryCall<TRequest, TResponse>(TRequest request, ClientInterceptorContext<TRequest, TResponse> context, AsyncUnaryCallContinuation<TRequest, TResponse> continuation)
+        {
+            var call = continuation(request, context);
+            return new AsyncUnaryCall<TResponse>(call.ResponseAsync,
+                call.ResponseHeadersAsync,
+                call.GetStatus,
+                call.GetTrailers,
+                () =>
+                {
+                    call.Dispose();
+                    ContextDisposed = true;
+                });
+        }
+
+        public override AsyncServerStreamingCall<TResponse> AsyncServerStreamingCall<TRequest, TResponse>(TRequest request, ClientInterceptorContext<TRequest, TResponse> context, AsyncServerStreamingCallContinuation<TRequest, TResponse> continuation)
+        {
+            var call = continuation(request, context);
+            return new AsyncServerStreamingCall<TResponse>(call.ResponseStream,
+                call.ResponseHeadersAsync,
+                call.GetStatus,
+                call.GetTrailers,
+                () =>
+                {
+                    call.Dispose();
+                    ContextDisposed = true;
+                });
+        }
+
+        public override AsyncClientStreamingCall<TRequest, TResponse> AsyncClientStreamingCall<TRequest, TResponse>(ClientInterceptorContext<TRequest, TResponse> context, AsyncClientStreamingCallContinuation<TRequest, TResponse> continuation)
+        {
+            var call = continuation(context);
+            return new AsyncClientStreamingCall<TRequest, TResponse>(call.RequestStream,
+                call.ResponseAsync,
+                call.ResponseHeadersAsync,
+                call.GetStatus,
+                call.GetTrailers,
+                () =>
+                {
+                    call.Dispose();
+                    ContextDisposed = true;
+                });
+        }
+
+        public override AsyncDuplexStreamingCall<TRequest, TResponse> AsyncDuplexStreamingCall<TRequest, TResponse>(ClientInterceptorContext<TRequest, TResponse> context, AsyncDuplexStreamingCallContinuation<TRequest, TResponse> continuation)
+        {
+            var call = continuation(context);
+            return new AsyncDuplexStreamingCall<TRequest, TResponse>(call.RequestStream,
+                call.ResponseStream,
+                call.ResponseHeadersAsync,
+                call.GetStatus,
+                call.GetTrailers,
+                () =>
+                {
+                    call.Dispose();
+                    ContextDisposed = true;
+                });
+        }
     }
 
     [TestCase(Canceller.Context)]
