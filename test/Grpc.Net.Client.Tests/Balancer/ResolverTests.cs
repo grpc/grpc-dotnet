@@ -115,14 +115,7 @@ public class ResolverTests
     public async Task Refresh_AsyncLocal_NotCaptured()
     {
         // Arrange
-        var waitHandle = new ManualResetEvent(false);
-
         var services = new ServiceCollection();
-        var testSink = new TestSink();
-        services.AddLogging(b =>
-        {
-            b.AddProvider(new TestLoggerProvider(testSink));
-        });
         services.AddNUnitLogger();
         var loggerFactory = services.BuildServiceProvider().GetRequiredService<ILoggerFactory>();
 
