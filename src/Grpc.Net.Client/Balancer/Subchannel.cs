@@ -257,7 +257,7 @@ public sealed class Subchannel : IDisposable
         }
 
         // Don't capture the current ExecutionContext and its AsyncLocals onto the connect
-        bool restoreFlow = false;
+        var restoreFlow = false;
         if (!ExecutionContext.IsFlowSuppressed())
         {
             ExecutionContext.SuppressFlow();
