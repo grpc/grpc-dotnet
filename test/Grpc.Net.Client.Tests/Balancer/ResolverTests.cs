@@ -112,6 +112,59 @@ public class ResolverTests
     }
 
     [Test]
+    public async Task Refresh_AsyncLocal_NotCaptured()
+    {
+        // Arrange
+        var services = new ServiceCollection();
+        services.AddNUnitLogger();
+        var loggerFactory = services.BuildServiceProvider().GetRequiredService<ILoggerFactory>();
+
+        var asyncLocal = new AsyncLocal<object>();
+        asyncLocal.Value = new object();
+
+        var callbackAsyncLocalValues = new List<object>();
+
+        var resolver = new CallbackPollingResolver(loggerFactory, new TestBackoffPolicyFactory(TimeSpan.FromMilliseconds(100)), (listener) =>
+        {
+            callbackAsyncLocalValues.Add(asyncLocal.Value);
+            if (callbackAsyncLocalValues.Count >= 2)
+            {
+                listener(ResolverResult.ForResult(new List<BalancerAddress>()));
+            }
+
+            return Task.CompletedTask;
+        });
+
+        var tcs = new TaskCompletionSource<ResolverResult>(TaskCreationOptions.RunContinuationsAsynchronously);
+        resolver.Start(result => tcs.TrySetResult(result));
+
+        // Act
+        resolver.Refresh();
+
+        // Assert
+        await tcs.Task.DefaultTimeout();
+
+        Assert.AreEqual(2, callbackAsyncLocalValues.Count);
+        Assert.IsNull(callbackAsyncLocalValues[0]);
+        Assert.IsNull(callbackAsyncLocalValues[1]);
+    }
+
+    private class CallbackPollingResolver : PollingResolver
+    {
+        private readonly Func<Action<ResolverResult>, Task> _callback;
+
+        public CallbackPollingResolver(ILoggerFactory loggerFactory, IBackoffPolicyFactory backoffPolicyFactory, Func<Action<ResolverResult>, Task> callback) : base(loggerFactory, backoffPolicyFactory)
+        {
+            _callback = callback;
+        }
+
+        protected override Task ResolveAsync(CancellationToken cancellationToken)
+        {
+            return _callback(Listener);
+        }
+    }
+
+    [Test]
     public async Task Resolver_ResolveNameFromServices_Success()
     {
         // Arrange
