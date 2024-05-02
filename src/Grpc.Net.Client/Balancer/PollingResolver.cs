@@ -135,14 +135,33 @@ public abstract class PollingResolver : Resolver
 
             if (_resolveTask.IsCompleted)
             {
-                // Run ResolveAsync in a background task.
-                // This is done to prevent synchronous block inside ResolveAsync from blocking future Refresh calls.
-                _resolveTask = Task.Run(() => ResolveNowAsync(_cts.Token), _cts.Token);
-                _resolveTask.ContinueWith(static (t, state) =>
+                // Don't capture the current ExecutionContext and its AsyncLocals onto the connect
+                var restoreFlow = false;
+                try
                 {
-                    var pollingResolver = (PollingResolver)state!;
-                    Log.ResolveTaskCompleted(pollingResolver._logger, pollingResolver.GetType());
-                }, this);
+                    if (!ExecutionContext.IsFlowSuppressed())
+                    {
+                        ExecutionContext.SuppressFlow();
+                        restoreFlow = true;
+                    }
+
+                    // Run ResolveAsync in a background task.
+                    // This is done to prevent synchronous block inside ResolveAsync from blocking future Refresh calls.
+                    _resolveTask = Task.Run(() => ResolveNowAsync(_cts.Token), _cts.Token);
+                    _resolveTask.ContinueWith(static (t, state) =>
+                    {
+                        var pollingResolver = (PollingResolver)state!;
+                        Log.ResolveTaskCompleted(pollingResolver._logger, pollingResolver.GetType());
+                    }, this);
+                }
+                finally
+                {
+                    // Restore the current ExecutionContext
+                    if (restoreFlow)
+                    {
+                        ExecutionContext.RestoreFlow();
+                    }
+                }
             }
             else
             {
