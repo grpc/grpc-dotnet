@@ -53,7 +53,7 @@ public sealed class DeflateCompressionProvider : ICompressionProvider
     {
         // As described in RFC 2616, the deflate content-coding is actually
         // the "zlib" format (RFC 1950) in combination with the "deflate"
-        // compression algrithm (RFC 1951).  So while potentially
+        // compression algorithm (RFC 1951).  So while potentially
         // counterintuitive based on naming, this needs to use ZLibStream
         // rather than DeflateStream.
         return new ZLibStream(stream, compressionLevel ?? _defaultCompressionLevel);
@@ -68,7 +68,7 @@ public sealed class DeflateCompressionProvider : ICompressionProvider
     {
         // As described in RFC 2616, the deflate content-coding is actually
         // the "zlib" format (RFC 1950) in combination with the "deflate"
-        // compression algrithm (RFC 1951).  So while potentially
+        // compression algorithm (RFC 1951).  So while potentially
         // counterintuitive based on naming, this needs to use ZLibStream
         // rather than DeflateStream.
         return new ZLibStream(stream, CompressionMode.Decompress);
