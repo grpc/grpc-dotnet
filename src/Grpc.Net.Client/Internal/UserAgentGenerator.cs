@@ -55,7 +55,7 @@ internal static class UserAgentGenerator
             clrVersion: Environment.Version,
             assemblyVersion: assemblyVersion,
             // RuntimeInformation.FrameworkDescription is only supported for
-            // .NET Framework 4.7.1 and above. If targetting net461 or earlier,
+            // .NET Framework 4.7.1 and above. If targeting net461 or earlier,
             // the framework description will need to be resolved manually
             // using reflection.
             runtimeInformation: RuntimeInformation.FrameworkDescription,
