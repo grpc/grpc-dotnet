@@ -308,7 +308,7 @@ public static class GrpcClientServiceExtensions
 
         services.AddHttpClient(name);
 
-        // Get PrimaryHandler o we can track whether the user set a value or not.
+        // Get PrimaryHandler and store it to compare later. Used to track whether the user set a handler or not.
         // This action comes before registered user actions so the primary handler here will be the one created by the factory.
         HttpMessageHandler? initialPrimaryHandler = null;
         services.Configure<HttpClientFactoryOptions>(name, options =>
@@ -320,6 +320,8 @@ public static class GrpcClientServiceExtensions
         {
             options.HttpMessageHandlerBuilderActions.Add(builder =>
             {
+                // If the primary handler is unchanged from what the factory created then replace the handler
+                // with one that has settings optimized for a gRPC client.
                 if (builder.PrimaryHandler == initialPrimaryHandler)
                 {
                     // This will throw in .NET Standard 2.0 with a prompt that a user must set a handler.
