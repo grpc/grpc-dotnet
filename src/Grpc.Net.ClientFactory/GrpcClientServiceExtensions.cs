@@ -306,21 +306,21 @@ public static class GrpcClientServiceExtensions
     {
         ArgumentNullThrowHelper.ThrowIfNull(services);
 
-        services
-            .AddHttpClient(name)
-            .ConfigurePrimaryHttpMessageHandler(() =>
-            {
-                // Set PrimaryHandler to null so we can track whether the user
-                // set a value or not. If they didn't set their own handler then
-                // one will be created by PostConfigure.
-                return null!;
-            });
+        services.AddHttpClient(name);
+
+        // Get PrimaryHandler o we can track whether the user set a value or not.
+        // This action comes before registered user actions so the primary handler here will be the one created by the factory.
+        HttpMessageHandler? initialPrimaryHandler = null;
+        services.Configure<HttpClientFactoryOptions>(name, options =>
+        {
+            options.HttpMessageHandlerBuilderActions.Add(b => initialPrimaryHandler = b.PrimaryHandler);
+        });
 
         services.PostConfigure<HttpClientFactoryOptions>(name, options =>
         {
             options.HttpMessageHandlerBuilderActions.Add(builder =>
             {
-                if (builder.PrimaryHandler == null)
+                if (builder.PrimaryHandler == initialPrimaryHandler)
                 {
                     // This will throw in .NET Standard 2.0 with a prompt that a user must set a handler.
                     // Because it throws it should only be called in PostConfigure if no handler has been set.
