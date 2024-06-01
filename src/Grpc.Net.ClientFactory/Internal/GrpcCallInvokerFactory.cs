@@ -39,6 +39,7 @@ internal class GrpcCallInvokerFactory
     private readonly IServiceScopeFactory _scopeFactory;
     private readonly ConcurrentDictionary<EntryKey, CallInvoker> _activeChannels;
     private readonly Func<EntryKey, CallInvoker> _invokerFactory;
+    private readonly ILogger<GrpcCallInvokerFactory> _logger;
 
     public GrpcCallInvokerFactory(
         IServiceScopeFactory scopeFactory,
@@ -57,6 +58,7 @@ internal class GrpcCallInvokerFactory
         _scopeFactory = scopeFactory;
         _activeChannels = new ConcurrentDictionary<EntryKey, CallInvoker>();
         _invokerFactory = CreateInvoker;
+        _logger = _loggerFactory.CreateLogger<GrpcCallInvokerFactory>();
     }
 
     public CallInvoker CreateInvoker(string name, Type type)
@@ -75,7 +77,7 @@ internal class GrpcCallInvokerFactory
             var httpClientFactoryOptions = _httpClientFactoryOptionsMonitor.Get(name);
             if (httpClientFactoryOptions.HttpClientActions.Count > 0)
             {
-                throw new InvalidOperationException($"The ConfigureHttpClient method is not supported when creating gRPC clients. Unable to create client with name '{name}'.");
+                Log.UnsupportedHttpClientActions(_logger, name);
             }
 
             var clientFactoryOptions = _grpcClientFactoryOptionsMonitor.Get(name);
@@ -188,6 +190,17 @@ internal class GrpcCallInvokerFactory
 
         public override void SetCompositeCredentials(object state, ChannelCredentials channelCredentials, CallCredentials callCredentials)
         {
+        }
+    }
+
+    private static class Log
+    {
+        private static readonly Action<ILogger, string, Exception?> _unsupportedHttpClientActions =
+            LoggerMessage.Define<string>(LogLevel.Debug, new EventId(1, "UnsupportedHttpClientActions"), "The ConfigureHttpClient method is not supported when creating gRPC clients. Unable to apply configuration to client with the name '{ClientName}'.");
+
+        public static void UnsupportedHttpClientActions(ILogger<GrpcCallInvokerFactory> logger, string clientName)
+        {
+            _unsupportedHttpClientActions(logger, clientName, null);
         }
     }
 }

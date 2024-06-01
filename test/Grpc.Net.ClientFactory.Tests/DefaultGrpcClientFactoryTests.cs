@@ -144,10 +144,14 @@ public class DefaultGrpcClientFactoryTests
     }
 
     [Test]
-    public void CreateClient_ConfigureHttpClient_ThrowError()
+    public void CreateClient_ConfigureHttpClient_LogMessage()
     {
         // Arrange
+        var testSink = new TestSink();
+
         var services = new ServiceCollection();
+        services.AddLogging(configure => configure.SetMinimumLevel(LogLevel.Trace));
+        services.TryAddEnumerable(ServiceDescriptor.Singleton<ILoggerProvider, TestLoggerProvider>(s => new TestLoggerProvider(testSink, true)));
         services
             .AddGrpcClient<TestGreeterClient>()
             .ConfigureHttpClient(options => options.BaseAddress = new Uri("http://contoso"))
@@ -164,7 +168,9 @@ public class DefaultGrpcClientFactoryTests
         var ex = Assert.Throws<InvalidOperationException>(() => clientFactory.CreateClient<TestGreeterClient>(nameof(TestGreeterClient)))!;
 
         // Assert
-        Assert.AreEqual("The ConfigureHttpClient method is not supported when creating gRPC clients. Unable to create client with name 'TestGreeterClient'.", ex.Message);
+        Assert.AreEqual(@"Could not resolve the address for gRPC client 'TestGreeterClient'. Set an address when registering the client: services.AddGrpcClient<TestGreeterClient>(o => o.Address = new Uri(""https://localhost:5001""))", ex.Message);
+
+        Assert.IsTrue(testSink.Writes.Any(w => w.EventId.Name == "UnsupportedHttpClientActions"));
     }
 
 #if NET462
