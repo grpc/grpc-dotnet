@@ -18,6 +18,7 @@ for general contribution guidelines.
 - [jtattermusch](https://github.com/jtattermusch), Google LLC
 - [mgravell](https://github.com/mgravell), Microsoft Corporation
 - [ReubenBond](https://github.com/ReubenBond), Microsoft Corporation
+- [stanley-cheung](https://github.com/stanley-cheung), Google LLC
 
 ## Emeritus Maintainers (in alphabetical order)
 - [JunTaoLuo](https://github.com/JunTaoLuo)
