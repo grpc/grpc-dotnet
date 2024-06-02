@@ -56,6 +56,33 @@ public class DefaultGrpcClientFactoryTests
         Assert.IsInstanceOf(typeof(HttpMessageInvoker), client.CallInvoker.Channel.HttpInvoker);
     }
 
+#if NET6_0_OR_GREATER
+    [Test]
+    public void CreateClient_Default_PrimaryHandlerIsSocketsHttpHandler()
+    {
+        // Arrange
+        SocketsHttpHandler? socketsHttpHandler = null;
+        var services = new ServiceCollection();
+        services
+            .AddGrpcClient<TestGreeterClient>(o => o.Address = new Uri("http://localhost"))
+            .ConfigurePrimaryHttpMessageHandler((primaryHandler, _) =>
+            {
+                socketsHttpHandler = (SocketsHttpHandler)primaryHandler;
+            });
+
+        var serviceProvider = services.BuildServiceProvider(validateScopes: true);
+
+        var clientFactory = CreateGrpcClientFactory(serviceProvider);
+
+        // Act
+        var client = clientFactory.CreateClient<TestGreeterClient>(nameof(TestGreeterClient));
+
+        // Assert
+        Assert.NotNull(socketsHttpHandler);
+        Assert.IsTrue(socketsHttpHandler!.EnableMultipleHttp2Connections);
+    }
+#endif
+
     [Test]
     public void CreateClient_MatchingConfigurationBasedOnTypeName_ReturnConfiguration()
     {
@@ -253,6 +280,54 @@ public class DefaultGrpcClientFactoryTests
 
         // Assert
         Assert.AreEqual(@"gRPC requires extra configuration on .NET implementations that don't support gRPC over HTTP/2. An HTTP provider must be specified using GrpcChannelOptions.HttpHandler.The configured HTTP provider must either support HTTP/2 or be configured to use gRPC-Web. See https://aka.ms/aspnet/grpc/netstandard for details.", ex.Message);
+    }
+
+    [Test]
+    public void CreateClient_ConfigureDefaultAfter_Success()
+    {
+        // Arrange
+        var services = new ServiceCollection();
+        services
+            .AddGrpcClient<TestGreeterClient>(o => o.Address = new Uri("https://localhost"));
+
+        services.ConfigureHttpClientDefaults(builder =>
+        {
+            builder.ConfigurePrimaryHttpMessageHandler(() => new NullHttpHandler());
+        });
+
+        var serviceProvider = services.BuildServiceProvider(validateScopes: true);
+
+        var clientFactory = CreateGrpcClientFactory(serviceProvider);
+
+        // Act
+        var client = clientFactory.CreateClient<TestGreeterClient>(nameof(TestGreeterClient));
+
+        // Assert
+        Assert.IsNotNull(client);
+    }
+
+    [Test]
+    public void CreateClient_ConfigureDefaultBefore_Success()
+    {
+        // Arrange
+        var services = new ServiceCollection();
+
+        services.ConfigureHttpClientDefaults(builder =>
+        {
+            builder.ConfigurePrimaryHttpMessageHandler(() => new NullHttpHandler());
+        });
+
+        services.AddGrpcClient<TestGreeterClient>(o => o.Address = new Uri("https://localhost"));
+
+        var serviceProvider = services.BuildServiceProvider(validateScopes: true);
+
+        var clientFactory = CreateGrpcClientFactory(serviceProvider);
+
+        // Act
+        var client = clientFactory.CreateClient<TestGreeterClient>(nameof(TestGreeterClient));
+
+        // Assert
+        Assert.IsNotNull(client);
     }
 #endif
 

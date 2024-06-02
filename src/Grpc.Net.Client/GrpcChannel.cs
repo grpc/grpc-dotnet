@@ -489,7 +489,10 @@ public sealed class GrpcChannel : ChannelBase, IDisposable
         // Decision to dispose invoker is controlled by _shouldDisposeHttpClient.
         if (handler == null)
         {
-            handler = HttpHandlerFactory.CreatePrimaryHandler();
+            if (!HttpHandlerFactory.TryCreatePrimaryHandler(out handler))
+            {
+                throw HttpHandlerFactory.CreateUnsupportedHandlerException();
+            }
         }
         else
         {

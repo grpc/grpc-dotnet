@@ -16,13 +16,14 @@
 
 #endregion
 
+using System.Diagnostics.CodeAnalysis;
 using Grpc.Net.Client;
 
 namespace Grpc.Shared;
 
 internal static class HttpHandlerFactory
 {
-    public static HttpMessageHandler CreatePrimaryHandler()
+    public static bool TryCreatePrimaryHandler([NotNullWhen(true)] out HttpMessageHandler? primaryHandler)
     {
 #if NET5_0_OR_GREATER
         // If we're in .NET 5 and SocketsHttpHandler is supported (it's not in Blazor WebAssembly)
@@ -30,29 +31,38 @@ internal static class HttpHandlerFactory
         // allow a gRPC channel to create new connections if the maximum allow concurrency is exceeded.
         if (SocketsHttpHandler.IsSupported)
         {
-            return new SocketsHttpHandler
+            primaryHandler = new SocketsHttpHandler
             {
                 EnableMultipleHttp2Connections = true
             };
+            return true;
         }
 #endif
 
 #if NET462
         // Create WinHttpHandler with EnableMultipleHttp2Connections set to true. That will
         // allow a gRPC channel to create new connections if the maximum allow concurrency is exceeded.
-        return new WinHttpHandler
+        primaryHandler = new WinHttpHandler
         {
             EnableMultipleHttp2Connections = true
         };
+        return true;
 #elif !NETSTANDARD2_0
-        return new HttpClientHandler();
+        primaryHandler = new HttpClientHandler();
+        return true;
 #else
+        primaryHandler = null;
+        return false;
+#endif
+    }
+
+    public static Exception CreateUnsupportedHandlerException()
+    {
         var message =
             $"gRPC requires extra configuration on .NET implementations that don't support gRPC over HTTP/2. " +
             $"An HTTP provider must be specified using {nameof(GrpcChannelOptions)}.{nameof(GrpcChannelOptions.HttpHandler)}." +
             $"The configured HTTP provider must either support HTTP/2 or be configured to use gRPC-Web. " +
             $"See https://aka.ms/aspnet/grpc/netstandard for details.";
-        throw new PlatformNotSupportedException(message);
-#endif
+        return new PlatformNotSupportedException(message);
     }
 }

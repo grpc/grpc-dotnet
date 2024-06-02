@@ -9,7 +9,7 @@
     <OpenTelemetryIntergationPackageVersion>1.8.1</OpenTelemetryIntergationPackageVersion>
     <OpenTelemetryGrpcPackageVersion>1.8.0-beta.1</OpenTelemetryGrpcPackageVersion>
     <MicrosoftExtensionsPackageVersion>8.0.0</MicrosoftExtensionsPackageVersion>
-    <MicrosoftExtensions6PackageVersion>6.0.0</MicrosoftExtensions6PackageVersion>
+    <MicrosoftExtensionsLtsPackageVersion>6.0.0</MicrosoftExtensionsLtsPackageVersion>
   </PropertyGroup>
   <ItemGroup>
     <!-- ASP.NET Core -->
@@ -24,6 +24,7 @@
     <PackageVersion Include="Microsoft.AspNetCore.Grpc.Swagger" Version="0.8.0" />
 
     <!-- Extensions -->
+    <PackageVersion Include="Microsoft.Extensions.Http" Version="$(MicrosoftExtensionsPackageVersion)" />
     <PackageVersion Include="Microsoft.Extensions.Logging" Version="$(MicrosoftExtensionsPackageVersion)" />
     <PackageVersion Include="Microsoft.Extensions.Logging.Console" Version="$(MicrosoftExtensionsPackageVersion)" />
     <PackageVersion Include="Microsoft.Extensions.Hosting" Version="$(MicrosoftExtensionsPackageVersion)" />
