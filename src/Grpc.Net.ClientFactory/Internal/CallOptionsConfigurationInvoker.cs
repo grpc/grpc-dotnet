@@ -1,4 +1,4 @@
-﻿#region Copyright notice and license
+#region Copyright notice and license
 
 // Copyright 2019 The gRPC Authors
 //
@@ -32,6 +32,9 @@ internal sealed class CallOptionsConfigurationInvoker : CallInvoker
         _callOptionsActions = callOptionsActions;
         _serviceProvider = serviceProvider;
     }
+
+    // Internal for testing.
+    internal CallInvoker InnerInvoker => _innerInvoker;
 
     private CallOptions ResolveCallOptions(CallOptions callOptions)
     {

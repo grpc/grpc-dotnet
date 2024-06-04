@@ -17,6 +17,8 @@
 #endregion
 
 using System.Collections.Concurrent;
+using System.Globalization;
+using System.Net.Http.Headers;
 using Grpc.Core;
 using Grpc.Net.Client;
 using Grpc.Shared;
@@ -39,6 +41,7 @@ internal class GrpcCallInvokerFactory
     private readonly IServiceScopeFactory _scopeFactory;
     private readonly ConcurrentDictionary<EntryKey, CallInvoker> _activeChannels;
     private readonly Func<EntryKey, CallInvoker> _invokerFactory;
+    private readonly ILogger<GrpcCallInvokerFactory> _logger;
 
     public GrpcCallInvokerFactory(
         IServiceScopeFactory scopeFactory,
@@ -57,6 +60,7 @@ internal class GrpcCallInvokerFactory
         _scopeFactory = scopeFactory;
         _activeChannels = new ConcurrentDictionary<EntryKey, CallInvoker>();
         _invokerFactory = CreateInvoker;
+        _logger = _loggerFactory.CreateLogger<GrpcCallInvokerFactory>();
     }
 
     public CallInvoker CreateInvoker(string name, Type type)
@@ -73,12 +77,58 @@ internal class GrpcCallInvokerFactory
         try
         {
             var httpClientFactoryOptions = _httpClientFactoryOptionsMonitor.Get(name);
+            var clientFactoryOptions = _grpcClientFactoryOptionsMonitor.Get(name);
+
+            // gRPC channel is configured with a handler instead of a client, so HttpClientActions aren't used directly.
+            // To capture HttpClient configuration, a temp HttpClient is created and configured using HttpClientActions.
+            // Values from the temp HttpClient are then copied to the gRPC channel.
+            // Only values with overlap on both types are copied so log a message about the limitations.
             if (httpClientFactoryOptions.HttpClientActions.Count > 0)
             {
-                throw new InvalidOperationException($"The ConfigureHttpClient method is not supported when creating gRPC clients. Unable to create client with name '{name}'.");
+                Log.HttpClientActionsPartiallySupported(_logger, name);
+
+                var httpClient = new HttpClient(NullHttpMessageHandler.Instance);
+                foreach (var applyOptions in httpClientFactoryOptions.HttpClientActions)
+                {
+                    applyOptions(httpClient);
+                }
+
+                // Copy configuration from HttpClient to GrpcChannel/CallOptions.
+                // This configuration should be overriden by gRPC specific config methods.
+                if (clientFactoryOptions.Address == null)
+                {
+                    clientFactoryOptions.Address = httpClient.BaseAddress;
+                }
+
+                if (httpClient.DefaultRequestHeaders.Any())
+                {
+                    var defaultHeaders = httpClient.DefaultRequestHeaders.ToList();
+
+                    // Merge DefaultRequestHeaders with CallOptions.Headers.
+                    // Follow behavior of DefaultRequestHeaders on HttpClient when merging.
+                    // Don't replace or add new header values if the header name has already been set.
+                    clientFactoryOptions.CallOptionsActions.Add(callOptionsContext =>
+                    {
+                        var metadata = callOptionsContext.CallOptions.Headers ?? new Metadata();
+                        foreach (var entry in defaultHeaders)
+                        {
+                            // grpc requires header names are lower case before being added to collection.
+                            var resolvedKey = entry.Key.ToLower(CultureInfo.InvariantCulture);
+
+                            if (metadata.Get(resolvedKey) == null)
+                            {
+                                foreach (var value in entry.Value)
+                                {
+                                    metadata.Add(resolvedKey, value);
+                                }
+                            }
+                        }
+
+                        callOptionsContext.CallOptions = callOptionsContext.CallOptions.WithHeaders(metadata);
+                    });
+                }
             }
 
-            var clientFactoryOptions = _grpcClientFactoryOptionsMonitor.Get(name);
             var httpHandler = _messageHandlerFactory.CreateHandler(name);
             if (httpHandler == null)
             {
@@ -188,6 +238,27 @@ internal class GrpcCallInvokerFactory
 
         public override void SetCompositeCredentials(object state, ChannelCredentials channelCredentials, CallCredentials callCredentials)
         {
+        }
+    }
+
+    private sealed class NullHttpMessageHandler : HttpMessageHandler
+    {
+        public static readonly NullHttpMessageHandler Instance = new NullHttpMessageHandler();
+
+        protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
+        {
+            throw new NotImplementedException();
+        }
+    }
+
+    private static class Log
+    {
+        private static readonly Action<ILogger, string, Exception?> _httpClientActionsPartiallySupported =
+            LoggerMessage.Define<string>(LogLevel.Debug, new EventId(1, "HttpClientActionsPartiallySupported"), "The ConfigureHttpClient method is used to configure gRPC client '{ClientName}'. ConfigureHttpClient is partially supported when creating gRPC clients and only some HttpClient properties such as BaseAddress and DefaultRequestHeaders are applied to the gRPC client.");
+
+        public static void HttpClientActionsPartiallySupported(ILogger<GrpcCallInvokerFactory> logger, string clientName)
+        {
+            _httpClientActionsPartiallySupported(logger, clientName, null);
         }
     }
 }
