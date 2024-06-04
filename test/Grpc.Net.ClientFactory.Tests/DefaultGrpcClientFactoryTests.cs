@@ -16,6 +16,8 @@
 
 #endregion
 
+using System.Net;
+using System.Net.Http.Headers;
 using Greet;
 using Grpc.Core;
 using Grpc.Net.Client.Internal;
@@ -144,20 +146,33 @@ public class DefaultGrpcClientFactoryTests
     }
 
     [Test]
-    public void CreateClient_ConfigureHttpClient_LogMessage()
+    public async Task CreateClient_ConfigureHttpClient_LogMessage()
     {
         // Arrange
         var testSink = new TestSink();
+        Uri? requestUri = null;
+        HttpRequestHeaders? requestHeaders = null;
 
         var services = new ServiceCollection();
         services.AddLogging(configure => configure.SetMinimumLevel(LogLevel.Trace));
         services.TryAddEnumerable(ServiceDescriptor.Singleton<ILoggerProvider, TestLoggerProvider>(s => new TestLoggerProvider(testSink, true)));
         services
             .AddGrpcClient<TestGreeterClient>()
-            .ConfigureHttpClient(options => options.BaseAddress = new Uri("http://contoso"))
+            .ConfigureHttpClient(options =>
+            {
+                options.BaseAddress = new Uri("http://contoso");
+                options.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("bearer", "abc");
+            })
             .ConfigurePrimaryHttpMessageHandler(() =>
             {
-                return new NullHttpHandler();
+                return TestHttpMessageHandler.Create(async r =>
+                {
+                    requestUri = r.RequestUri;
+                    requestHeaders = r.Headers;
+
+                    var streamContent = await ClientTestHelpers.CreateResponseContent(new HelloReply()).DefaultTimeout();
+                    return ResponseUtils.CreateResponse(HttpStatusCode.OK, streamContent);
+                });
             });
 
         var serviceProvider = services.BuildServiceProvider(validateScopes: true);
@@ -165,12 +180,15 @@ public class DefaultGrpcClientFactoryTests
         var clientFactory = CreateGrpcClientFactory(serviceProvider);
 
         // Act
-        var ex = Assert.Throws<InvalidOperationException>(() => clientFactory.CreateClient<TestGreeterClient>(nameof(TestGreeterClient)))!;
+        var client = clientFactory.CreateClient<TestGreeterClient>(nameof(TestGreeterClient));
+        var response = await client.SayHelloAsync(new HelloRequest()).ResponseAsync.DefaultTimeout();
 
         // Assert
-        Assert.AreEqual(@"Could not resolve the address for gRPC client 'TestGreeterClient'. Set an address when registering the client: services.AddGrpcClient<TestGreeterClient>(o => o.Address = new Uri(""https://localhost:5001""))", ex.Message);
+        Assert.AreEqual("http://contoso", client.CallInvoker.Channel.Address.OriginalString);
+        Assert.AreEqual(new Uri("http://contoso/greet.Greeter/SayHello"), requestUri);
+        Assert.AreEqual("bearer abc", requestHeaders!.GetValues("authorization").Single());
 
-        Assert.IsTrue(testSink.Writes.Any(w => w.EventId.Name == "UnsupportedHttpClientActions"));
+        Assert.IsTrue(testSink.Writes.Any(w => w.EventId.Name == "HttpClientActionsPartiallySupported"));
     }
 
 #if NET462
@@ -298,6 +316,10 @@ public class DefaultGrpcClientFactoryTests
     {
         public TestGreeterClient(CallInvoker callInvoker) : base(callInvoker)
         {
+            if (callInvoker is CallOptionsConfigurationInvoker callOptionsInvoker)
+            {
+                callInvoker = callOptionsInvoker.InnerInvoker;
+            }
             CallInvoker = (HttpClientCallInvoker)callInvoker;
         }
 
