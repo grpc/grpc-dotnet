@@ -310,7 +310,7 @@ public static class GrpcClientServiceExtensions
         builder.Services.AddTransient<TClient>(s =>
         {
             var clientFactory = s.GetRequiredService<GrpcClientFactory>();
-            return clientFactory.CreateClient<TClient>(builder.Name);
+            return clientFactory.CreateClient<TClient>(name);
         });
 
         // Insert primary handler before other configuration so there is the opportunity to override it.
@@ -343,7 +343,7 @@ public static class GrpcClientServiceExtensions
         services.Insert(0, configurePrimaryHandler);
 
         // Some platforms don't have a built-in handler that supports gRPC.
-        // Validate that a handler was set after all configuration has run.
+        // Validate that a handler was set by the app to after all configuration has run.
         services.PostConfigure<HttpClientFactoryOptions>(name, options =>
         {
             options.HttpMessageHandlerBuilderActions.Add(builder =>
