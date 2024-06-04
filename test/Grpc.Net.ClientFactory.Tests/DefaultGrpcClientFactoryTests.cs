@@ -191,6 +191,50 @@ public class DefaultGrpcClientFactoryTests
         Assert.IsTrue(testSink.Writes.Any(w => w.EventId.Name == "HttpClientActionsPartiallySupported"));
     }
 
+    [Test]
+    public async Task CreateClient_ConfigureHttpClient_OverridenByGrpcConfiguration()
+    {
+        // Arrange
+        Uri? requestUri = null;
+        HttpRequestHeaders? requestHeaders = null;
+
+        var services = new ServiceCollection();
+        services
+            .AddGrpcClient<TestGreeterClient>(o => o.Address = new Uri("http://eshop"))
+            .ConfigureHttpClient(options =>
+            {
+                options.BaseAddress = new Uri("http://contoso");
+                options.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("bearer", "abc");
+                options.DefaultRequestHeaders.TryAddWithoutValidation("HTTPCLIENT-KEY", "httpclient-value");
+            })
+            .ConfigurePrimaryHttpMessageHandler(() =>
+            {
+                return TestHttpMessageHandler.Create(async r =>
+                {
+                    requestUri = r.RequestUri;
+                    requestHeaders = r.Headers;
+
+                    var streamContent = await ClientTestHelpers.CreateResponseContent(new HelloReply()).DefaultTimeout();
+                    return ResponseUtils.CreateResponse(HttpStatusCode.OK, streamContent);
+                });
+            });
+
+        var serviceProvider = services.BuildServiceProvider(validateScopes: true);
+
+        var clientFactory = CreateGrpcClientFactory(serviceProvider);
+
+        // Act
+        var client = clientFactory.CreateClient<TestGreeterClient>(nameof(TestGreeterClient));
+        var response = await client.SayHelloAsync(new HelloRequest(), headers: new Metadata { new Metadata.Entry("authorization", "bearer 123"), new Metadata.Entry("call-key", "call-value") }).ResponseAsync.DefaultTimeout();
+
+        // Assert
+        Assert.AreEqual("http://eshop", client.CallInvoker.Channel.Address.OriginalString);
+        Assert.AreEqual(new Uri("http://eshop/greet.Greeter/SayHello"), requestUri);
+        Assert.AreEqual("bearer 123", requestHeaders!.GetValues("authorization").Single());
+        Assert.AreEqual("httpclient-value", requestHeaders!.GetValues("httpclient-key").Single());
+        Assert.AreEqual("call-value", requestHeaders!.GetValues("call-key").Single());
+    }
+
 #if NET462
     [Test]
     public void CreateClient_NoPrimaryHandlerNetStandard_ThrowError()

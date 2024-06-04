@@ -18,6 +18,7 @@
 
 using System.Collections.Concurrent;
 using System.Globalization;
+using System.Net.Http.Headers;
 using Grpc.Core;
 using Grpc.Net.Client;
 using Grpc.Shared;
@@ -75,47 +76,51 @@ internal class GrpcCallInvokerFactory
 
         try
         {
-            HttpClient? httpClient = null;
-
             var httpClientFactoryOptions = _httpClientFactoryOptionsMonitor.Get(name);
             var clientFactoryOptions = _grpcClientFactoryOptionsMonitor.Get(name);
 
             // gRPC channel is configured with a handler instead of a client, so HttpClientActions aren't used directly.
-            // To capture HttpClient configuration, a dummy HttpClient is created and configured using HttpClientActions.
-            // Values from the dummy HttpClient are then copied to the gRPC channel.
-            // Only certain values are copied so log a message about the limitations.
+            // To capture HttpClient configuration, a temp HttpClient is created and configured using HttpClientActions.
+            // Values from the temp HttpClient are then copied to the gRPC channel.
+            // Only values with overlap on both types are copied so log a message about the limitations.
             if (httpClientFactoryOptions.HttpClientActions.Count > 0)
             {
                 Log.HttpClientActionsPartiallySupported(_logger, name);
 
-                httpClient = new HttpClient(NullHttpMessageHandler.Instance);
+                var httpClient = new HttpClient(NullHttpMessageHandler.Instance);
                 foreach (var applyOptions in httpClientFactoryOptions.HttpClientActions)
                 {
                     applyOptions(httpClient);
                 }
-            }
 
-            // Copy configuration from HttpClient to GrpcChannel/CallOptions.
-            if (httpClient != null)
-            {
-                clientFactoryOptions.Address = httpClient.BaseAddress;
+                // Copy configuration from HttpClient to GrpcChannel/CallOptions.
+                // This configuration should be overriden by gRPC specific config methods.
+                if (clientFactoryOptions.Address == null)
+                {
+                    clientFactoryOptions.Address = httpClient.BaseAddress;
+                }
 
                 if (httpClient.DefaultRequestHeaders.Any())
                 {
                     var defaultHeaders = httpClient.DefaultRequestHeaders.ToList();
 
-                    // Insert as first CallOptions action to allow it to be overriden.
-                    clientFactoryOptions.CallOptionsActions.Insert(0, callOptionsContext =>
+                    // Merge DefaultRequestHeaders with CallOptions.Headers.
+                    // Follow behavior of DefaultRequestHeaders on HttpClient when merging.
+                    // Don't replace or add new header values if the header name has already been set.
+                    clientFactoryOptions.CallOptionsActions.Add(callOptionsContext =>
                     {
-                        var metadata = new Metadata();
+                        var metadata = callOptionsContext.CallOptions.Headers ?? new Metadata();
                         foreach (var entry in defaultHeaders)
                         {
                             // grpc requires header names are lower case before being added to collection.
                             var resolvedKey = entry.Key.ToLower(CultureInfo.InvariantCulture);
 
-                            foreach (var value in entry.Value)
+                            if (metadata.Get(resolvedKey) == null)
                             {
-                                metadata.Add(resolvedKey, value);
+                                foreach (var value in entry.Value)
+                                {
+                                    metadata.Add(resolvedKey, value);
+                                }
                             }
                         }
 
