@@ -16,6 +16,7 @@
 
 #endregion
 
+using System;
 using System.Diagnostics.CodeAnalysis;
 using Grpc.Net.ClientFactory;
 using Grpc.Net.ClientFactory.Internal;
@@ -289,9 +290,7 @@ public static class GrpcClientServiceExtensions
         // because we access it by reaching into the service collection.
         services.TryAddSingleton(new GrpcClientMappingRegistry());
 
-        IHttpClientBuilder clientBuilder = services.AddGrpcHttpClient<TClient>(name);
-
-        return clientBuilder;
+        return services.AddGrpcHttpClient<TClient>(name);
     }
 
     /// <summary>
@@ -306,25 +305,22 @@ public static class GrpcClientServiceExtensions
     {
         ArgumentNullThrowHelper.ThrowIfNull(services);
 
-        services
-            .AddHttpClient(name)
-            .ConfigurePrimaryHttpMessageHandler(() =>
-            {
-                // Set PrimaryHandler to null so we can track whether the user
-                // set a value or not. If they didn't set their own handler then
-                // one will be created by PostConfigure.
-                return null!;
-            });
+        var builder = services.AddHttpClient(name);
 
-        services.PostConfigure<HttpClientFactoryOptions>(name, options =>
+        builder.Services.AddTransient<TClient>(s =>
         {
-            options.HttpMessageHandlerBuilderActions.Add(builder =>
+            var clientFactory = s.GetRequiredService<GrpcClientFactory>();
+            return clientFactory.CreateClient<TClient>(name);
+        });
+
+        // Insert primary handler before other configuration so there is the opportunity to override it.
+        // This should run before ConfigureDefaultHttpClient so the handler can be overriden in defaults.
+        var configurePrimaryHandler = ServiceDescriptor.Singleton<IConfigureOptions<HttpClientFactoryOptions>>(new ConfigureNamedOptions<HttpClientFactoryOptions>(name, options =>
+        {
+            options.HttpMessageHandlerBuilderActions.Add(b =>
             {
-                if (builder.PrimaryHandler == null)
+                if (HttpHandlerFactory.TryCreatePrimaryHandler(out var handler))
                 {
-                    // This will throw in .NET Standard 2.0 with a prompt that a user must set a handler.
-                    // Because it throws it should only be called in PostConfigure if no handler has been set.
-                    var handler = HttpHandlerFactory.CreatePrimaryHandler();
 #if NET5_0_OR_GREATER
                     if (handler is SocketsHttpHandler socketsHttpHandler)
                     {
@@ -336,35 +332,32 @@ public static class GrpcClientServiceExtensions
                     }
 #endif
 
-                    builder.PrimaryHandler = handler;
+                    b.PrimaryHandler = handler;
+                }
+                else
+                {
+                    b.PrimaryHandler = UnsupportedHttpHandler.Instance;
                 }
             });
-        });
+        }));
+        services.Insert(0, configurePrimaryHandler);
 
-        var builder = new DefaultHttpClientBuilder(services, name);
-
-        builder.Services.AddTransient<TClient>(s =>
+        // Some platforms don't have a built-in handler that supports gRPC.
+        // Validate that a handler was set by the app to after all configuration has run.
+        services.PostConfigure<HttpClientFactoryOptions>(name, options =>
         {
-            var clientFactory = s.GetRequiredService<GrpcClientFactory>();
-            return clientFactory.CreateClient<TClient>(builder.Name);
+            options.HttpMessageHandlerBuilderActions.Add(builder =>
+            {
+                if (builder.PrimaryHandler == UnsupportedHttpHandler.Instance)
+                {
+                    throw HttpHandlerFactory.CreateUnsupportedHandlerException();
+                }
+            });
         });
 
         ReserveClient(builder, typeof(TClient), name);
 
         return builder;
-    }
-
-    private class DefaultHttpClientBuilder : IHttpClientBuilder
-    {
-        public DefaultHttpClientBuilder(IServiceCollection services, string name)
-        {
-            Services = services;
-            Name = name;
-        }
-
-        public string Name { get; }
-
-        public IServiceCollection Services { get; }
     }
 
     private static void ReserveClient(IHttpClientBuilder builder, Type type, string name)
@@ -383,5 +376,15 @@ public static class GrpcClientServiceExtensions
         }
 
         registry.NamedClientRegistrations[name] = type;
+    }
+
+    private sealed class UnsupportedHttpHandler : HttpMessageHandler
+    {
+        public static readonly UnsupportedHttpHandler Instance = new UnsupportedHttpHandler();
+
+        protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
+        {
+            return Task.FromException<HttpResponseMessage>(HttpHandlerFactory.CreateUnsupportedHandlerException());
+        }
     }
 }

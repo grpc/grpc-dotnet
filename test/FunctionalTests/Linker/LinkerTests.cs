@@ -19,6 +19,7 @@
 // Skip running load running tests in debug configuration
 #if !DEBUG
 
+using System.Globalization;
 using System.Reflection;
 using System.Runtime.InteropServices;
 using Grpc.AspNetCore.FunctionalTests.Linker.Helpers;
@@ -86,7 +87,17 @@ public class LinkerTests
                 websiteProcess.Start(BuildStartPath(linkerTestsWebsitePath, "LinkerTestsWebsite"), arguments: null);
                 await websiteProcess.WaitForReadyAsync().TimeoutAfter(Timeout);
 
-                clientProcess.Start(BuildStartPath(linkerTestsClientPath, "LinkerTestsClient"), arguments: websiteProcess.ServerPort!.ToString());
+                string? clientArguments = null;
+                if (websiteProcess.ServerPort is {} serverPort)
+                {
+                    clientArguments = serverPort.ToString(CultureInfo.InvariantCulture);
+                }
+                else
+                {
+                    throw new InvalidOperationException("Website server port not available.");
+                }
+
+                clientProcess.Start(BuildStartPath(linkerTestsClientPath, "LinkerTestsClient"), arguments: clientArguments);
                 await clientProcess.WaitForExitAsync().TimeoutAfter(Timeout);
             }
             finally

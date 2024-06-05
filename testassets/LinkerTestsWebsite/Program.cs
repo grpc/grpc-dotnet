@@ -35,5 +35,4 @@ var app = builder.Build();
 
 app.MapGrpcService<GreeterService>();
 
-app.Lifetime.ApplicationStarted.Register(() => Console.WriteLine("Application started. Press Ctrl+C to shut down."));
 app.Run();
