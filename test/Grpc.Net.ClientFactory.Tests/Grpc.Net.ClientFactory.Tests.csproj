@@ -29,6 +29,7 @@
     <PackageReference Include="Google.Protobuf" />
     <PackageReference Include="Grpc.Tools" PrivateAssets="All" />
     <PackageReference Include="Microsoft.Extensions.Logging.Testing" />
+    <PackageReference Include="Microsoft.Extensions.Http" />
   </ItemGroup>
 
   <ItemGroup Condition="'$(TargetFramework)'=='net462'">

@@ -41,13 +41,11 @@
     <PackageReference Include="Google.Protobuf" />
     <PackageReference Include="Grpc.Tools" PrivateAssets="All" />
     <PackageReference Include="Microsoft.Extensions.Logging.Testing" />
-    <PackageReference Include="Microsoft.Extensions.Logging" VersionOverride="5.0.0" />
+    <PackageReference Include="Microsoft.Extensions.Logging" />
   </ItemGroup>
   
   <ItemGroup Condition="'$(TargetFramework)'=='net462'">
     <Reference Include="System.Net.Http" />
-    
-    <PackageReference Include="Microsoft.Bcl.AsyncInterfaces" />
   </ItemGroup>
 
 </Project>

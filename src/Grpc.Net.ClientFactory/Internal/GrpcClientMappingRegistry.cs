@@ -1,4 +1,4 @@
-﻿#region Copyright notice and license
+#region Copyright notice and license
 
 // Copyright 2019 The gRPC Authors
 //
@@ -15,7 +15,6 @@
 // limitations under the License.
 
 #endregion
-
 
 namespace Grpc.Net.ClientFactory.Internal;
 
