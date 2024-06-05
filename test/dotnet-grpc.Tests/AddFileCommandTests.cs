@@ -1,4 +1,4 @@
-﻿#region Copyright notice and license
+#region Copyright notice and license
 
 // Copyright 2019 The gRPC Authors
 //
@@ -44,7 +44,7 @@ public class AddFileCommandTests : TestBase
         var result = await parser.InvokeAsync($"add-file -p {tempDir} -s Server --access Internal -i ImportDir {Path.Combine("Proto", "*.proto")}", testConsole);
 
         // Assert
-        Assert.AreEqual(0, result, testConsole.Error.ToString());
+        Assert.AreEqual(0, result, testConsole.Error.ToString()!);
 
         var project = ProjectCollection.GlobalProjectCollection.LoadedProjects.Single(p => p.DirectoryPath == tempDir);
         project.ReevaluateIfNecessary();
@@ -52,7 +52,6 @@ public class AddFileCommandTests : TestBase
         var packageRefs = project.GetItems(CommandBase.PackageReferenceElement);
         Assert.AreEqual(1, packageRefs.Count);
         Assert.NotNull(packageRefs.SingleOrDefault(r => r.UnevaluatedInclude == "Grpc.AspNetCore" && !r.HasMetadata(CommandBase.PrivateAssetsElement)));
-
 
         var protoRefs = project.GetItems(CommandBase.ProtobufElement);
         Assert.AreEqual(2, protoRefs.Count);

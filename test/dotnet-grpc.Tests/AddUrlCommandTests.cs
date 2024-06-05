@@ -1,4 +1,4 @@
-﻿#region Copyright notice and license
+#region Copyright notice and license
 
 // Copyright 2019 The gRPC Authors
 //
@@ -46,7 +46,7 @@ public class AddUrlCommandTests : TestBase
         var result = await parser.InvokeAsync($"add-url -p {tempDir} -s Server --access Internal -i ImportDir -o {Path.Combine("Proto", "c.proto")} {SourceUrl}", testConsole);
 
         // Assert
-        Assert.AreEqual(0, result, testConsole.Error.ToString());
+        Assert.AreEqual(0, result, testConsole.Error.ToString()!);
 
         var project = ProjectCollection.GlobalProjectCollection.LoadedProjects.Single(p => p.DirectoryPath == tempDir);
         project.ReevaluateIfNecessary();
