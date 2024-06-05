@@ -61,13 +61,13 @@ public class DefaultGrpcClientFactoryTests
     public void CreateClient_Default_PrimaryHandlerIsSocketsHttpHandler()
     {
         // Arrange
-        SocketsHttpHandler? socketsHttpHandler = null;
+        HttpMessageHandler? clientPrimaryHandler = null;
         var services = new ServiceCollection();
         services
             .AddGrpcClient<TestGreeterClient>(o => o.Address = new Uri("http://localhost"))
             .ConfigurePrimaryHttpMessageHandler((primaryHandler, _) =>
             {
-                socketsHttpHandler = (SocketsHttpHandler)primaryHandler;
+                clientPrimaryHandler = primaryHandler;
             });
 
         var serviceProvider = services.BuildServiceProvider(validateScopes: true);
@@ -78,8 +78,9 @@ public class DefaultGrpcClientFactoryTests
         var client = clientFactory.CreateClient<TestGreeterClient>(nameof(TestGreeterClient));
 
         // Assert
-        Assert.NotNull(socketsHttpHandler);
-        Assert.IsTrue(socketsHttpHandler!.EnableMultipleHttp2Connections);
+        Assert.NotNull(clientPrimaryHandler);
+        Assert.IsInstanceOf<SocketsHttpHandler>(clientPrimaryHandler);
+        Assert.IsTrue(((SocketsHttpHandler)clientPrimaryHandler!).EnableMultipleHttp2Connections);
     }
 #endif
 
