@@ -1,4 +1,4 @@
-﻿#region Copyright notice and license
+#region Copyright notice and license
 
 // Copyright 2019 The gRPC Authors
 //
@@ -66,6 +66,35 @@ public class UnaryTests : FunctionalTestBase
 
         Assert.AreEqual(StatusCode.Internal, call.GetStatus().StatusCode);
         StringAssert.StartsWith("Failed to deserialize response message.", call.GetStatus().Detail);
+    }
+
+    [Test]
+    public async Task WriteResponseHeadersAsync_HeadersSentEarly()
+    {
+        var tcs = new TaskCompletionSource<HelloReply>(TaskCreationOptions.RunContinuationsAsynchronously);
+
+        async Task<HelloReply> UnaryThrowError(HelloRequest request, ServerCallContext context)
+        {
+            await context.WriteResponseHeadersAsync(new Metadata
+            {
+                new Metadata.Entry("key", "value")
+            });
+
+            return await tcs.Task;
+        }
+
+        // Arrange
+        var method = Fixture.DynamicGrpc.AddUnaryMethod<HelloRequest, HelloReply>(UnaryThrowError);
+        var channel = CreateChannel();
+        var client = TestClientFactory.Create(channel, method);
+
+        // Act
+        var call = client.UnaryCall(new HelloRequest());
+
+        // Assert
+        var headers = await call.ResponseHeadersAsync.DefaultTimeout();
+        Assert.AreEqual("value", headers.GetValue("key"));
+        Assert.IsFalse(call.ResponseAsync.IsCompleted);
     }
 
     [TestCase("fr", "fr")]
