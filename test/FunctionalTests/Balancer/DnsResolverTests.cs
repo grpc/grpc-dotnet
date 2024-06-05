@@ -293,7 +293,7 @@ public class DnsResolverTests : FunctionalTestBase
         tcs = new TaskCompletionSource<ResolverResult>(TaskCreationOptions.RunContinuationsAsynchronously);
         dnsResolver.Refresh();
 
-        Logger.LogInformation("Dispose resolver while refresh is in progress.");
+        Logger.LogInformation("Dispose resolver while refresh is in progress. The refresh should be waiting for the min interval to complete.");
         dnsResolver.Dispose();
 
         result = await tcs.Task.DefaultTimeout();
