@@ -275,7 +275,7 @@ public class DnsResolverTests : FunctionalTestBase
         var dnsResolver = CreateDnsResolver(new Uri("dns:///localhost"));
         dnsResolver.Start(r =>
         {
-            tcs.SetResult(r);
+            tcs.TrySetResult(r);
         });
 
         // Act
@@ -286,13 +286,19 @@ public class DnsResolverTests : FunctionalTestBase
         Assert.Greater(result.Addresses!.Count, 0);
 
         // Wait for the internal resolve task to be completed before triggering refresh again
+        Logger.LogInformation("Wait for DNS resolver resolve task to complete.");
         await dnsResolver._resolveTask.DefaultTimeout();
+
+        Logger.LogInformation("Recreate TCS and refresh resolver again.");
         tcs = new TaskCompletionSource<ResolverResult>(TaskCreationOptions.RunContinuationsAsynchronously);
         dnsResolver.Refresh();
 
+        Logger.LogInformation("Dispose resolver while refresh is in progress. The refresh should be waiting for the min interval to complete.");
         dnsResolver.Dispose();
 
         result = await tcs.Task.DefaultTimeout();
+
+        Logger.LogInformation("Received result from disposing resolver.");
         Assert.AreEqual(StatusCode.Unavailable, result.Status.StatusCode);
         Assert.AreEqual("Error getting DNS hosts for address 'localhost'. TaskCanceledException: A task was canceled.", result.Status.Detail);
         Assert.AreEqual("A task was canceled.", result.Status.DebugException!.Message);
