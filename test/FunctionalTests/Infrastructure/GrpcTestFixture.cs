@@ -16,12 +16,60 @@
 
 #endregion
 
+using System.Globalization;
+using System.Net;
 using System.Net.Sockets;
 using Microsoft.AspNetCore.Hosting;
+using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Server.Kestrel;
 using Microsoft.AspNetCore.Server.Kestrel.Core;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace Grpc.AspNetCore.FunctionalTests.Infrastructure;
+
+public sealed record EndpointInfo(string Address, IPEndPoint EndPoint, bool isHttps);
+
+public abstract class EndpointInfoContainerBase
+{
+    public abstract string Address { get; }
+}
+
+public sealed class SocketsEndpointInfoContainer(string address) : EndpointInfoContainerBase
+{
+    public override string Address => address;
+}
+
+public sealed class IPEndpointInfoContainer(Func<EndpointInfo> accessor) : EndpointInfoContainerBase
+{
+    private readonly Func<EndpointInfo> _accessor = accessor;
+
+    public override string Address
+    {
+        get
+        {
+            var accessor = _accessor ?? throw new InvalidOperationException("WebApplication not started yet.");
+
+            return accessor().Address;
+        }
+    }
+
+    public static IPEndpointInfoContainer Create(ListenOptions listenOptions, bool isHttps)
+    {
+        var scheme = isHttps ? "https" : "http";
+        var address = BindingAddress.Parse($"{scheme}://127.0.0.1");
+
+        // The endpoint on listen options is updated from dynamic port placeholder (0) to a real port
+        // when the server starts up. The func keeps a reference to the listen options and uses them to
+        // create the address when the test requests it.
+        return new IPEndpointInfoContainer(() =>
+        {
+            var endpoint = listenOptions.IPEndPoint!;
+            var resolvedAddress = address.Scheme.ToLowerInvariant() + Uri.SchemeDelimiter + address.Host.ToLowerInvariant() + ":" + endpoint.Port.ToString(CultureInfo.InvariantCulture);
+            return new EndpointInfo(resolvedAddress, endpoint, isHttps);
+        });
+    }
+}
 
 public class GrpcTestFixture<TStartup> : IDisposable where TStartup : class
 {
@@ -30,8 +78,9 @@ public class GrpcTestFixture<TStartup> : IDisposable where TStartup : class
 
     public GrpcTestFixture(
         Action<IServiceCollection>? initialConfigureServices = null,
-        Action<KestrelServerOptions, IDictionary<TestServerEndpointName, string>>? configureKestrel = null,
-        TestServerEndpointName? defaultClientEndpointName = null)
+        Action<WebHostBuilderContext, KestrelServerOptions, IDictionary<TestServerEndpointName, EndpointInfoContainerBase>>? configureKestrel = null,
+        TestServerEndpointName? defaultClientEndpointName = null,
+        Action<IConfiguration>? addConfiguration = null)
     {
         Action<IServiceCollection> configureServices = services =>
         {
@@ -45,44 +94,51 @@ public class GrpcTestFixture<TStartup> : IDisposable where TStartup : class
                 initialConfigureServices?.Invoke(services);
                 configureServices(services);
             },
-            (options, urls) =>
+            (context, options, urls) =>
             {
+                if (addConfiguration != null)
+                {
+                    addConfiguration(context.Configuration);
+                }
+
                 if (configureKestrel != null)
                 {
-                    configureKestrel(options, urls);
+                    configureKestrel(context, options, urls);
                     return;
                 }
 
-                urls[TestServerEndpointName.Http2] = "http://127.0.0.1:50050";
-                options.ListenLocalhost(50050, listenOptions =>
+                options.Listen(IPAddress.Loopback, 0, listenOptions =>
                 {
                     listenOptions.Protocols = HttpProtocols.Http2;
+                    urls[TestServerEndpointName.Http2] = IPEndpointInfoContainer.Create(listenOptions, isHttps: false);
                 });
 
-                urls[TestServerEndpointName.Http1] = "http://127.0.0.1:50040";
-                options.ListenLocalhost(50040, listenOptions =>
+                options.Listen(IPAddress.Loopback, 0, listenOptions =>
                 {
                     listenOptions.Protocols = HttpProtocols.Http1;
+                    urls[TestServerEndpointName.Http1] = IPEndpointInfoContainer.Create(listenOptions, isHttps: false);
                 });
 
-                urls[TestServerEndpointName.Http2WithTls] = "https://127.0.0.1:50030";
-                options.ListenLocalhost(50030, listenOptions =>
+                options.Listen(IPAddress.Loopback, 0, listenOptions =>
                 {
                     listenOptions.Protocols = HttpProtocols.Http2;
 
                     var basePath = Path.GetDirectoryName(typeof(InProcessTestServer).Assembly.Location);
                     var certPath = Path.Combine(basePath!, "server1.pfx");
                     listenOptions.UseHttps(certPath, "1111");
+
+                    urls[TestServerEndpointName.Http2WithTls] = IPEndpointInfoContainer.Create(listenOptions, isHttps: true);
                 });
 
-                urls[TestServerEndpointName.Http1WithTls] = "https://127.0.0.1:50020";
-                options.ListenLocalhost(50020, listenOptions =>
+                options.Listen(IPAddress.Loopback, 0, listenOptions =>
                 {
                     listenOptions.Protocols = HttpProtocols.Http1;
 
                     var basePath = Path.GetDirectoryName(typeof(InProcessTestServer).Assembly.Location);
                     var certPath = Path.Combine(basePath!, "server1.pfx");
                     listenOptions.UseHttps(certPath, "1111");
+
+                    urls[TestServerEndpointName.Http1WithTls] = IPEndpointInfoContainer.Create(listenOptions, isHttps: true);
                 });
 
 #if NET5_0_OR_GREATER
@@ -91,18 +147,19 @@ public class GrpcTestFixture<TStartup> : IDisposable where TStartup : class
                     File.Delete(_socketPath);
                 }
 
-                urls[TestServerEndpointName.UnixDomainSocket] = _socketPath;
                 options.ListenUnixSocket(_socketPath, listenOptions =>
                 {
                     listenOptions.Protocols = HttpProtocols.Http2;
+
+                    urls[TestServerEndpointName.UnixDomainSocket] = new SocketsEndpointInfoContainer(_socketPath);
                 });
 #endif
 
 #if NET6_0_OR_GREATER
                 if (RequireHttp3Attribute.IsSupported(out _))
                 {
-                    urls[TestServerEndpointName.Http3WithTls] = "https://127.0.0.1:55019";
-                    options.ListenLocalhost(55019, listenOptions =>
+                    var http3Port = Convert.ToInt32(context.Configuration["Http3Port"], CultureInfo.InvariantCulture);
+                    options.Listen(IPAddress.Loopback, http3Port, listenOptions =>
                     {
 #pragma warning disable CA2252 // This API requires opting into preview features
                         // Support HTTP/2 for connectivity health in load balancing to work.
@@ -112,6 +169,8 @@ public class GrpcTestFixture<TStartup> : IDisposable where TStartup : class
                         var basePath = Path.GetDirectoryName(typeof(InProcessTestServer).Assembly.Location);
                         var certPath = Path.Combine(basePath!, "server1.pfx");
                         listenOptions.UseHttps(certPath, "1111");
+
+                        urls[TestServerEndpointName.Http3WithTls] = IPEndpointInfoContainer.Create(listenOptions, isHttps: true);
                     });
                 }
 #endif
@@ -133,18 +192,18 @@ public class GrpcTestFixture<TStartup> : IDisposable where TStartup : class
     public HttpMessageHandler Handler { get; }
     public HttpClient Client { get; }
 
-        public HttpClient CreateClient(TestServerEndpointName? endpointName = null, DelegatingHandler? messageHandler = null, Action<SocketsHttpHandler>? configureHandler = null)
+    public HttpClient CreateClient(TestServerEndpointName? endpointName = null, DelegatingHandler? messageHandler = null, Action<SocketsHttpHandler>? configureHandler = null)
     {
-            return CreateHttpCore(endpointName, messageHandler, configureHandler).client;
+        return CreateHttpCore(endpointName, messageHandler, configureHandler).client;
     }
 
-        public (HttpMessageHandler handler, Uri address) CreateHandler(TestServerEndpointName? endpointName = null, DelegatingHandler? messageHandler = null, Action<SocketsHttpHandler>? configureHandler = null)
+    public (HttpMessageHandler handler, Uri address) CreateHandler(TestServerEndpointName? endpointName = null, DelegatingHandler? messageHandler = null, Action<SocketsHttpHandler>? configureHandler = null)
     {
-            var result = CreateHttpCore(endpointName, messageHandler, configureHandler);
+        var result = CreateHttpCore(endpointName, messageHandler, configureHandler);
         return (result.handler, result.client.BaseAddress!);
     }
 
-        private (HttpClient client, HttpMessageHandler handler) CreateHttpCore(TestServerEndpointName? endpointName = null, DelegatingHandler? messageHandler = null, Action<SocketsHttpHandler>? configureHandler = null)
+    private (HttpClient client, HttpMessageHandler handler) CreateHttpCore(TestServerEndpointName? endpointName = null, DelegatingHandler? messageHandler = null, Action<SocketsHttpHandler>? configureHandler = null)
     {
 #if HTTP3_TESTING
         endpointName ??= TestServerEndpointName.Http3WithTls;
@@ -158,7 +217,7 @@ public class GrpcTestFixture<TStartup> : IDisposable where TStartup : class
             RemoteCertificateValidationCallback = (_, __, ___, ____) => true
         };
 
-            configureHandler?.Invoke(socketsHttpHandler);
+        configureHandler?.Invoke(socketsHttpHandler);
 
 #if NET5_0_OR_GREATER
         if (endpointName == TestServerEndpointName.UnixDomainSocket)
