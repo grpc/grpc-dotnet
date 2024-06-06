@@ -142,6 +142,8 @@ public class PickFirstBalancerTests : FunctionalTestBase
         // Assert
         Assert.AreEqual("Balancer", reply.Message);
         Assert.AreEqual("127.0.0.1:50051", host);
+
+        throw new Exception("Error!");
     }
 
     [Test]
