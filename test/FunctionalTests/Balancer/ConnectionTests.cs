@@ -75,7 +75,7 @@ public class ConnectionTests : FunctionalTestBase
         }
 
         // Arrange
-        var endpoint = BalancerHelpers.CreateGrpcEndpoint<HelloRequest, HelloReply>(50051, UnaryMethod, nameof(UnaryMethod));
+        var endpoint = BalancerHelpers.CreateGrpcEndpoint<HelloRequest, HelloReply>(UnaryMethod, nameof(UnaryMethod));
         endpoint.Dispose();
 
         var connectTcs = new TaskCompletionSource<object?>(TaskCreationOptions.RunContinuationsAsynchronously);
@@ -123,7 +123,7 @@ public class ConnectionTests : FunctionalTestBase
         }
 
         // Arrange
-        using var endpoint = BalancerHelpers.CreateGrpcEndpoint<HelloRequest, HelloReply>(50051, UnaryMethod, nameof(UnaryMethod));
+        using var endpoint = BalancerHelpers.CreateGrpcEndpoint<HelloRequest, HelloReply>(UnaryMethod, nameof(UnaryMethod));
 
         // Dispose endpoint so that channel pauses while attempting to connect to the port.
         endpoint.Dispose();
@@ -160,7 +160,7 @@ public class ConnectionTests : FunctionalTestBase
         }
 
         // Arrange
-        using var endpoint = BalancerHelpers.CreateGrpcEndpoint<HelloRequest, HelloReply>(50051, UnaryMethod, nameof(UnaryMethod), loggerFactory: LoggerFactory);
+        using var endpoint = BalancerHelpers.CreateGrpcEndpoint<HelloRequest, HelloReply>(UnaryMethod, nameof(UnaryMethod), loggerFactory: LoggerFactory);
 
         var connectionIdleTimeout = TimeSpan.FromMilliseconds(milliseconds);
         var channel = await BalancerHelpers.CreateChannel(
@@ -198,7 +198,7 @@ public class ConnectionTests : FunctionalTestBase
         }
 
         // Arrange
-        using var endpoint = BalancerHelpers.CreateGrpcEndpoint<HelloRequest, HelloReply>(50051, UnaryMethod, nameof(UnaryMethod), loggerFactory: LoggerFactory);
+        using var endpoint = BalancerHelpers.CreateGrpcEndpoint<HelloRequest, HelloReply>(UnaryMethod, nameof(UnaryMethod), loggerFactory: LoggerFactory);
 
         var channel = await BalancerHelpers.CreateChannel(
             LoggerFactory,
@@ -237,7 +237,6 @@ public class ConnectionTests : FunctionalTestBase
 
         // Arrange
         using var endpoint = BalancerHelpers.CreateGrpcEndpoint<HelloRequest, HelloReply>(
-            50051,
             UnaryMethod,
             nameof(UnaryMethod),
             loggerFactory: LoggerFactory,
@@ -290,8 +289,8 @@ public class ConnectionTests : FunctionalTestBase
         }
 
         // Arrange
-        using var endpoint1 = BalancerHelpers.CreateGrpcEndpoint<HelloRequest, HelloReply>(50051, UnaryMethod, nameof(UnaryMethod), HttpProtocols.Http1AndHttp2, isHttps: true);
-        using var endpoint2 = BalancerHelpers.CreateGrpcEndpoint<HelloRequest, HelloReply>(50052, UnaryMethod, nameof(UnaryMethod), HttpProtocols.Http1AndHttp2, isHttps: true);
+        using var endpoint1 = BalancerHelpers.CreateGrpcEndpoint<HelloRequest, HelloReply>(UnaryMethod, nameof(UnaryMethod), HttpProtocols.Http1AndHttp2, isHttps: true);
+        using var endpoint2 = BalancerHelpers.CreateGrpcEndpoint<HelloRequest, HelloReply>(UnaryMethod, nameof(UnaryMethod), HttpProtocols.Http1AndHttp2, isHttps: true);
 
         var services = new ServiceCollection();
         services.AddSingleton<ResolverFactory>(new StaticResolverFactory(_ => new[]
@@ -349,7 +348,7 @@ public class ConnectionTests : FunctionalTestBase
         }, "Wait for connections to start.");
         foreach (var t in activeStreams)
         {
-            Assert.AreEqual(new DnsEndPoint("127.0.0.1", 50051), t.EndPoint);
+            Assert.AreEqual(new DnsEndPoint("127.0.0.1", endpoint1.Address.Port), t.EndPoint);
         }
 
         // Act
@@ -370,7 +369,7 @@ public class ConnectionTests : FunctionalTestBase
             activeStreams = transport.GetActiveStreams();
             return activeStreams.Count == 11;
         }, "Wait for connections to start.");
-        Assert.AreEqual(new DnsEndPoint("127.0.0.1", 50051), activeStreams[activeStreams.Count - 1].EndPoint);
+        Assert.AreEqual(new DnsEndPoint("127.0.0.1", endpoint1.Address.Port), activeStreams[activeStreams.Count - 1].EndPoint);
 
         tcs.SetResult(null);
 
@@ -406,11 +405,11 @@ public class ConnectionTests : FunctionalTestBase
         Logger.LogInformation($"Next call goes to fallback address.");
         var reply = await client.UnaryCall(new HelloRequest { Name = "Balancer" }).ResponseAsync.TimeoutAfter(TimeSpan.FromSeconds(20));
         Assert.AreEqual("Balancer", reply.Message);
-        Assert.AreEqual("127.0.0.1:50052", host);
+        Assert.AreEqual($"127.0.0.1:{endpoint2.Address.Port}", host);
 
         activeStreams = transport.GetActiveStreams();
         Assert.AreEqual(1, activeStreams.Count);
-        Assert.AreEqual(new DnsEndPoint("127.0.0.1", 50052), activeStreams[0].EndPoint);
+        Assert.AreEqual(new DnsEndPoint("127.0.0.1", endpoint2.Address.Port), activeStreams[0].EndPoint);
     }
 
 #if NET7_0_OR_GREATER
@@ -436,8 +435,8 @@ public class ConnectionTests : FunctionalTestBase
         var cert = new X509Certificate2(certPath, "11111");
 
         // Arrange
-        using var endpoint1 = BalancerHelpers.CreateGrpcEndpoint<HelloRequest, HelloReply>(50051, UnaryMethod, nameof(UnaryMethod), HttpProtocols.Http1AndHttp2, isHttps: true, certificate: cert);
-        using var endpoint2 = BalancerHelpers.CreateGrpcEndpoint<HelloRequest, HelloReply>(50052, UnaryMethod, nameof(UnaryMethod), HttpProtocols.Http1AndHttp2, isHttps: true, certificate: cert);
+        using var endpoint1 = BalancerHelpers.CreateGrpcEndpoint<HelloRequest, HelloReply>(UnaryMethod, nameof(UnaryMethod), HttpProtocols.Http1AndHttp2, isHttps: true, certificate: cert);
+        using var endpoint2 = BalancerHelpers.CreateGrpcEndpoint<HelloRequest, HelloReply>(UnaryMethod, nameof(UnaryMethod), HttpProtocols.Http1AndHttp2, isHttps: true, certificate: cert);
 
         var services = new ServiceCollection();
         services.AddSingleton((ResolverFactory)new StaticResolverFactory(_ => (new[]
@@ -491,13 +490,13 @@ public class ConnectionTests : FunctionalTestBase
             Assert.AreEqual("localhost", host);
             Assert.AreEqual(SslPolicyErrors.None, callbackPolicyErrors);
             Assert.AreEqual(IPAddress.Parse("127.0.0.1"), ipAddress);
-            Assert.IsTrue(port == 50051 || port == 50052);
+            Assert.IsTrue(port == endpoint1.Address.Port || port == endpoint2.Address.Port);
 
             ports.Add(port!.Value);
         }
 
-        Assert.IsTrue(ports.Contains(50051), "Has 50051");
-        Assert.IsTrue(ports.Contains(50052), "Has 50052");
+        Assert.IsTrue(ports.Contains(endpoint1.Address.Port), $"Has {endpoint1.Address.Port}");
+        Assert.IsTrue(ports.Contains(endpoint2.Address.Port), $"Has {endpoint2.Address.Port}");
 
         static BalancerAddress CreateAddress(Uri address, string hostOverride)
         {
@@ -523,8 +522,8 @@ public class ConnectionTests : FunctionalTestBase
             metadata.Add("Authorization", $"Bearer TEST");
             return Task.CompletedTask;
         });
-        using var endpoint1 = BalancerHelpers.CreateGrpcEndpoint<HelloRequest, HelloReply>(50051, UnaryMethod, nameof(UnaryMethod), HttpProtocols.Http1AndHttp2, isHttps: true);
-        using var endpoint2 = BalancerHelpers.CreateGrpcEndpoint<HelloRequest, HelloReply>(50052, UnaryMethod, nameof(UnaryMethod), HttpProtocols.Http1AndHttp2, isHttps: true);
+        using var endpoint1 = BalancerHelpers.CreateGrpcEndpoint<HelloRequest, HelloReply>(UnaryMethod, nameof(UnaryMethod), HttpProtocols.Http1AndHttp2, isHttps: true);
+        using var endpoint2 = BalancerHelpers.CreateGrpcEndpoint<HelloRequest, HelloReply>(UnaryMethod, nameof(UnaryMethod), HttpProtocols.Http1AndHttp2, isHttps: true);
 
         var services = new ServiceCollection();
         services.AddSingleton<ResolverFactory>(new StaticResolverFactory(_ => new[]
@@ -706,7 +705,7 @@ public class ConnectionTests : FunctionalTestBase
         }
 
         // Arrange
-        using var endpoint = BalancerHelpers.CreateGrpcEndpoint<HelloRequest, HelloReply>(50051, UnaryMethod, nameof(UnaryMethod));
+        using var endpoint = BalancerHelpers.CreateGrpcEndpoint<HelloRequest, HelloReply>(UnaryMethod, nameof(UnaryMethod));
 
         var channel = await BalancerHelpers.CreateChannel(
             LoggerFactory,

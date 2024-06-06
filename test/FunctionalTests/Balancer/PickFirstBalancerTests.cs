@@ -37,6 +37,7 @@ using Grpc.Net.Client.Balancer.Internal;
 using Grpc.Net.Client.Configuration;
 using Grpc.Net.Client.Web;
 using Grpc.Tests.Shared;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Server.Kestrel.Core;
 using Microsoft.Extensions.Logging;
 using NUnit.Framework;
@@ -78,7 +79,7 @@ public class PickFirstBalancerTests : FunctionalTestBase
         }
 
         // Arrange
-        using var endpoint = BalancerHelpers.CreateGrpcEndpoint<HelloRequest, HelloReply>(50051, UnaryMethod, nameof(UnaryMethod));
+        using var endpoint = BalancerHelpers.CreateGrpcEndpoint<HelloRequest, HelloReply>(UnaryMethod, nameof(UnaryMethod));
 
         var connectCount = 0;
         var channel = await BalancerHelpers.CreateChannel(LoggerFactory, new PickFirstConfig(), new[] { endpoint.Address }, connectTimeout: TimeSpan.FromMilliseconds(200), socketConnect:
@@ -117,7 +118,7 @@ public class PickFirstBalancerTests : FunctionalTestBase
         }
 
         // Arrange
-        using var endpoint = BalancerHelpers.CreateGrpcEndpoint<HelloRequest, HelloReply>(50051, UnaryMethod, nameof(UnaryMethod));
+        using var endpoint = BalancerHelpers.CreateGrpcEndpoint<HelloRequest, HelloReply>(UnaryMethod, nameof(UnaryMethod));
 
         var channel = await BalancerHelpers.CreateChannel(LoggerFactory, new PickFirstConfig(), new[] { endpoint.Address }).DefaultTimeout();
         var client = TestClientFactory.Create(channel, endpoint.Method);
@@ -134,14 +135,14 @@ public class PickFirstBalancerTests : FunctionalTestBase
             new CallOptions(cancellationToken: cts.Token)).ResponseAsync).DefaultTimeout();
 
         // Restart endpoint.
-        using var endpoint1 = BalancerHelpers.CreateGrpcEndpoint<HelloRequest, HelloReply>(50051, UnaryMethod, nameof(UnaryMethod));
+        using var endpoint1 = BalancerHelpers.CreateGrpcEndpoint<HelloRequest, HelloReply>(UnaryMethod, nameof(UnaryMethod), explicitPort: endpoint.Address.Port);
 
         // Act
         var reply = await client.UnaryCall(new HelloRequest { Name = "Balancer" }, new CallOptions().WithWaitForReady(true)).ResponseAsync.DefaultTimeout();
 
         // Assert
         Assert.AreEqual("Balancer", reply.Message);
-        Assert.AreEqual("127.0.0.1:50051", host);
+        Assert.AreEqual($"127.0.0.1:{endpoint1.Address.Port}", host);
     }
 
     [Test]
@@ -161,7 +162,7 @@ public class PickFirstBalancerTests : FunctionalTestBase
         }
 
         // Arrange
-        using var endpoint = BalancerHelpers.CreateGrpcEndpoint<HelloRequest, HelloReply>(50051, UnaryMethod, nameof(UnaryMethod));
+        using var endpoint = BalancerHelpers.CreateGrpcEndpoint<HelloRequest, HelloReply>(UnaryMethod, nameof(UnaryMethod));
 
         var channel = await BalancerHelpers.CreateChannel(LoggerFactory, new PickFirstConfig(), new[] { endpoint.Address }).DefaultTimeout();
 
@@ -172,7 +173,7 @@ public class PickFirstBalancerTests : FunctionalTestBase
 
         // Assert
         Assert.AreEqual("Balancer", reply.Message);
-        Assert.AreEqual("127.0.0.1:50051", host);
+        Assert.AreEqual($"127.0.0.1:{endpoint.Address.Port}", host);
 
         Logger.LogInformation("Ending " + endpoint.Address);
         endpoint.Dispose();
@@ -181,12 +182,12 @@ public class PickFirstBalancerTests : FunctionalTestBase
         await BalancerWaitHelpers.WaitForChannelStateAsync(Logger, channel, ConnectivityState.Idle).DefaultTimeout();
 
         Logger.LogInformation("Restarting");
-        using var endpointNew = BalancerHelpers.CreateGrpcEndpoint<HelloRequest, HelloReply>(50051, UnaryMethod, nameof(UnaryMethod));
+        using var endpointNew = BalancerHelpers.CreateGrpcEndpoint<HelloRequest, HelloReply>(UnaryMethod, nameof(UnaryMethod), explicitPort: endpoint.Address.Port);
 
         reply = await client.UnaryCall(new HelloRequest { Name = "Balancer" }, new CallOptions().WithWaitForReady()).ResponseAsync.DefaultTimeout();
 
         Assert.AreEqual("Balancer", reply.Message);
-        Assert.AreEqual("127.0.0.1:50051", host);
+        Assert.AreEqual($"127.0.0.1:{endpointNew.Address.Port}", host);
     }
 
     [Test]
@@ -206,7 +207,7 @@ public class PickFirstBalancerTests : FunctionalTestBase
         }
 
         // Arrange
-        using var endpoint = BalancerHelpers.CreateGrpcEndpoint<HelloRequest, HelloReply>(50051, UnaryMethod, nameof(UnaryMethod));
+        using var endpoint = BalancerHelpers.CreateGrpcEndpoint<HelloRequest, HelloReply>(UnaryMethod, nameof(UnaryMethod));
 
         var channel = await BalancerHelpers.CreateChannel(LoggerFactory, new PickFirstConfig(), new[] { endpoint.Address }).DefaultTimeout();
 
@@ -217,7 +218,7 @@ public class PickFirstBalancerTests : FunctionalTestBase
 
         // Assert
         Assert.AreEqual("Balancer", reply.Message);
-        Assert.AreEqual("127.0.0.1:50051", host);
+        Assert.AreEqual($"127.0.0.1:{endpoint.Address.Port}", host);
 
         Logger.LogInformation("Ending " + endpoint.Address);
         endpoint.Dispose();
@@ -266,8 +267,8 @@ public class PickFirstBalancerTests : FunctionalTestBase
         }
 
         // Arrange
-        using var endpoint1 = BalancerHelpers.CreateGrpcEndpoint<HelloRequest, HelloReply>(50051, UnaryMethod, nameof(UnaryMethod));
-        using var endpoint2 = BalancerHelpers.CreateGrpcEndpoint<HelloRequest, HelloReply>(50052, UnaryMethod, nameof(UnaryMethod));
+        using var endpoint1 = BalancerHelpers.CreateGrpcEndpoint<HelloRequest, HelloReply>(UnaryMethod, nameof(UnaryMethod));
+        using var endpoint2 = BalancerHelpers.CreateGrpcEndpoint<HelloRequest, HelloReply>(UnaryMethod, nameof(UnaryMethod));
 
         var channel = await BalancerHelpers.CreateChannel(LoggerFactory, new PickFirstConfig(), new[] { endpoint1.Address, endpoint2.Address }).DefaultTimeout();
 
@@ -278,7 +279,7 @@ public class PickFirstBalancerTests : FunctionalTestBase
 
         // Assert
         Assert.AreEqual("Balancer", reply.Message);
-        Assert.AreEqual("127.0.0.1:50051", host);
+        Assert.AreEqual($"127.0.0.1:{endpoint1.Address.Port}", host);
 
         Logger.LogInformation("Ending " + endpoint1.Address);
         endpoint1.Dispose();
@@ -301,7 +302,7 @@ public class PickFirstBalancerTests : FunctionalTestBase
 
         reply = await client.UnaryCall(new HelloRequest { Name = "Balancer" }).ResponseAsync.DefaultTimeout();
         Assert.AreEqual("Balancer", reply.Message);
-        Assert.AreEqual("127.0.0.1:50052", host);
+        Assert.AreEqual($"127.0.0.1:{endpoint2.Address.Port}", host);
     }
 
     [Test]
@@ -321,8 +322,8 @@ public class PickFirstBalancerTests : FunctionalTestBase
         }
 
         // Arrange
-        using var endpoint1 = BalancerHelpers.CreateGrpcEndpoint<HelloRequest, HelloReply>(50051, UnaryMethod, nameof(UnaryMethod));
-        using var endpoint2 = BalancerHelpers.CreateGrpcEndpoint<HelloRequest, HelloReply>(50052, UnaryMethod, nameof(UnaryMethod));
+        using var endpoint1 = BalancerHelpers.CreateGrpcEndpoint<HelloRequest, HelloReply>(UnaryMethod, nameof(UnaryMethod));
+        using var endpoint2 = BalancerHelpers.CreateGrpcEndpoint<HelloRequest, HelloReply>(UnaryMethod, nameof(UnaryMethod));
 
         var socketsHttpHandler = new SocketsHttpHandler { PooledConnectionIdleTimeout = TimeSpan.FromSeconds(1) };
         var channel = await BalancerHelpers.CreateChannel(LoggerFactory, new PickFirstConfig(), new[] { endpoint1.Address, endpoint2.Address }, socketsHttpHandler).DefaultTimeout();
@@ -334,7 +335,7 @@ public class PickFirstBalancerTests : FunctionalTestBase
 
         // Assert
         Assert.AreEqual("Balancer", reply.Message);
-        Assert.AreEqual("127.0.0.1:50051", host);
+        Assert.AreEqual($"127.0.0.1:{endpoint1.Address.Port}", host);
         Assert.AreEqual(ConnectivityState.Ready, channel.State);
 
         // Wait for pooled connection to timeout and return to idle
@@ -342,7 +343,7 @@ public class PickFirstBalancerTests : FunctionalTestBase
 
         reply = await client.UnaryCall(new HelloRequest { Name = "Balancer" }).ResponseAsync.DefaultTimeout();
         Assert.AreEqual("Balancer", reply.Message);
-        Assert.AreEqual("127.0.0.1:50051", host);
+        Assert.AreEqual($"127.0.0.1:{endpoint1.Address.Port}", host);
     }
 
     [Test]
@@ -377,8 +378,8 @@ public class PickFirstBalancerTests : FunctionalTestBase
         }
 
         // Arrange
-        using var endpoint1 = BalancerHelpers.CreateGrpcEndpoint<HelloRequest, HelloReply>(50051, UnaryMethod, nameof(UnaryMethod));
-        using var endpoint2 = BalancerHelpers.CreateGrpcEndpoint<HelloRequest, HelloReply>(50052, UnaryMethod, nameof(UnaryMethod));
+        using var endpoint1 = BalancerHelpers.CreateGrpcEndpoint<HelloRequest, HelloReply>(UnaryMethod, nameof(UnaryMethod));
+        using var endpoint2 = BalancerHelpers.CreateGrpcEndpoint<HelloRequest, HelloReply>(UnaryMethod, nameof(UnaryMethod));
 
         var channel = await BalancerHelpers.CreateChannel(LoggerFactory, new PickFirstConfig(), new[] { endpoint1.Address, endpoint2.Address }).DefaultTimeout();
 
@@ -410,7 +411,7 @@ public class PickFirstBalancerTests : FunctionalTestBase
         Assert.GreaterOrEqual(activeStreams.Count, 2);
         foreach (var stream in activeStreams)
         {
-            Assert.AreEqual(new DnsEndPoint("127.0.0.1", 50051), stream.EndPoint);
+            Assert.AreEqual(new DnsEndPoint("127.0.0.1", endpoint1.Address.Port), stream.EndPoint);
         }
 
         tcs.SetResult(null);
@@ -430,11 +431,11 @@ public class PickFirstBalancerTests : FunctionalTestBase
 
         var reply = await client.UnaryCall(new HelloRequest { Name = "Balancer" }).ResponseAsync.DefaultTimeout();
         Assert.AreEqual("Balancer", reply.Message);
-        Assert.AreEqual("127.0.0.1:50052", host);
+        Assert.AreEqual($"127.0.0.1:{endpoint2.Address.Port}", host);
 
         activeStreams = transport.GetActiveStreams();
         Assert.AreEqual(1, activeStreams.Count);
-        Assert.AreEqual(new DnsEndPoint("127.0.0.1", 50052), activeStreams[0].EndPoint);
+        Assert.AreEqual(new DnsEndPoint("127.0.0.1", endpoint2.Address.Port), activeStreams[0].EndPoint);
     }
 
     [Test]
@@ -454,7 +455,7 @@ public class PickFirstBalancerTests : FunctionalTestBase
         }
 
         // Arrange
-        using var endpoint = BalancerHelpers.CreateGrpcEndpoint<HelloRequest, HelloReply>(50051, UnaryMethod, nameof(UnaryMethod));
+        using var endpoint = BalancerHelpers.CreateGrpcEndpoint<HelloRequest, HelloReply>(UnaryMethod, nameof(UnaryMethod));
         endpoint.Dispose();
 
         var channel = await BalancerHelpers.CreateChannel(LoggerFactory, new PickFirstConfig(), new[] { endpoint.Address }, connect: false).DefaultTimeout();
@@ -491,7 +492,7 @@ public class PickFirstBalancerTests : FunctionalTestBase
 
         // Arrange
         Logger.LogInformation("Starting server");
-        using var endpoint = BalancerHelpers.CreateGrpcEndpoint<HelloRequest, HelloReply>(50051, UnaryMethod, nameof(UnaryMethod));
+        using var endpoint = BalancerHelpers.CreateGrpcEndpoint<HelloRequest, HelloReply>(UnaryMethod, nameof(UnaryMethod));
 
         Logger.LogInformation("Creating clients");
         var socketsHttpHandler = new SocketsHttpHandler();
@@ -510,7 +511,7 @@ public class PickFirstBalancerTests : FunctionalTestBase
         Logger.LogInformation("Client waiting for replies");
         Assert.AreEqual("Balancer", (await reply1Task).Message);
         Assert.AreEqual("Balancer", (await reply2Task).Message);
-        Assert.AreEqual("127.0.0.1:50051", host);
+        Assert.AreEqual($"127.0.0.1:{endpoint.Address.Port}", host);
 
         Logger.LogInformation("Ending " + endpoint.Address);
         endpoint.Dispose();
@@ -520,14 +521,14 @@ public class PickFirstBalancerTests : FunctionalTestBase
             BalancerWaitHelpers.WaitForChannelStateAsync(Logger, channel2, ConnectivityState.Idle, channelId: 2)).DefaultTimeout();
 
         Logger.LogInformation("Restarting");
-        using var endpointNew = BalancerHelpers.CreateGrpcEndpoint<HelloRequest, HelloReply>(50051, UnaryMethod, nameof(UnaryMethod));
+        using var endpointNew = BalancerHelpers.CreateGrpcEndpoint<HelloRequest, HelloReply>(UnaryMethod, nameof(UnaryMethod), explicitPort: endpoint.Address.Port);
 
         reply1Task = client1.UnaryCall(new HelloRequest { Name = "Balancer" }, new CallOptions().WithWaitForReady()).ResponseAsync.DefaultTimeout();
         reply2Task = client2.UnaryCall(new HelloRequest { Name = "Balancer" }, new CallOptions().WithWaitForReady()).ResponseAsync.DefaultTimeout();
 
         Assert.AreEqual("Balancer", (await reply1Task).Message);
         Assert.AreEqual("Balancer", (await reply2Task).Message);
-        Assert.AreEqual("127.0.0.1:50051", host);
+        Assert.AreEqual($"127.0.0.1:{endpointNew.Address.Port}", host);
     }
 }
 #endif

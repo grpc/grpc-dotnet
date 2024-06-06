@@ -48,18 +48,18 @@ namespace Grpc.AspNetCore.FunctionalTests.Balancer;
 internal static class BalancerHelpers
 {
     public static EndpointContext<TRequest, TResponse> CreateGrpcEndpoint<TRequest, TResponse>(
-        int port,
         UnaryServerMethod<TRequest, TResponse> callHandler,
         string methodName,
         HttpProtocols? protocols = null,
         bool? isHttps = null,
         X509Certificate2? certificate = null,
         ILoggerFactory? loggerFactory = null,
-        Action<KestrelServerOptions>? configureServer = null)
+        Action<KestrelServerOptions>? configureServer = null,
+        int? explicitPort = null)
         where TRequest : class, IMessage, new()
         where TResponse : class, IMessage, new()
     {
-        var server = CreateServer(port, protocols, isHttps, certificate, loggerFactory, configureServer);
+        var server = CreateServer(protocols, isHttps, certificate, loggerFactory, configureServer, explicitPort);
         var method = server.DynamicGrpc.AddUnaryMethod(callHandler, methodName);
         var url = server.GetUrl(isHttps.GetValueOrDefault(false) ? TestServerEndpointName.Http2WithTls : TestServerEndpointName.Http2);
 
@@ -90,12 +90,12 @@ internal static class BalancerHelpers
     }
 
     public static GrpcTestFixture<Startup> CreateServer(
-        int port,
         HttpProtocols? protocols = null,
         bool? isHttps = null,
         X509Certificate2? certificate = null,
         ILoggerFactory? loggerFactory = null,
-        Action<KestrelServerOptions>? configureServer = null)
+        Action<KestrelServerOptions>? configureServer = null,
+        int? explicitPort = null)
     {
         var endpointName = isHttps.GetValueOrDefault(false) ? TestServerEndpointName.Http2WithTls : TestServerEndpointName.Http2;
 
@@ -107,14 +107,10 @@ internal static class BalancerHelpers
                     services.AddSingleton<ILoggerFactory>(loggerFactory);
                 }
             },
-            (options, urls) =>
+            (context, options, urls) =>
             {
                 configureServer?.Invoke(options);
-
-                urls[endpointName] = isHttps.GetValueOrDefault(false)
-                    ? $"https://127.0.0.1:{port}"
-                    : $"http://127.0.0.1:{port}";
-                options.ListenLocalhost(port, listenOptions =>
+                options.Listen(IPAddress.Loopback, explicitPort ?? 0, listenOptions =>
                 {
                     listenOptions.Protocols = protocols ?? HttpProtocols.Http2;
 
@@ -131,6 +127,8 @@ internal static class BalancerHelpers
                             listenOptions.UseHttps(certificate);
                         }
                     }
+
+                    urls[endpointName] = IPEndpointInfoContainer.Create(listenOptions, isHttps.GetValueOrDefault(false));
                 });
             },
             endpointName);

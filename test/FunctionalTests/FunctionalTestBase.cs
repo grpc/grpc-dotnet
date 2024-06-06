@@ -16,12 +16,15 @@
 
 #endregion
 
+using System.Globalization;
 using Grpc.AspNetCore.FunctionalTests.Infrastructure;
 using Grpc.Core;
 using Grpc.Net.Client;
 using Grpc.Net.Client.Configuration;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 using NUnit.Framework;
 
 namespace Grpc.AspNetCore.FunctionalTests;
@@ -82,7 +85,17 @@ public class FunctionalTestBase
     [OneTimeSetUp]
     public void OneTimeSetUp()
     {
-        Fixture = new GrpcTestFixture<FunctionalTestsWebsite.Startup>(ConfigureServices);
+        ServerRetryHelper.BindPortsWithRetry(port =>
+        {
+            Fixture = new GrpcTestFixture<FunctionalTestsWebsite.Startup>(
+                ConfigureServices,
+            addConfiguration: configuration =>
+            {
+                // An explicit (non-dynamic port) is required for HTTP/3 because the port will be shared
+                // between TCP and UDP. Dynamic ports don't support binding to both transports at the same time.
+                configuration["Http3Port"] = port.ToString(CultureInfo.InvariantCulture);
+            });
+        }, NullLogger.Instance);
     }
 
     [OneTimeTearDown]
