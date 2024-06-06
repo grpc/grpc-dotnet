@@ -95,6 +95,8 @@ public class UnaryTests : FunctionalTestBase
         var headers = await call.ResponseHeadersAsync.DefaultTimeout();
         Assert.AreEqual("value", headers.GetValue("key"));
         Assert.IsFalse(call.ResponseAsync.IsCompleted);
+
+        tcs.SetResult(new HelloReply());
     }
 
     [TestCase("fr", "fr")]
