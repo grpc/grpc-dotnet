@@ -1,4 +1,4 @@
-﻿#region Copyright notice and license
+#region Copyright notice and license
 
 // Copyright 2019 The gRPC Authors
 //
@@ -46,7 +46,7 @@ public class RefreshCommandTests : TestBase
         var result = await parser.InvokeAsync($"refresh -p {tempDir} --dry-run {dryRun}", testConsole);
 
         // Assert
-        Assert.AreEqual(0, result, testConsole.Error.ToString());
+        Assert.AreEqual(0, result, testConsole.Error.ToString()!);
 
         var project = ProjectCollection.GlobalProjectCollection.LoadedProjects.Single(p => p.DirectoryPath == tempDir);
         project.ReevaluateIfNecessary();

@@ -1,4 +1,4 @@
-﻿#region Copyright notice and license
+#region Copyright notice and license
 
 // Copyright 2019 The gRPC Authors
 //
@@ -16,6 +16,7 @@
 
 #endregion
 
+using System.Diagnostics.CodeAnalysis;
 using NUnit.Framework;
 using NUnit.Framework.Interfaces;
 using NUnit.Framework.Internal;
@@ -41,7 +42,7 @@ public class RequireHttp3Attribute : NUnitAttribute, IApplyToTest
         test.Properties.Set(PropertyNames.SkipReason, message!);
     }
 
-    public static bool IsSupported(out string? message)
+    public static bool IsSupported([NotNullWhen(false)] out string? message)
     {
         var osVersion = Environment.OSVersion;
         if (osVersion.Platform == PlatformID.Win32NT &&

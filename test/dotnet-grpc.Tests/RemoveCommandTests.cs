@@ -1,4 +1,4 @@
-﻿#region Copyright notice and license
+#region Copyright notice and license
 
 // Copyright 2019 The gRPC Authors
 //
@@ -43,7 +43,7 @@ public class RemoveCommandTests : TestBase
         var result = await parser.InvokeAsync($"remove -p {tempDir} {Path.Combine("Proto", "a.proto")}", testConsole);
 
         // Assert
-        Assert.AreEqual(0, result, testConsole.Error.ToString());
+        Assert.AreEqual(0, result, testConsole.Error.ToString()!);
 
         var project = ProjectCollection.GlobalProjectCollection.LoadedProjects.Single(p => p.DirectoryPath == tempDir);
         project.ReevaluateIfNecessary();

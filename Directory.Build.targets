@@ -30,6 +30,12 @@
     <PackageReference Include="Microsoft.SourceLink.GitHub" PrivateAssets="All" />
   </ItemGroup>
 
+  <ItemGroup Condition="$(MSBuildProjectName.EndsWith('Tests'))">
+    <Using Include="NUnit.Framework.Legacy.ClassicAssert" Alias="Assert" />
+    <Using Include="NUnit.Framework.Legacy" />
+    <Using Include="NUnit.Framework" />
+  </ItemGroup>
+
   <!-- 
     Make a netstandard2.1 copy of the .net ILLinkPack to work around a trimming issue.
     See https://github.com/dotnet/linker/issues/3175

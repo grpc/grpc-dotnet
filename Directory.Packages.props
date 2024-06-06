@@ -58,21 +58,21 @@
     <!-- Other -->
     <PackageVersion Include="BenchmarkDotNet" Version="0.13.1" />
     <PackageVersion Include="CommandLineParser" Version="2.5.0" />
-    <PackageVersion Include="Google.Api.CommonProtos" Version="2.13.0" />
+    <PackageVersion Include="Google.Api.CommonProtos" Version="2.15.0" />
     <PackageVersion Include="Google.Apis.Auth" Version="1.46.0" />
-    <PackageVersion Include="Google.Protobuf" Version="3.24.0" />
+    <PackageVersion Include="Google.Protobuf" Version="3.27.0" />
     <PackageVersion Include="Microsoft.Bcl.AsyncInterfaces" Version="6.0.0" />
     <PackageVersion Include="Microsoft.Build.Locator" Version="1.5.5" />
     <PackageVersion Include="Microsoft.Build" Version="16.9.0" />
-    <PackageVersion Include="Microsoft.CodeAnalysis.NetAnalyzers" Version="8.0.0-preview.23472.1" />
+    <PackageVersion Include="Microsoft.CodeAnalysis.NetAnalyzers" Version="8.0.0" />
     <PackageVersion Include="Microsoft.Crank.EventSources" Version="0.2.0-alpha.21255.1" />
     <PackageVersion Include="Microsoft.Extensions.Logging.Testing" Version="2.1.1" />
-    <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="17.6.2" />
+    <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="17.10.0" />
     <PackageVersion Include="Microsoft.SourceLink.GitHub" Version="1.1.1" />
     <PackageVersion Include="Microsoft.Win32.Registry" Version="4.6.0" />
     <PackageVersion Include="Moq" Version="4.16.1" />
     <PackageVersion Include="Newtonsoft.Json" Version="13.0.3" />
-    <PackageVersion Include="Nunit" Version="3.13.3" />
+    <PackageVersion Include="Nunit" Version="4.1.0" />
     <PackageVersion Include="NUnit3TestAdapter" Version="4.5.0" />
     <PackageVersion Include="protobuf-net.Grpc.AspNetCore" Version="1.0.140" />
     <PackageVersion Include="protobuf-net.Grpc" Version="1.0.140" />
@@ -81,7 +81,7 @@
     <PackageVersion Include="System.Diagnostics.DiagnosticSource" Version="6.0.1" />
     <PackageVersion Include="System.IO.Pipelines" Version="5.0.1" />
     <PackageVersion Include="System.Memory" Version="4.5.3" />
-    <PackageVersion Include="System.Net.Http.WinHttpHandler" Version="7.0.0" />
+    <PackageVersion Include="System.Net.Http.WinHttpHandler" Version="8.0.0" />
     <PackageVersion Include="System.Security.Principal.Windows" Version="4.7.0" />
     <PackageVersion Include="System.Threading.Channels" Version="4.6.0" />
   </ItemGroup>
