@@ -130,8 +130,11 @@ public class ClientChannelTests
             waitForReady: true,
             CancellationToken.None).AsTask().DefaultTimeout();
 
+        _ = LogPickComplete(pickTask2, logger);
+
         Assert.IsFalse(pickTask2.IsCompleted, "PickAsync should wait until an subchannel is ready.");
 
+        logger.LogInformation("Setting to ready subchannel.");
         resolver.UpdateAddresses(new List<BalancerAddress>
         {
             new BalancerAddress("localhost", 82)
@@ -139,6 +142,12 @@ public class ClientChannelTests
 
         var result2 = await pickTask2.DefaultTimeout();
         Assert.AreEqual(new DnsEndPoint("localhost", 82), result2.Address!.EndPoint);
+
+        static async Task LogPickComplete(Task<(Subchannel Subchannel, BalancerAddress Address, ISubchannelCallTracker? SubchannelCallTracker)> pickTask2, ILogger logger)
+        {
+            await pickTask2.DefaultTimeout();
+            logger.LogInformation("PickAsync complete.");
+        }
     }
 
     [Test]

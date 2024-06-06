@@ -1,12 +1,12 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFrameworks>net462;net6.0;net7.0;net8.0</TargetFrameworks>
+    <TargetFrameworks>net462;net6.0;net7.0;net8.0;net9.0</TargetFrameworks>
     <IsPackable>false</IsPackable>
     <DisableAspNetCoreDefaultClientTypeOverride>true</DisableAspNetCoreDefaultClientTypeOverride>
   </PropertyGroup>
 
-  <PropertyGroup Condition="'$(TargetFramework)' == 'net6.0' OR '$(TargetFramework)' == 'net7.0' OR '$(TargetFramework)' == 'net8.0'">
+  <PropertyGroup Condition="'$(TargetFramework)' == 'net6.0' OR '$(TargetFramework)' == 'net7.0' OR '$(TargetFramework)' == 'net8.0' OR '$(TargetFramework)' == 'net9.0'">
     <DefineConstants>SUPPORT_LOAD_BALANCING;$(DefineConstants)</DefineConstants>
   </PropertyGroup>
 

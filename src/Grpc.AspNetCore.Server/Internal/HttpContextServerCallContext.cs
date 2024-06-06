@@ -72,7 +72,7 @@ internal sealed partial class HttpContextServerCallContext : ServerCallContext, 
 
     protected override string MethodCore => HttpContext.Request.Path.Value!;
 
-    protected override string HostCore => HttpContext.Request.Host.Value;
+    protected override string HostCore => HttpContext.Request.Host.Value!;
 
     protected override string PeerCore
     {

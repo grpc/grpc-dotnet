@@ -34,19 +34,19 @@ public class LinkerTests
 {
     private static readonly TimeSpan Timeout = TimeSpan.FromSeconds(120);
 
-#if NET8_0_OR_GREATER
+#if NET9_0_OR_GREATER
     [Test]
     public async Task RunWebsiteAndCallWithClient_Aot_Success()
     {
         await RunWebsiteAndCallWithClient(publishAot: true);
     }
-#endif
 
     [Test]
     public async Task RunWebsiteAndCallWithClient_Trimming_Success()
     {
         await RunWebsiteAndCallWithClient(publishAot: false);
     }
+#endif
 
     private async Task RunWebsiteAndCallWithClient(bool publishAot)
     {
