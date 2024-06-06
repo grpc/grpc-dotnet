@@ -1,4 +1,4 @@
-﻿#region Copyright notice and license
+#region Copyright notice and license
 
 // Copyright 2019 The gRPC Authors
 //
@@ -46,10 +46,10 @@ public class InProcessTestServer<TStartup> : InProcessTestServer
     private readonly ILogger _logger;
     private readonly LogSinkProvider _logSinkProvider;
     private readonly Action<IServiceCollection> _initialConfigureServices;
-    private readonly Action<KestrelServerOptions, IDictionary<TestServerEndpointName, string>> _configureKestrel;
+    private readonly Action<WebHostBuilderContext, KestrelServerOptions, IDictionary<TestServerEndpointName, EndpointInfoContainerBase>> _configureKestrel;
     private IWebHost? _host;
     private IHostApplicationLifetime? _lifetime;
-    private Dictionary<TestServerEndpointName, string>? _urls;
+    private Dictionary<TestServerEndpointName, EndpointInfoContainerBase>? _urls;
 
     internal override event Action<LogRecord> ServerLogged
     {
@@ -64,12 +64,12 @@ public class InProcessTestServer<TStartup> : InProcessTestServer
             throw new InvalidOperationException();
         }
 
-        return _urls[endpointName];
+        return _urls[endpointName].Address;
     }
 
     public override IWebHost? Host => _host;
 
-    public InProcessTestServer(Action<IServiceCollection> initialConfigureServices, Action<KestrelServerOptions, IDictionary<TestServerEndpointName, string>> configureKestrel)
+    public InProcessTestServer(Action<IServiceCollection> initialConfigureServices, Action<WebHostBuilderContext, KestrelServerOptions, IDictionary<TestServerEndpointName, EndpointInfoContainerBase>> configureKestrel)
     {
         _logSinkProvider = new LogSinkProvider();
         _loggerFactory = new LoggerFactory();
@@ -82,7 +82,7 @@ public class InProcessTestServer<TStartup> : InProcessTestServer
 
     public override void StartServer()
     {
-        _urls = new Dictionary<TestServerEndpointName, string>();
+        _urls = new Dictionary<TestServerEndpointName, EndpointInfoContainerBase>();
 
         var builder = new WebHostBuilder()
             .ConfigureLogging(builder => builder
@@ -93,9 +93,9 @@ public class InProcessTestServer<TStartup> : InProcessTestServer
                 _initialConfigureServices?.Invoke(services);
             })
             .UseStartup(typeof(TStartup))
-            .UseKestrel(options =>
+            .UseKestrel((context, options) =>
             {
-                _configureKestrel(options, _urls);
+                _configureKestrel(context, options, _urls);
             })
             .UseContentRoot(Directory.GetCurrentDirectory());
 
