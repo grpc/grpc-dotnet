@@ -142,23 +142,23 @@ public class DnsResolverTests : FunctionalTestBase
         AssertHasLog(LogLevel.Trace, "StartingResolveBackoff", "DnsResolver starting resolve backoff of 00:00:00.5000000.");
     }
 
-    private DnsResolver CreateDnsResolver(Uri address, int? defaultPort = null, TimeSpan? refreshInterval = null)
+    private DnsResolver CreateDnsResolver(Uri address, int? defaultPort = null, TimeSpan? refreshInterval = null, TimeSpan? backoffDuration = null)
     {
         return new DnsResolver(address, defaultPort ?? 80, LoggerFactory, refreshInterval ?? Timeout.InfiniteTimeSpan, new TestBackoffPolicyFactory());
     }
 
-    internal class TestBackoffPolicyFactory : IBackoffPolicyFactory
+    internal class TestBackoffPolicyFactory(TimeSpan? backoffDuration = null) : IBackoffPolicyFactory
     {
         public IBackoffPolicy Create()
         {
-            return new TestBackoffPolicy();
+            return new TestBackoffPolicy(backoffDuration ?? TimeSpan.FromSeconds(0.5));
         }
 
-        private class TestBackoffPolicy : IBackoffPolicy
+        private class TestBackoffPolicy(TimeSpan backoffDuration) : IBackoffPolicy
         {
             public TimeSpan NextBackoff()
             {
-                return TimeSpan.FromSeconds(0.5);
+                return backoffDuration;
             }
         }
     }
@@ -272,7 +272,7 @@ public class DnsResolverTests : FunctionalTestBase
 
         // Arrange
         var tcs = new TaskCompletionSource<ResolverResult>(TaskCreationOptions.RunContinuationsAsynchronously);
-        var dnsResolver = CreateDnsResolver(new Uri("dns:///localhost"));
+        var dnsResolver = CreateDnsResolver(new Uri("dns:///localhost"), backoffDuration: TimeSpan.FromSeconds(5));
         dnsResolver.Start(r =>
         {
             tcs.TrySetResult(r);
