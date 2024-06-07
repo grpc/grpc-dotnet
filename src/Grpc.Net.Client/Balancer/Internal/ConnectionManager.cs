@@ -323,7 +323,7 @@ internal sealed class ConnectionManager : IDisposable, IChannelControlHelper
                         }
                         else
                         {
-                            ConnectionManagerLog.PickResultSubchannelNotReady(Logger, subchannel.Id, state);
+                            ConnectionManagerLog.PickResultSubchannelNotReady(Logger, subchannel.Id, address, state);
                             previousPicker = currentPicker;
                         }
                     }
