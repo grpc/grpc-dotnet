@@ -275,6 +275,7 @@ public class DnsResolverTests : FunctionalTestBase
         var dnsResolver = CreateDnsResolver(new Uri("dns:///localhost"), backoffDuration: TimeSpan.FromSeconds(5));
         dnsResolver.Start(r =>
         {
+            Logger.LogInformation("Setting resolver results to TCS {TcsId}", System.Runtime.CompilerServices.RuntimeHelpers.GetHashCode(tcs));
             tcs.TrySetResult(r);
         });
 
@@ -290,7 +291,10 @@ public class DnsResolverTests : FunctionalTestBase
         await dnsResolver._resolveTask.DefaultTimeout();
 
         Logger.LogInformation("Recreate TCS and refresh resolver again.");
+
         tcs = new TaskCompletionSource<ResolverResult>(TaskCreationOptions.RunContinuationsAsynchronously);
+        Logger.LogInformation("New TCS: {TcsId}", System.Runtime.CompilerServices.RuntimeHelpers.GetHashCode(tcs));
+
         dnsResolver.Refresh();
 
         Logger.LogInformation("Dispose resolver while refresh is in progress. The refresh should be waiting for the min interval to complete.");
