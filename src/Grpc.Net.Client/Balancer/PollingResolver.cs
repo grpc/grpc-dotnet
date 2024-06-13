@@ -147,7 +147,7 @@ public abstract class PollingResolver : Resolver
 
                     // Run ResolveAsync in a background task.
                     // This is done to prevent synchronous block inside ResolveAsync from blocking future Refresh calls.
-                    _resolveTask = Task.Run(() => ResolveNowAsync(_cts.Token), _cts.Token);
+                    _resolveTask = Task.Run(() => ResolveNowAsync(_cts.Token));
                     _resolveTask.ContinueWith(static (t, state) =>
                     {
                         var pollingResolver = (PollingResolver)state!;
@@ -172,6 +172,8 @@ public abstract class PollingResolver : Resolver
 
     private async Task ResolveNowAsync(CancellationToken cancellationToken)
     {
+        Log.ResolveStarting(_logger, GetType());
+
         // Reset resolve success to false. Will be set to true when an OK result is sent to listener.
         _resolveSuccessful = false;
 
@@ -274,9 +276,12 @@ public abstract class PollingResolver : Resolver
         private static readonly Action<ILogger, string, Exception> _errorRetryingResolve =
             LoggerMessage.Define<string>(LogLevel.Error, new EventId(6, "ErrorRetryingResolve"), "{ResolveType} error retrying resolve.");
 
-        private static readonly Action<ILogger, string,Exception?> _resolveTaskCompleted =
+        private static readonly Action<ILogger, string, Exception?> _resolveTaskCompleted =
             LoggerMessage.Define<string>(LogLevel.Trace, new EventId(7, "ResolveTaskCompleted"), "{ResolveType} resolve task completed.");
 
+        private static readonly Action<ILogger, string, Exception?> _resolveStarting =
+            LoggerMessage.Define<string>(LogLevel.Trace, new EventId(8, "ResolveStarting"), "{ResolveType} resolve starting.");
+        
         public static void ResolverRefreshRequested(ILogger logger, Type resolverType)
         {
             _resolverRefreshRequested(logger, resolverType.Name, null);
@@ -310,6 +315,11 @@ public abstract class PollingResolver : Resolver
         public static void ResolveTaskCompleted(ILogger logger, Type resolverType)
         {
             _resolveTaskCompleted(logger, resolverType.Name, null);
+        }
+
+        public static void ResolveStarting(ILogger logger, Type resolverType)
+        {
+            _resolveStarting(logger, resolverType.Name, null);
         }
     }
 }

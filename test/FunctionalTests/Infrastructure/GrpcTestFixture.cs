@@ -73,7 +73,9 @@ public sealed class IPEndpointInfoContainer(Func<EndpointInfo> accessor) : Endpo
 
 public class GrpcTestFixture<TStartup> : IDisposable where TStartup : class
 {
-    private readonly string _socketPath = Path.Combine(Path.GetTempPath(), "grpc-transporter.tmp");
+#if NET5_0_OR_GREATER
+    private readonly string _socketPath = Path.GetTempFileName();
+#endif
     private readonly InProcessTestServer _server;
 
     public GrpcTestFixture(
@@ -308,10 +310,16 @@ public class GrpcTestFixture<TStartup> : IDisposable where TStartup : class
     {
         Client.Dispose();
         _server.Dispose();
+#if NET5_0_OR_GREATER
+        if (File.Exists(_socketPath))
+        {
+            File.Delete(_socketPath);
+        }
+#endif
     }
 
 #if NET6_0_OR_GREATER
-    private class Http3DelegatingHandler : DelegatingHandler
+private class Http3DelegatingHandler : DelegatingHandler
     {
         public Http3DelegatingHandler(HttpMessageHandler innerHandler)
         {

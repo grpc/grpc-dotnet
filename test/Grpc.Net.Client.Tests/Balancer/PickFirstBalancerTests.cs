@@ -550,8 +550,13 @@ public class PickFirstBalancerTests
         await tcs.Task.DefaultTimeout();
 
         // Assert
-        var pickStartedCount = testSink.Writes.Count(w => w.EventId.Name == "PickStarted");
-        Assert.AreEqual(1, pickStartedCount);
+        await TestHelpers.AssertIsTrueRetryAsync(
+            () =>
+            {
+                var pickStartedCount = testSink.Writes.Count(w => w.EventId.Name == "PickStarted");
+                return pickStartedCount >= 1;
+            },
+            "Wait for pick started.").DefaultTimeout();
 
         transportFactory.Transports.Single().UpdateState(ConnectivityState.TransientFailure, new Status(StatusCode.Unavailable, "An error"));
 

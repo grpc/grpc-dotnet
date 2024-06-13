@@ -2,7 +2,7 @@
 
   <PropertyGroup>
     <!-- Multi-target because this website is referenced by Grpc.AspNetCore.FunctionalTests which also multi-targets -->
-    <TargetFrameworks>net6.0;net7.0;net8.0</TargetFrameworks>
+    <TargetFrameworks>net6.0;net7.0;net8.0;net9.0</TargetFrameworks>
     <AspNetCoreHostingModel>InProcess</AspNetCoreHostingModel>
     <GenerateUserSecretsAttribute>false</GenerateUserSecretsAttribute>
   </PropertyGroup>

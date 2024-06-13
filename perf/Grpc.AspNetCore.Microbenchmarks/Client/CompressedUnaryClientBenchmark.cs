@@ -1,4 +1,4 @@
-﻿#region Copyright notice and license
+#region Copyright notice and license
 
 // Copyright 2019 The gRPC Authors
 //
@@ -47,7 +47,7 @@ public class CompressedUnaryClientBenchmark : UnaryClientBenchmarkBase
     protected override byte[] GetMessageData(HelloReply message)
     {
         var httpContext = new DefaultHttpContext();
-        httpContext.Request.Headers.Add(GrpcProtocolConstants.MessageAcceptEncodingHeader, TestCompressionProvider.Name);
+        httpContext.Request.Headers.Append(GrpcProtocolConstants.MessageAcceptEncodingHeader, TestCompressionProvider.Name);
 
         var callContext = HttpContextServerCallContextHelper.CreateServerCallContext(
             httpContext,
