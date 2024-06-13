@@ -86,6 +86,14 @@ public sealed class Subchannel : IDisposable
     /// </summary>
     public BalancerAttributes Attributes { get; }
 
+    internal (BalancerAddress? Address, ConnectivityState State) GetAddressAndState()
+    {
+        lock (Lock)
+        {
+            return (CurrentAddress, State);
+        }
+    }
+
     internal Subchannel(ConnectionManager manager, IReadOnlyList<BalancerAddress> addresses)
     {
         Lock = new object();

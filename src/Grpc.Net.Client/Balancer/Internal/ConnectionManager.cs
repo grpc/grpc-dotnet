@@ -312,12 +312,20 @@ internal sealed class ConnectionManager : IDisposable, IChannelControlHelper
             {
                 case PickResultType.Complete:
                     var subchannel = result.Subchannel!;
-                    var address = subchannel.CurrentAddress;
+                    var (address, state) = subchannel.GetAddressAndState();
 
                     if (address != null)
                     {
-                        ConnectionManagerLog.PickResultSuccessful(Logger, subchannel.Id, address, subchannel.Transport.TransportStatus);
-                        return (subchannel, address, result.SubchannelCallTracker);
+                        if (state == ConnectivityState.Ready)
+                        {
+                            ConnectionManagerLog.PickResultSuccessful(Logger, subchannel.Id, address, subchannel.Transport.TransportStatus);
+                            return (subchannel, address, result.SubchannelCallTracker);
+                        }
+                        else
+                        {
+                            ConnectionManagerLog.PickResultSubchannelNotReady(Logger, subchannel.Id, address, state);
+                            previousPicker = currentPicker;
+                        }
                     }
                     else
                     {
@@ -499,6 +507,9 @@ internal static class ConnectionManagerLog
     private static readonly Action<ILogger, Status, Exception?> _resolverServiceConfigFallback =
         LoggerMessage.Define<Status>(LogLevel.Debug, new EventId(12, "ResolverServiceConfigFallback"), "Falling back to previously loaded service config. Resolver failure when retreiving or parsing service config with status: {Status}");
 
+    private static readonly Action<ILogger, string, BalancerAddress, ConnectivityState, Exception?> _pickResultSubchannelNotReady =
+        LoggerMessage.Define<string, BalancerAddress, ConnectivityState>(LogLevel.Debug, new EventId(13, "PickResultSubchannelNotReady"), "Picked subchannel id '{SubchannelId}' with address {CurrentAddress} doesn't have a ready state. Subchannel state: {State}");
+
     public static void ResolverUnsupportedLoadBalancingConfig(ILogger logger, IList<LoadBalancingConfig> loadBalancingConfigs)
     {
         if (logger.IsEnabled(LogLevel.Warning))
@@ -561,6 +572,11 @@ internal static class ConnectionManagerLog
     public static void ResolverServiceConfigFallback(ILogger logger, Status status)
     {
         _resolverServiceConfigFallback(logger, status, null);
+    }
+
+    public static void PickResultSubchannelNotReady(ILogger logger, string subchannelId, BalancerAddress currentAddress, ConnectivityState state)
+    {
+        _pickResultSubchannelNotReady(logger, subchannelId, currentAddress, state, null);
     }
 }
 #endif
