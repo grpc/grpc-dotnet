@@ -142,23 +142,23 @@ public class DnsResolverTests : FunctionalTestBase
         AssertHasLog(LogLevel.Trace, "StartingResolveBackoff", "DnsResolver starting resolve backoff of 00:00:00.5000000.");
     }
 
-    private DnsResolver CreateDnsResolver(Uri address, int? defaultPort = null, TimeSpan? refreshInterval = null)
+    private DnsResolver CreateDnsResolver(Uri address, int? defaultPort = null, TimeSpan? refreshInterval = null, TimeSpan? backoffDuration = null)
     {
         return new DnsResolver(address, defaultPort ?? 80, LoggerFactory, refreshInterval ?? Timeout.InfiniteTimeSpan, new TestBackoffPolicyFactory());
     }
 
-    internal class TestBackoffPolicyFactory : IBackoffPolicyFactory
+    internal class TestBackoffPolicyFactory(TimeSpan? backoffDuration = null) : IBackoffPolicyFactory
     {
         public IBackoffPolicy Create()
         {
-            return new TestBackoffPolicy();
+            return new TestBackoffPolicy(backoffDuration ?? TimeSpan.FromSeconds(0.5));
         }
 
-        private class TestBackoffPolicy : IBackoffPolicy
+        private class TestBackoffPolicy(TimeSpan backoffDuration) : IBackoffPolicy
         {
             public TimeSpan NextBackoff()
             {
-                return TimeSpan.FromSeconds(0.5);
+                return backoffDuration;
             }
         }
     }
@@ -272,9 +272,10 @@ public class DnsResolverTests : FunctionalTestBase
 
         // Arrange
         var tcs = new TaskCompletionSource<ResolverResult>(TaskCreationOptions.RunContinuationsAsynchronously);
-        var dnsResolver = CreateDnsResolver(new Uri("dns:///localhost"));
+        var dnsResolver = CreateDnsResolver(new Uri("dns:///localhost"), backoffDuration: TimeSpan.FromSeconds(5));
         dnsResolver.Start(r =>
         {
+            Logger.LogInformation("Setting resolver results to TCS {TcsId}", System.Runtime.CompilerServices.RuntimeHelpers.GetHashCode(tcs));
             tcs.TrySetResult(r);
         });
 
@@ -290,7 +291,10 @@ public class DnsResolverTests : FunctionalTestBase
         await dnsResolver._resolveTask.DefaultTimeout();
 
         Logger.LogInformation("Recreate TCS and refresh resolver again.");
+
         tcs = new TaskCompletionSource<ResolverResult>(TaskCreationOptions.RunContinuationsAsynchronously);
+        Logger.LogInformation("New TCS: {TcsId}", System.Runtime.CompilerServices.RuntimeHelpers.GetHashCode(tcs));
+
         dnsResolver.Refresh();
 
         Logger.LogInformation("Dispose resolver while refresh is in progress. The refresh should be waiting for the min interval to complete.");

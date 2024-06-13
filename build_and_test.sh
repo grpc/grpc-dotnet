@@ -22,22 +22,21 @@ echo "Building solution"
 dotnet build -c Release
 
 echo "Building examples"
-
 example_solutions=( $( ls examples/**/*.sln ) )
-
 for example_solution in "${example_solutions[@]}"
 do
     dotnet build $example_solution -c Release
 done
 
 echo "Testing solution"
-
+has_failures=false
 test_projects=( $( ls test/**/*Tests.csproj ) )
-
 for test_project in "${test_projects[@]}"
 do
-    # https://github.com/microsoft/vstest/issues/2080#issuecomment-539879345
-    dotnet test $test_project -c Release -v n --no-build -- NUnit.ConsoleOut=0 < /dev/null
+    base_name=$(basename ${test_project%.*})
+    dotnet test $test_project -c Release --no-build --logger "trx;LogFilePrefix=$base_name" --results-directory artifacts/test-results -- NUnit.ConsoleOut=0 || has_failures=true
 done
 
-echo "Tests finished"
+if [ "$has_failures" = true ]; then
+    exit 1
+fi
