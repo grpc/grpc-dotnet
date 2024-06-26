@@ -36,7 +36,7 @@ internal static class Native
     internal static void DetectWindowsVersion(out Version version, out bool isWindowsServer)
     {
         // https://learn.microsoft.com/en-us/windows/win32/api/winnt/ns-winnt-osversioninfoexa
-        const byte VER_NT_SERVER = 3;
+        const byte VER_NT_WORKSTATION = 1;
 
         var osVersionInfo = new OSVERSIONINFOEX { OSVersionInfoSize = Marshal.SizeOf<OSVERSIONINFOEX>() };
 
@@ -46,7 +46,7 @@ internal static class Native
         }
 
         version = new Version(osVersionInfo.MajorVersion, osVersionInfo.MinorVersion, osVersionInfo.BuildNumber, 0);
-        isWindowsServer = osVersionInfo.ProductType == VER_NT_SERVER;
+        isWindowsServer = osVersionInfo.ProductType != VER_NT_WORKSTATION;
     }
 
     internal static bool IsUwp(string frameworkDescription, Version version)
