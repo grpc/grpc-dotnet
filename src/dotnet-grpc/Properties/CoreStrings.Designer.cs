@@ -19,7 +19,7 @@ namespace Grpc.Dotnet.Cli.Properties {
     // class via a tool like ResGen or Visual Studio.
     // To add or remove a member, edit your .ResX file then rerun ResGen
     // with the /str option, or rebuild your VS project.
-    [global::System.CodeDom.Compiler.GeneratedCodeAttribute("System.Resources.Tools.StronglyTypedResourceBuilder", "16.0.0.0")]
+    [global::System.CodeDom.Compiler.GeneratedCodeAttribute("System.Resources.Tools.StronglyTypedResourceBuilder", "17.0.0.0")]
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
     [global::System.Runtime.CompilerServices.CompilerGeneratedAttribute()]
     internal class CoreStrings {
@@ -309,6 +309,15 @@ namespace Grpc.Dotnet.Cli.Properties {
         internal static string ProjectOptionDescription {
             get {
                 return ResourceManager.GetString("ProjectOptionDescription", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Whether to add the protobuf file references recursively. Default value is false..
+        /// </summary>
+        internal static string RecursiveOptionDescription {
+            get {
+                return ResourceManager.GetString("RecursiveOptionDescription", resourceCulture);
             }
         }
         
