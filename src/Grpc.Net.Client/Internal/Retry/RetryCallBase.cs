@@ -372,7 +372,7 @@ internal abstract partial class RetryCallBase<TRequest, TResponse> : IGrpcCall<T
         {
             if (!_commitStarted)
             {
-                // Specify that call is commiting but hasn't get set the TCS to publish commited call publically.
+                // Specify that call is commiting. This is to prevent any chance of re-entrancy from logic run in OnCommitCall.
                 _commitStarted = true;
 
                 // The buffer size is verified in unit tests after calls are completed.
