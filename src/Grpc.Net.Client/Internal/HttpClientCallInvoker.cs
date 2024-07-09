@@ -177,7 +177,7 @@ internal sealed class HttpClientCallInvoker : CallInvoker
         {
             // No retry/hedge policy configured. Fast path!
             // Note that callWrapper is null here and will be set later.
-            return CreateGrpcCall<TRequest, TResponse>(channel, method, options, attempt: 1, callWrapper: null);
+            return CreateGrpcCall<TRequest, TResponse>(channel, method, options, attempt: 1, forceAsyncHttpResponse: false, callWrapper: null);
         }
     }
 
@@ -210,6 +210,7 @@ internal sealed class HttpClientCallInvoker : CallInvoker
         Method<TRequest, TResponse> method,
         CallOptions options,
         int attempt,
+        bool forceAsyncHttpResponse,
         object? callWrapper)
         where TRequest : class
         where TResponse : class
@@ -217,7 +218,7 @@ internal sealed class HttpClientCallInvoker : CallInvoker
         ObjectDisposedThrowHelper.ThrowIf(channel.Disposed, typeof(GrpcChannel));
 
         var methodInfo = channel.GetCachedGrpcMethodInfo(method);
-        var call = new GrpcCall<TRequest, TResponse>(method, methodInfo, options, channel, attempt);
+        var call = new GrpcCall<TRequest, TResponse>(method, methodInfo, options, channel, attempt, forceAsyncHttpResponse);
         call.CallWrapper = callWrapper;
 
         return call;

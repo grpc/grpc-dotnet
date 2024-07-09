@@ -61,14 +61,16 @@ internal sealed partial class GrpcCall<TRequest, TResponse> : GrpcCall, IGrpcCal
     public HttpContentClientStreamWriter<TRequest, TResponse>? ClientStreamWriter { get; private set; }
     public HttpContentClientStreamReader<TRequest, TResponse>? ClientStreamReader { get; private set; }
 
-    public GrpcCall(Method<TRequest, TResponse> method, GrpcMethodInfo grpcMethodInfo, CallOptions options, GrpcChannel channel, int attemptCount)
+    public GrpcCall(Method<TRequest, TResponse> method, GrpcMethodInfo grpcMethodInfo, CallOptions options, GrpcChannel channel, int attemptCount, bool forceAsyncHttpResponse)
         : base(options, channel)
     {
         // Validate deadline before creating any objects that require cleanup
         ValidateDeadline(options.Deadline);
 
         _callCts = new CancellationTokenSource();
-        _httpResponseTcs = new TaskCompletionSource<HttpResponseMessage>(TaskCreationOptions.RunContinuationsAsynchronously);
+        // Retries and hedging can run multiple calls at the same time and use locking for thread-safety.
+        // Running HTTP response continuation asynchronously is required for locking to work correctly.
+        _httpResponseTcs = new TaskCompletionSource<HttpResponseMessage>(forceAsyncHttpResponse ? TaskCreationOptions.RunContinuationsAsynchronously : TaskCreationOptions.None);
         // Run the callTcs continuation immediately to keep the same context. Required for Activity.
         _callTcs = new TaskCompletionSource<Status>();
         Method = method;
@@ -142,7 +144,7 @@ internal sealed partial class GrpcCall<TRequest, TResponse> : GrpcCall, IGrpcCal
 
     internal void StartUnaryCore(HttpContent content)
     {
-        _responseTcs = new TaskCompletionSource<TResponse>(TaskCreationOptions.RunContinuationsAsynchronously);
+        _responseTcs = new TaskCompletionSource<TResponse>();
 
         var timeout = GetTimeout();
         var message = CreateHttpRequestMessage(timeout);
@@ -161,7 +163,7 @@ internal sealed partial class GrpcCall<TRequest, TResponse> : GrpcCall, IGrpcCal
 
     internal void StartClientStreamingCore(HttpContentClientStreamWriter<TRequest, TResponse> clientStreamWriter, HttpContent content)
     {
-        _responseTcs = new TaskCompletionSource<TResponse>(TaskCreationOptions.RunContinuationsAsynchronously);
+        _responseTcs = new TaskCompletionSource<TResponse>();
 
         var timeout = GetTimeout();
         var message = CreateHttpRequestMessage(timeout);
@@ -431,9 +433,6 @@ internal sealed partial class GrpcCall<TRequest, TResponse> : GrpcCall, IGrpcCal
             // Cancellation will also cause reader/writer to throw if used afterwards.
             _callCts.Cancel();
 
-            // Ensure any logic that is waiting on the HttpResponse is unstuck.
-            _httpResponseTcs.TrySetCanceled();
-
             // Cancellation token won't send RST_STREAM if HttpClient.SendAsync is complete.
             // Dispose HttpResponseMessage to send RST_STREAM to server for in-progress calls.
             HttpResponse?.Dispose();
@@ -652,6 +651,9 @@ internal sealed partial class GrpcCall<TRequest, TResponse> : GrpcCall, IGrpcCal
             // Verify that FinishCall is called in every code path of this method.
             // Should create an "Unassigned variable" compiler error if not set.
             Debug.Assert(finished);
+            // Should be completed before exiting.
+            Debug.Assert(_httpResponseTcs.Task.IsCompleted);
+            Debug.Assert(_responseTcs == null || _responseTcs.Task.IsCompleted);
         }
     }
 

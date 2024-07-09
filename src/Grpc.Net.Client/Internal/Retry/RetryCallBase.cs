@@ -37,6 +37,7 @@ internal abstract partial class RetryCallBase<TRequest, TResponse> : IGrpcCall<T
     private Task<TResponse>? _responseTask;
     private Task<Metadata>? _responseHeadersTask;
     private TRequest? _request;
+    private bool _commitStarted;
 
     // Internal for unit testing.
     internal CancellationTokenRegistration? _ctsRegistration;
@@ -369,8 +370,11 @@ internal abstract partial class RetryCallBase<TRequest, TResponse> : IGrpcCall<T
     {
         lock (Lock)
         {
-            if (!CommitedCallTask.IsCompletedSuccessfully())
+            if (!_commitStarted)
             {
+                // Specify that call is commiting but hasn't get set the TCS to publish commited call publically.
+                _commitStarted = true;
+
                 // The buffer size is verified in unit tests after calls are completed.
                 // Clear the buffer before commiting call.
                 ClearRetryBuffer();

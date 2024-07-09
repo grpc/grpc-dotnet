@@ -165,7 +165,10 @@ public class RetryTests
         var credentialsSyncPoint = new SyncPoint(runContinuationsAsynchronously: true);
         var credentials = CallCredentials.FromInterceptor(async (context, metadata) =>
         {
-            await credentialsSyncPoint.WaitToContinue();
+            var tcs = new TaskCompletionSource<bool>();
+            context.CancellationToken.Register(s => ((TaskCompletionSource<bool>)s!).SetResult(true), tcs);
+
+            await Task.WhenAny(credentialsSyncPoint.WaitToContinue(), tcs.Task);
             metadata.Add("Authorization", $"Bearer TEST");
         });
         var invoker = HttpClientCallInvokerFactory.Create(httpClient, loggerFactory: provider.GetRequiredService<ILoggerFactory>(), serviceConfig: serviceConfig, configure: options => options.Credentials = ChannelCredentials.Create(new SslCredentials(), credentials));
