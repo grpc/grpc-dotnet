@@ -144,6 +144,9 @@ internal sealed partial class GrpcCall<TRequest, TResponse> : GrpcCall, IGrpcCal
 
     internal void StartUnaryCore(HttpContent content)
     {
+        // Not created with RunContinuationsAsynchronously to avoid unnecessary dispatch to the thread pool.
+        // The TCS is set from RunCall but it is the last operation before the method exits so there shouldn't
+        // be an impact from running the response continutation synchronously.
         _responseTcs = new TaskCompletionSource<TResponse>();
 
         var timeout = GetTimeout();
@@ -163,6 +166,9 @@ internal sealed partial class GrpcCall<TRequest, TResponse> : GrpcCall, IGrpcCal
 
     internal void StartClientStreamingCore(HttpContentClientStreamWriter<TRequest, TResponse> clientStreamWriter, HttpContent content)
     {
+        // Not created with RunContinuationsAsynchronously to avoid unnecessary dispatch to the thread pool.
+        // The TCS is set from RunCall but it is the last operation before the method exits so there shouldn't
+        // be an impact from running the response continutation synchronously.
         _responseTcs = new TaskCompletionSource<TResponse>();
 
         var timeout = GetTimeout();
