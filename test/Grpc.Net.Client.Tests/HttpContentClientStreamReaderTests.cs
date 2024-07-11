@@ -231,7 +231,8 @@ public class HttpContentClientStreamReaderTests
             new GrpcMethodInfo(new GrpcCallScope(ClientTestHelpers.ServiceMethod.Type, uri), uri, methodConfig: null),
             new CallOptions(),
             channel,
-            attemptCount: 0);
+            attemptCount: 0,
+            forceAsyncHttpResponse: false);
     }
 
     private static GrpcChannel CreateChannel(HttpClient httpClient, ILoggerFactory? loggerFactory = null, bool? throwOperationCanceledOnCancellation = null)

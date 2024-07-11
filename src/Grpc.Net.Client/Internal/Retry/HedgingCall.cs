@@ -75,7 +75,7 @@ internal sealed partial class HedgingCall<TRequest, TResponse> : RetryCallBase<T
 
                 OnStartingAttempt();
 
-                call = HttpClientCallInvoker.CreateGrpcCall<TRequest, TResponse>(Channel, Method, Options, AttemptCount, CallWrapper);
+                call = HttpClientCallInvoker.CreateGrpcCall<TRequest, TResponse>(Channel, Method, Options, AttemptCount, forceAsyncHttpResponse: true, CallWrapper);
                 _activeCalls.Add(call);
 
                 startCallFunc(call);
