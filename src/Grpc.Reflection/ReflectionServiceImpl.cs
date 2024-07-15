@@ -17,12 +17,14 @@
 using Google.Protobuf.Reflection;
 using Grpc.Core;
 using Grpc.Reflection.V1Alpha;
+using Microsoft.AspNetCore.Authorization;
 
 namespace Grpc.Reflection;
 
 /// <summary>
 /// Implementation of server reflection service.
 /// </summary>
+[AllowAnonymous]
 public class ReflectionServiceImpl : Grpc.Reflection.V1Alpha.ServerReflection.ServerReflectionBase
 {
     readonly List<string> services;
