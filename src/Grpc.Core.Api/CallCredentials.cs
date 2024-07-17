@@ -32,20 +32,14 @@ public abstract class CallCredentials
     /// </summary>
     /// <param name="credentials">credentials to compose</param>
     /// <returns>The new <c>CompositeCallCredentials</c></returns>
-    public static CallCredentials Compose(params CallCredentials[] credentials)
-    {
-        return new CompositeCallCredentials(credentials);
-    }
+    public static CallCredentials Compose(params CallCredentials[] credentials) => new CompositeCallCredentials(credentials);
 
     /// <summary>
     /// Creates a new instance of <c>CallCredentials</c> class from an
     /// interceptor that can attach metadata to outgoing calls.
     /// </summary>
     /// <param name="interceptor">authentication interceptor</param>
-    public static CallCredentials FromInterceptor(AsyncAuthInterceptor interceptor)
-    {
-        return new AsyncAuthInterceptorCredentials(interceptor);
-    }
+    public static CallCredentials FromInterceptor(AsyncAuthInterceptor interceptor) => new AsyncAuthInterceptorCredentials(interceptor);
 
     /// <summary>
     /// Populates call credentials configurator with this instance's configuration.
@@ -64,23 +58,14 @@ public abstract class CallCredentials
         }
 
         public override void InternalPopulateConfiguration(CallCredentialsConfiguratorBase configurator, object? state)
-        {
-            configurator.SetCompositeCredentials(state, credentials);
-        }
+            => configurator.SetCompositeCredentials(state, credentials);
     }
 
-    private class AsyncAuthInterceptorCredentials : CallCredentials
+    private class AsyncAuthInterceptorCredentials(AsyncAuthInterceptor interceptor) : CallCredentials
     {
-        readonly AsyncAuthInterceptor interceptor;
-
-        public AsyncAuthInterceptorCredentials(AsyncAuthInterceptor interceptor)
-        {
-            this.interceptor = GrpcPreconditions.CheckNotNull(interceptor, nameof(interceptor));
-        }
+        readonly AsyncAuthInterceptor interceptor = GrpcPreconditions.CheckNotNull(interceptor, nameof(interceptor));
 
         public override void InternalPopulateConfiguration(CallCredentialsConfiguratorBase configurator, object? state)
-        {
-            configurator.SetAsyncAuthInterceptorCredentials(state, interceptor);
-        }
+            => configurator.SetAsyncAuthInterceptorCredentials(state, interceptor);
     }
 }

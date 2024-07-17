@@ -27,41 +27,23 @@ namespace Grpc.Core;
 /// <summary>
 /// Key certificate pair (in PEM encoding).
 /// </summary>
-public sealed class KeyCertificatePair
+/// <remarks>
+/// Creates a new certificate chain - private key pair.
+/// </remarks>
+/// <param name="certificateChain">PEM encoded certificate chain.</param>
+/// <param name="privateKey">PEM encoded private key.</param>
+public sealed class KeyCertificatePair(string certificateChain, string privateKey)
 {
-    readonly string certificateChain;
-    readonly string privateKey;
-
-    /// <summary>
-    /// Creates a new certificate chain - private key pair.
-    /// </summary>
-    /// <param name="certificateChain">PEM encoded certificate chain.</param>
-    /// <param name="privateKey">PEM encoded private key.</param>
-    public KeyCertificatePair(string certificateChain, string privateKey)
-    {
-        this.certificateChain = GrpcPreconditions.CheckNotNull(certificateChain, "certificateChain");
-        this.privateKey = GrpcPreconditions.CheckNotNull(privateKey, "privateKey");
-    }
+    readonly string certificateChain = GrpcPreconditions.CheckNotNull(certificateChain, "certificateChain");
+    readonly string privateKey = GrpcPreconditions.CheckNotNull(privateKey, "privateKey");
 
     /// <summary>
     /// PEM encoded certificate chain.
     /// </summary>
-    public string CertificateChain
-    {
-        get
-        {
-            return certificateChain;
-        }
-    }
+    public string CertificateChain => certificateChain;
 
     /// <summary>
     /// PEM encoded private key.
     /// </summary>
-    public string PrivateKey
-    {
-        get
-        {
-            return privateKey;
-        }
-    }
+    public string PrivateKey => privateKey;
 }

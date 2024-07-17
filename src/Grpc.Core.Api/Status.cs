@@ -23,8 +23,17 @@ namespace Grpc.Core;
 /// <summary>
 /// Represents RPC result, which consists of <see cref="StatusCode"/> and an optional detail string.
 /// </summary>
+/// <remarks>
+/// Creates a new instance of <c>Status</c>.
+/// Users should not use this constructor, except for creating instances for testing.
+/// The debug error string should only be populated by gRPC internals.
+/// Note: experimental API that can change or be removed without any prior notice.
+/// </remarks>
+/// <param name="statusCode">Status code.</param>
+/// <param name="detail">Detail.</param>
+/// <param name="debugException">Optional internal error details.</param>
 [DebuggerDisplay("{DebuggerToString(),nq}")]
-public struct Status
+public struct Status(StatusCode statusCode, string detail, Exception? debugException)
 {
     /// <summary>
     /// Default result of a successful RPC. StatusCode=OK, empty details message.
@@ -46,30 +55,14 @@ public struct Status
     }
 
     /// <summary>
-    /// Creates a new instance of <c>Status</c>.
-    /// Users should not use this constructor, except for creating instances for testing.
-    /// The debug error string should only be populated by gRPC internals.
-    /// Note: experimental API that can change or be removed without any prior notice.
-    /// </summary>
-    /// <param name="statusCode">Status code.</param>
-    /// <param name="detail">Detail.</param>
-    /// <param name="debugException">Optional internal error details.</param>
-    public Status(StatusCode statusCode, string detail, Exception? debugException)
-    {
-        StatusCode = statusCode;
-        Detail = detail;
-        DebugException = debugException;
-    }
-
-    /// <summary>
     /// Gets the gRPC status code. OK indicates success, all other values indicate an error.
     /// </summary>
-    public StatusCode StatusCode { get; }
+    public StatusCode StatusCode { get; } = statusCode;
 
     /// <summary>
     /// Gets the detail.
     /// </summary>
-    public string Detail { get; }
+    public string Detail { get; } = detail;
 
     /// <summary>
     /// In case of an error, this field may contain additional error details to help with debugging.
@@ -81,7 +74,7 @@ public struct Status
     /// why the connection to the server has failed.
     /// Note: experimental API that can change or be removed without any prior notice.
     /// </summary>
-    public Exception? DebugException { get; }
+    public Exception? DebugException { get; } = debugException;
 
     /// <summary>
     /// Returns a <see cref="System.String"/> that represents the current <see cref="Grpc.Core.Status"/>.

@@ -31,9 +31,7 @@ public class ServerServiceDefinition
     readonly IReadOnlyList<Action<ServiceBinderBase>> addMethodActions;
 
     internal ServerServiceDefinition(List<Action<ServiceBinderBase>> addMethodActions)
-    {
-        this.addMethodActions = addMethodActions.AsReadOnly();
-    }
+        => this.addMethodActions = addMethodActions.AsReadOnly();
 
     /// <summary>
     /// Forwards all the previously stored <c>AddMethod</c> calls to the service binder.
@@ -50,10 +48,7 @@ public class ServerServiceDefinition
     /// Creates a new builder object for <c>ServerServiceDefinition</c>.
     /// </summary>
     /// <returns>The builder object.</returns>
-    public static Builder CreateBuilder()
-    {
-        return new Builder();
-    }
+    public static Builder CreateBuilder() => new Builder();
 
     /// <summary>
     /// Builder class for <see cref="ServerServiceDefinition"/>.
@@ -152,9 +147,6 @@ public class ServerServiceDefinition
         /// Creates an immutable <c>ServerServiceDefinition</c> from this builder.
         /// </summary>
         /// <returns>The <c>ServerServiceDefinition</c> object.</returns>
-        public ServerServiceDefinition Build()
-        {
-            return new ServerServiceDefinition(addMethodActions);
-        }
+        public ServerServiceDefinition Build() => new ServerServiceDefinition(addMethodActions);
     }
 }

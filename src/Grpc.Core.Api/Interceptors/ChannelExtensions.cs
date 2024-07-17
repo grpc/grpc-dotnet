@@ -39,9 +39,7 @@ public static class ChannelExtensions
     /// in this case, the last interceptor added will be the first to take control.
     /// </remarks>
     public static CallInvoker Intercept(this ChannelBase channel, Interceptor interceptor)
-    {
-        return channel.CreateCallInvoker().Intercept(interceptor);
-    }
+        => channel.CreateCallInvoker().Intercept(interceptor);
 
     /// <summary>
     /// Returns a <see cref="Grpc.Core.CallInvoker" /> instance that intercepts

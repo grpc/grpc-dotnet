@@ -60,18 +60,12 @@ public struct CallOptions
     /// <summary>
     /// Headers to send at the beginning of the call.
     /// </summary>
-    public Metadata? Headers
-    {
-        get { return headers; }
-    }
+    public Metadata? Headers => headers;
 
     /// <summary>
     /// Call deadline.
     /// </summary>
-    public DateTime? Deadline
-    {
-        get { return deadline; }
-    }
+    public DateTime? Deadline => deadline;
 
     /// <summary>
     /// Token that can be used for cancelling the call on the client side.
@@ -82,52 +76,34 @@ public struct CallOptions
     /// happen (there is an inherent race),
     /// the call will finish with <c>StatusCode.Cancelled</c> status.
     /// </summary>
-    public CancellationToken CancellationToken
-    {
-        get { return cancellationToken; }
-    }
+    public CancellationToken CancellationToken => cancellationToken;
 
     /// <summary>
     /// Write options that will be used for this call.
     /// </summary>
-    public WriteOptions? WriteOptions
-    {
-        get { return this.writeOptions; }
-    }
+    public WriteOptions? WriteOptions => this.writeOptions;
 
     /// <summary>
     /// Token for propagating parent call context.
     /// </summary>
-    public ContextPropagationToken? PropagationToken
-    {
-        get { return this.propagationToken; }
-    }
+    public ContextPropagationToken? PropagationToken => this.propagationToken;
 
     /// <summary>
     /// Credentials to use for this call.
     /// </summary>
-    public CallCredentials? Credentials
-    {
-        get { return this.credentials; }
-    }
+    public CallCredentials? Credentials => this.credentials;
 
     /// <summary>
     /// If <c>true</c> and channel is in <c>ChannelState.TransientFailure</c>, the call will attempt waiting for the channel to recover
     /// instead of failing immediately (which is the default "FailFast" semantics).
     /// Note: experimental API that can change or be removed without any prior notice.
     /// </summary>
-    public bool IsWaitForReady
-    {
-        get { return (this.flags & CallFlags.WaitForReady) == CallFlags.WaitForReady; }
-    }
+    public bool IsWaitForReady => (this.flags & CallFlags.WaitForReady) == CallFlags.WaitForReady;
 
     /// <summary>
     /// Flags to use for this call.
     /// </summary>
-    internal CallFlags Flags
-    {
-        get { return this.flags; }
-    }
+    internal CallFlags Flags => this.flags;
 
     /// <summary>
     /// Returns new instance of <see cref="CallOptions"/> with
