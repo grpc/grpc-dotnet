@@ -64,21 +64,30 @@ internal static class Native
         }
         else
         {
-            var bufferSize = 0U;
-            var result = GetCurrentApplicationUserModelId(ref bufferSize, Array.Empty<byte>());
-            switch (result)
+            try
             {
-                case 15703: // APPMODEL_ERROR_NO_APPLICATION
-                    return false;
-                case 0:     // ERROR_SUCCESS
-                case 122:   // ERROR_INSUFFICIENT_BUFFER
-                            // Success is actually insufficient buffer as we're really only looking for
-                            // not NO_APPLICATION and we're not actually giving a buffer here. The
-                            // API will always return NO_APPLICATION if we're not running under a
-                            // WinRT process, no matter what size the buffer is.
-                    return true;
-                default:
-                    throw new InvalidOperationException($"Failed to get AppModelId, result was {result}.");
+                var bufferSize = 0U;
+                var result = GetCurrentApplicationUserModelId(ref bufferSize, Array.Empty<byte>());
+                switch (result)
+                {
+                    case 15703: // APPMODEL_ERROR_NO_APPLICATION
+                        return false;
+                    case 0:     // ERROR_SUCCESS
+                    case 122:   // ERROR_INSUFFICIENT_BUFFER
+                                // Success is actually insufficient buffer as we're really only looking for
+                                // not NO_APPLICATION and we're not actually giving a buffer here. The
+                                // API will always return NO_APPLICATION if we're not running under a
+                                // WinRT process, no matter what size the buffer is.
+                        return true;
+                    default:
+                        throw new InvalidOperationException($"Failed to get AppModelId, result was {result}.");
+                }
+            }
+            catch (EntryPointNotFoundException)
+            {
+                // Wine compatibility layers such as Steam Deck/Steam OS Proton and the Apple Game Porting Toolkit
+                // return Windows 8 or later as the OS version, but does not implement the GetCurrentApplicationUserModelId API.
+                return false;
             }
         }
     }
