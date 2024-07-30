@@ -58,8 +58,7 @@ public static class GoogleAuthInterceptors
     /// <param name="credential">The credential to use to obtain access tokens.</param>
     /// <returns>The interceptor.</returns>
     public static AsyncAuthInterceptor FromCredential(ITokenAccessWithHeaders credential)
-    {
-        return new AsyncAuthInterceptor(async (context, metadata) => 
+        => new AsyncAuthInterceptor(async (context, metadata) =>
         {
             AccessTokenWithHeaders tokenAndHeaders = await credential.GetAccessTokenWithHeadersForRequestAsync(context.ServiceUrl, CancellationToken.None).ConfigureAwait(false);
             metadata.Add(CreateBearerTokenHeader(tokenAndHeaders.AccessToken));
@@ -71,7 +70,6 @@ public static class GoogleAuthInterceptors
                 }
             }
         });
-    }
 
     /// <summary>
     /// Creates an <see cref="AsyncAuthInterceptor"/> that will use given access token as authorization.
@@ -89,15 +87,10 @@ public static class GoogleAuthInterceptors
     }
 
     private static Metadata.Entry CreateBearerTokenHeader(string accessToken)
-    {
-        return new Metadata.Entry(AuthorizationHeader, Schema + " " + accessToken);
-    }
+        => new Metadata.Entry(AuthorizationHeader, Schema + " " + accessToken);
 
     /// <summary>
     /// Framework independent equivalent of <c>Task.CompletedTask</c>.
     /// </summary>
-    private static Task GetCompletedTask()
-    {
-        return Task.CompletedTask;
-    }
+    private static Task GetCompletedTask() => Task.CompletedTask;
 }

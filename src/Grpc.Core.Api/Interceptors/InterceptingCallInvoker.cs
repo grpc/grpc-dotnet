@@ -46,52 +46,42 @@ internal class InterceptingCallInvoker : CallInvoker
     /// Intercepts a simple blocking call with the registered interceptor.
     /// </summary>
     public override TResponse BlockingUnaryCall<TRequest, TResponse>(Method<TRequest, TResponse> method, string? host, CallOptions options, TRequest request)
-    {
-        return interceptor.BlockingUnaryCall(
+        => interceptor.BlockingUnaryCall(
             request,
             new ClientInterceptorContext<TRequest, TResponse>(method, host, options),
             (req, ctx) => invoker.BlockingUnaryCall(ctx.Method, ctx.Host, ctx.Options, req));
-    }
 
     /// <summary>
     /// Intercepts a simple asynchronous call with the registered interceptor.
     /// </summary>
     public override AsyncUnaryCall<TResponse> AsyncUnaryCall<TRequest, TResponse>(Method<TRequest, TResponse> method, string? host, CallOptions options, TRequest request)
-    {
-        return interceptor.AsyncUnaryCall(
+        => interceptor.AsyncUnaryCall(
             request,
             new ClientInterceptorContext<TRequest, TResponse>(method, host, options),
             (req, ctx) => invoker.AsyncUnaryCall(ctx.Method, ctx.Host, ctx.Options, req));
-    }
 
     /// <summary>
     /// Intercepts an asynchronous server streaming call with the registered interceptor.
     /// </summary>
     public override AsyncServerStreamingCall<TResponse> AsyncServerStreamingCall<TRequest, TResponse>(Method<TRequest, TResponse> method, string? host, CallOptions options, TRequest request)
-    {
-        return interceptor.AsyncServerStreamingCall(
+        => interceptor.AsyncServerStreamingCall(
             request,
             new ClientInterceptorContext<TRequest, TResponse>(method, host, options),
             (req, ctx) => invoker.AsyncServerStreamingCall(ctx.Method, ctx.Host, ctx.Options, req));
-    }
 
     /// <summary>
     /// Intercepts an asynchronous client streaming call with the registered interceptor.
     /// </summary>
     public override AsyncClientStreamingCall<TRequest, TResponse> AsyncClientStreamingCall<TRequest, TResponse>(Method<TRequest, TResponse> method, string? host, CallOptions options)
-    {
-        return interceptor.AsyncClientStreamingCall(
+        => interceptor.AsyncClientStreamingCall(
             new ClientInterceptorContext<TRequest, TResponse>(method, host, options),
             ctx => invoker.AsyncClientStreamingCall(ctx.Method, ctx.Host, ctx.Options));
-    }
 
     /// <summary>
     /// Intercepts an asynchronous duplex streaming call with the registered interceptor.
     /// </summary>
     public override AsyncDuplexStreamingCall<TRequest, TResponse> AsyncDuplexStreamingCall<TRequest, TResponse>(Method<TRequest, TResponse> method, string? host, CallOptions options)
-    {
-        return interceptor.AsyncDuplexStreamingCall(
+        => interceptor.AsyncDuplexStreamingCall(
             new ClientInterceptorContext<TRequest, TResponse>(method, host, options),
             ctx => invoker.AsyncDuplexStreamingCall(ctx.Method, ctx.Host, ctx.Options));
-    }
 }

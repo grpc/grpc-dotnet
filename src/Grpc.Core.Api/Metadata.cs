@@ -66,10 +66,7 @@ public sealed class Metadata : IList<Metadata.Entry>
     /// <summary>
     /// Initializes a new instance of <c>Metadata</c>.
     /// </summary>
-    public Metadata()
-    {
-        this.entries = new List<Entry>();
-    }
+    public Metadata() => this.entries = new List<Entry>();
 
     /// <summary>
     /// Makes this object read-only.
@@ -103,20 +100,14 @@ public sealed class Metadata : IList<Metadata.Entry>
     /// If the metadata entry is binary then an exception is thrown.
     /// If there are no matching entries then <c>null</c> is returned.
     /// </summary>
-    public string? GetValue(string key)
-    {
-        return Get(key)?.Value;
-    }
+    public string? GetValue(string key) => Get(key)?.Value;
 
     /// <summary>
     /// Gets the bytes value of the last metadata entry with the specified key.
     /// If the metadata entry is not binary the string value will be returned as ASCII encoded bytes.
     /// If there are no matching entries then <c>null</c> is returned.
     /// </summary>
-    public byte[]? GetValueBytes(string key)
-    {
-        return Get(key)?.ValueBytes;
-    }
+    public byte[]? GetValueBytes(string key) => Get(key)?.ValueBytes;
 
     /// <summary>
     /// Gets all metadata entries with the specified key.
@@ -137,20 +128,14 @@ public sealed class Metadata : IList<Metadata.Entry>
     /// </summary>
     /// <param name="key">Metadata key. Gets converted to lowercase. Must not use <c>-bin</c> suffix indicating a binary-valued metadata entry. Can only contain lowercase alphanumeric characters, underscores, hyphens, and dots.</param>
     /// <param name="value">Value string. Only ASCII characters are allowed.</param>
-    public void Add(string key, string value)
-    {
-        Add(new Entry(key, value));
-    }
+    public void Add(string key, string value) => Add(new Entry(key, value));
 
     /// <summary>
     /// Adds a new binary-valued metadata entry.
     /// </summary>
     /// <param name="key">Metadata key. Gets converted to lowercase. Needs to have <c>-bin</c> suffix indicating a binary-valued metadata entry. The binary header suffix can be added to the key with <see cref="Metadata.BinaryHeaderSuffix"/>. Can only contain lowercase alphanumeric characters, underscores, hyphens, and dots.</param>
     /// <param name="valueBytes">Value bytes.</param>
-    public void Add(string key, byte[] valueBytes)
-    {
-        Add(new Entry(key, valueBytes));
-    }
+    public void Add(string key, byte[] valueBytes) => Add(new Entry(key, valueBytes));
 
     #region IList members
 
@@ -328,13 +313,7 @@ public sealed class Metadata : IList<Metadata.Entry>
         /// <summary>
         /// Gets the metadata entry key.
         /// </summary>
-        public string Key
-        {
-            get
-            {
-                return this.key;
-            }
-        }
+        public string Key => this.key;
 
         /// <summary>
         /// Gets the binary value of this metadata entry.
@@ -372,13 +351,7 @@ public sealed class Metadata : IList<Metadata.Entry>
         /// <summary>
         /// Returns <c>true</c> if this entry is a binary-value entry.
         /// </summary>
-        public bool IsBinary
-        {
-            get
-            {
-                return value == null;
-            }
-        }
+        public bool IsBinary => value == null;
 
         /// <summary>
         /// Returns a <see cref="System.String"/> that represents the current <see cref="Grpc.Core.Metadata.Entry"/>.
@@ -397,20 +370,15 @@ public sealed class Metadata : IList<Metadata.Entry>
         /// Gets the serialized value for this entry. For binary metadata entries, this leaks
         /// the internal <c>valueBytes</c> byte array and caller must not change contents of it.
         /// </summary>
-        internal byte[] GetSerializedValueUnsafe()
-        {
-            return valueBytes ?? EncodingASCII.GetBytes(value!);
-        }
+        internal byte[] GetSerializedValueUnsafe() => valueBytes ?? EncodingASCII.GetBytes(value!);
 
-        internal bool KeyEqualsIgnoreCase(string key)
-        {
+        internal bool KeyEqualsIgnoreCase(string key) =>
             // NormalizeKey() uses ToLowerInvariant() to lowercase keys, so we'd like to use the same invariant culture
             // for comparisons to get valid results. StringComparison.InvariantCultureIgnoreCase isn't available
             // on all the frameworks we're targeting, but since we know that the Entry's key has already
             // been checked by IsValidKey and it only contains a subset of ASCII, using StringComparison.OrdinalIgnoreCase
             // is also fine.
-            return string.Equals(this.key, key, StringComparison.OrdinalIgnoreCase);
-        }
+            string.Equals(this.key, key, StringComparison.OrdinalIgnoreCase);
 
         /// <summary>
         /// Creates a binary value or ascii value metadata entry from data received from the native layer.
@@ -515,14 +483,9 @@ public sealed class Metadata : IList<Metadata.Entry>
         return debugText;
     }
 
-    private sealed class MetadataDebugView
+    private sealed class MetadataDebugView(Metadata metadata)
     {
-        private readonly Metadata _metadata;
-
-        public MetadataDebugView(Metadata metadata)
-        {
-            _metadata = metadata;
-        }
+        private readonly Metadata _metadata = metadata;
 
         [DebuggerBrowsable(DebuggerBrowsableState.RootHidden)]
         public Entry[] Items => _metadata.ToArray();

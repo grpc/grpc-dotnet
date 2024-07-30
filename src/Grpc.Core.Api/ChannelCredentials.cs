@@ -39,13 +39,7 @@ public abstract class ChannelCredentials
     /// Returns instance of credentials that provides no security and 
     /// will result in creating an unsecure channel with no encryption whatsoever.
     /// </summary>
-    public static ChannelCredentials Insecure
-    {
-        get
-        {
-            return InsecureInstance;
-        }
-    }
+    public static ChannelCredentials Insecure => InsecureInstance;
 
     /// <summary>
     /// Returns instance of credentials that provides SSL security.
@@ -55,13 +49,7 @@ public abstract class ChannelCredentials
     /// the secure SSL credentials.
     /// </para>
     /// </summary>
-    public static ChannelCredentials SecureSsl
-    {
-        get
-        {
-            return SecureSslInstance;
-        }
-    }
+    public static ChannelCredentials SecureSsl => SecureSslInstance;
 
     /// <summary>
     /// Creates a new instance of <c>ChannelCredentials</c> class by composing
@@ -71,9 +59,7 @@ public abstract class ChannelCredentials
     /// <param name="callCredentials">Call credentials.</param>
     /// <returns>The new composite <c>ChannelCredentials</c></returns>
     public static ChannelCredentials Create(ChannelCredentials channelCredentials, CallCredentials callCredentials)
-    {
-        return new CompositeChannelCredentials(channelCredentials, callCredentials);
-    }
+        => new CompositeChannelCredentials(channelCredentials, callCredentials);
 
     /// <summary>
     /// Populates channel credentials configurator with this instance's configuration.
@@ -94,35 +80,26 @@ public abstract class ChannelCredentials
     private sealed class InsecureCredentials : ChannelCredentials
     {
         public override void InternalPopulateConfiguration(ChannelCredentialsConfiguratorBase configurator, object state)
-        {
-            configurator.SetInsecureCredentials(state);
-        }
+            => configurator.SetInsecureCredentials(state);
     }
 
     /// <summary>
     /// Credentials that allow composing one <see cref="ChannelCredentials"/> object and 
     /// one or more <see cref="CallCredentials"/> objects into a single <see cref="ChannelCredentials"/>.
     /// </summary>
-    private sealed class CompositeChannelCredentials : ChannelCredentials
+    /// <remarks>
+    /// Initializes a new instance of <c>CompositeChannelCredentials</c> class.
+    /// The resulting credentials object will be composite of all the credentials specified as parameters.
+    /// </remarks>
+    /// <param name="channelCredentials">channelCredentials to compose</param>
+    /// <param name="callCredentials">channelCredentials to compose</param>
+    private sealed class CompositeChannelCredentials(ChannelCredentials channelCredentials, CallCredentials callCredentials) : ChannelCredentials
     {
-        readonly ChannelCredentials channelCredentials;
-        readonly CallCredentials callCredentials;
-
-        /// <summary>
-        /// Initializes a new instance of <c>CompositeChannelCredentials</c> class.
-        /// The resulting credentials object will be composite of all the credentials specified as parameters.
-        /// </summary>
-        /// <param name="channelCredentials">channelCredentials to compose</param>
-        /// <param name="callCredentials">channelCredentials to compose</param>
-        public CompositeChannelCredentials(ChannelCredentials channelCredentials, CallCredentials callCredentials)
-        {
-            this.channelCredentials = GrpcPreconditions.CheckNotNull(channelCredentials, nameof(channelCredentials));
-            this.callCredentials = GrpcPreconditions.CheckNotNull(callCredentials, nameof(callCredentials));
-        }
+        readonly ChannelCredentials channelCredentials = GrpcPreconditions.CheckNotNull(channelCredentials,
+            nameof(channelCredentials));
+        readonly CallCredentials callCredentials = GrpcPreconditions.CheckNotNull(callCredentials, nameof(callCredentials));
 
         public override void InternalPopulateConfiguration(ChannelCredentialsConfiguratorBase configurator, object state)
-        {
-            configurator.SetCompositeCredentials(state, channelCredentials, callCredentials);
-        }
+            => configurator.SetCompositeCredentials(state, channelCredentials, callCredentials);
     }
 }

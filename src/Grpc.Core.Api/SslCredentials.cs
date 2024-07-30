@@ -86,34 +86,20 @@ public sealed class SslCredentials : ChannelCredentials
     /// <summary>
     /// PEM encoding of the server root certificates.
     /// </summary>
-    public string? RootCertificates
-    {
-        get
-        {
-            return this.rootCertificates;
-        }
-    }
+    public string? RootCertificates => this.rootCertificates;
 
     /// <summary>
     /// Client side key and certificate pair.
     /// If null, client will not use key and certificate pair.
     /// </summary>
-    public KeyCertificatePair? KeyCertificatePair
-    {
-        get
-        {
-            return this.keyCertificatePair;
-        }
-    }
+    public KeyCertificatePair? KeyCertificatePair => this.keyCertificatePair;
 
     /// <summary>
     /// Populates channel credentials configurator with this instance's configuration.
     /// End users never need to invoke this method as it is part of internal implementation.
     /// </summary>
     public override void InternalPopulateConfiguration(ChannelCredentialsConfiguratorBase configurator, object state)
-    {
-        configurator.SetSslCredentials(state, rootCertificates, keyCertificatePair, verifyPeerCallback);
-    }
+        => configurator.SetSslCredentials(state, rootCertificates, keyCertificatePair, verifyPeerCallback);
 
     internal override bool IsComposable => true;
 }

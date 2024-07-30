@@ -51,9 +51,7 @@ public static class GoogleGrpcCredentials
     /// <param name="accessToken">OAuth2 access token.</param>
     /// <returns>The <c>CallCredentials</c> instance.</returns>
     public static CallCredentials FromAccessToken(string accessToken)
-    {
-        return CallCredentials.FromInterceptor(GoogleAuthInterceptors.FromAccessToken(accessToken));
-    }
+        => CallCredentials.FromInterceptor(GoogleAuthInterceptors.FromAccessToken(accessToken));
 
     /// <summary>
     /// Converts a <c>ITokenAccess</c> (e.g. <c>GoogleCredential</c>) object
@@ -62,9 +60,7 @@ public static class GoogleGrpcCredentials
     /// <param name="credential">The credential to use to obtain access tokens.</param>
     /// <returns>The <c>CallCredentials</c> instance.</returns>
     public static CallCredentials ToCallCredentials(this ITokenAccess credential)
-    {
-        return CallCredentials.FromInterceptor(GoogleAuthInterceptors.FromCredential(credential));
-    }
+        => CallCredentials.FromInterceptor(GoogleAuthInterceptors.FromCredential(credential));
 
     /// <summary>
     /// Converts a <c>ITokenAccess</c> (e.g. <c>GoogleCredential</c>) object
@@ -74,7 +70,5 @@ public static class GoogleGrpcCredentials
     /// <param name="googleCredential">The credential to use to obtain access tokens.</param>
     /// <returns>>The <c>ChannelCredentials</c> instance.</returns>
     public static ChannelCredentials ToChannelCredentials(this ITokenAccess googleCredential)
-    {
-        return ChannelCredentials.Create(new SslCredentials(), googleCredential.ToCallCredentials());
-    }
+        => ChannelCredentials.Create(new SslCredentials(), googleCredential.ToCallCredentials());
 }
