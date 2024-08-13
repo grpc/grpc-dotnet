@@ -10,7 +10,7 @@ namespace System.Threading;
 /// <summary>
 /// A backport of .NET 9.0+'s System.Threading.Lock.
 /// </summary>
-public sealed class Lock
+internal sealed class Lock
 {
 #pragma warning disable CS9216 // A value of type 'System.Threading.Lock' converted to a different type will use likely unintended monitor-based locking in 'lock' statement.
     /// <summary>
