@@ -27,7 +27,7 @@ namespace QpsWorker.Infrastructure;
 /// </summary>
 public class TimeStats
 {
-    private readonly object _myLock = new object();
+    private readonly Lock _myLock = new Lock();
     private DateTime _lastWallClock;
     private TimeSpan _lastUserTime;
     private TimeSpan _lastPrivilegedTime;

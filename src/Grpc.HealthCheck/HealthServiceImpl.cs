@@ -37,7 +37,7 @@ public class HealthServiceImpl : Grpc.Health.V1.Health.HealthBase
     // The maximum number of statuses to buffer on the server.
     internal const int MaxStatusBufferSize = 5;
 
-    private readonly object statusLock = new object();
+    private readonly Lock statusLock = new Lock();
     private readonly Dictionary<string, HealthCheckResponse.Types.ServingStatus> statusMap =
         new Dictionary<string, HealthCheckResponse.Types.ServingStatus>();
 

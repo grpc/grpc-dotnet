@@ -1,4 +1,4 @@
-﻿#region Copyright notice and license
+#region Copyright notice and license
 
 // Copyright 2019 The gRPC Authors
 //
@@ -27,7 +27,7 @@ public sealed class GrpcTestContext : IDisposable
 {
     private readonly ServiceProvider _serviceProvider;
     private readonly ConcurrentDictionary<string, ILogger> _serverLoggers;
-    private readonly object _lock = new object();
+    private readonly Lock _lock = new Lock();
 
     public ILoggerFactory LoggerFactory { get; }
     public ILogger Logger { get; }

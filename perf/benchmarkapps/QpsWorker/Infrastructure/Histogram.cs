@@ -28,7 +28,7 @@ namespace QpsWorker.Infrastructure;
 /// </summary>
 public class Histogram
 {
-    private readonly object _myLock = new object();
+    private readonly Lock _myLock = new Lock();
     private readonly double _multiplier;
     private readonly double _oneOnLogMultiplier;
     private readonly double _maxPossible;
