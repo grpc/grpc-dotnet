@@ -22,8 +22,8 @@ ASP.NET Core app that hosts `InteropTestsGrpcWebClient`.
 Start the website by running it in Docker. Execute in the root of repository:
 
 ```
-docker-compose -f docker-compose.yml build grpcweb-client
-docker-compose -f docker-compose.yml up grpcweb-client
+docker compose -f docker-compose.yml build grpcweb-client
+docker compose -f docker-compose.yml up grpcweb-client
 ```
 
 gRPC-Web interop client is hosted at `http://localhost:8081`.
@@ -45,8 +45,8 @@ ASP.NET Core app that hosts gRPC interop service. It is called by `InteropTestsC
 Start the website by running it in Docker. Execute in the root of repository:
 
 ```
-docker-compose -f docker-compose.yml build grpcweb-server
-docker-compose -f docker-compose.yml up grpcweb-server
+docker compose -f docker-compose.yml build grpcweb-server
+docker compose -f docker-compose.yml up grpcweb-server
 ```
 
 gRPC interop services are hosted at `http://localhost:8080`.

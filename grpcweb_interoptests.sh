@@ -17,11 +17,11 @@ set -ex
 
 echo "Starting gRPC-Web interop test containers"
 
-docker-compose -f docker-compose.yml build grpcweb-server
-docker-compose -f docker-compose.yml build grpcweb-client
+docker compose -f docker-compose.yml build grpcweb-server
+docker compose -f docker-compose.yml build grpcweb-client
 
-docker-compose -f docker-compose.yml up -d grpcweb-server
-docker-compose -f docker-compose.yml up -d grpcweb-client
+docker compose -f docker-compose.yml up -d grpcweb-server
+docker compose -f docker-compose.yml up -d grpcweb-client
 
 sleep 5
 
@@ -34,6 +34,6 @@ cd ../../..
 
 echo "Remove all containers"
 
-docker-compose down
+docker compose down
 
 echo "gRPC-Web interop tests finished"
