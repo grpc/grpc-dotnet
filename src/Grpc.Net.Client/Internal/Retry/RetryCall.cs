@@ -104,7 +104,8 @@ internal sealed class RetryCall<TRequest, TResponse> : RetryCallBase<TRequest, T
             while (true)
             {
                 GrpcCall<TRequest, TResponse> currentCall;
-                lock (Lock)
+                Lock.Enter();
+                try
                 {
                     // Start new call.
                     OnStartingAttempt();
@@ -120,6 +121,10 @@ internal sealed class RetryCall<TRequest, TResponse> : RetryCallBase<TRequest, T
                         // buffer limits, which causes the call to immediately become commited and to clear buffers.
                         return;
                     }
+                }
+                finally
+                {
+                    Lock.Exit();
                 }
 
                 Status? responseStatus;
@@ -284,7 +289,7 @@ internal sealed class RetryCall<TRequest, TResponse> : RetryCallBase<TRequest, T
 
     protected override void OnCommitCall(IGrpcCall<TRequest, TResponse> call)
     {
-        Debug.Assert(Monitor.IsEntered(Lock));
+        Debug.Assert(Lock.IsHeldByCurrentThread);
 
         _activeCall = null;
     }
@@ -344,10 +349,9 @@ internal sealed class RetryCall<TRequest, TResponse> : RetryCallBase<TRequest, T
                 registration?.Dispose();
             }
 
-            lock (Lock)
-            {
-                BufferedCurrentMessage = false;
-            }
+            Lock.Enter();
+            BufferedCurrentMessage = false;
+            Lock.Exit();
 
             if (ClientStreamComplete)
             {
@@ -390,7 +394,8 @@ internal sealed class RetryCall<TRequest, TResponse> : RetryCallBase<TRequest, T
     {
         Debug.Assert(NewActiveCallTcs != null);
 
-        lock (Lock)
+        Lock.Enter();
+        try
         {
             // Return currently active call if there is one, and its not the previous call.
             if (_activeCall != null && previousCall != _activeCall)
@@ -400,6 +405,10 @@ internal sealed class RetryCall<TRequest, TResponse> : RetryCallBase<TRequest, T
 
             // Wait to see whether new call will be made
             return GetActiveCallUnsynchronizedAsync(previousCall);
+        }
+        finally
+        {
+            Lock.Exit();
         }
     }
 }

@@ -79,7 +79,7 @@ internal class SocketConnectivitySubchannelTransport : ISubchannelTransport, IDi
         _socketConnectedTimer = NonCapturingTimer.Create(OnCheckSocketConnection, state: null, Timeout.InfiniteTimeSpan, Timeout.InfiniteTimeSpan);
     }
 
-    private object Lock => _subchannel.Lock;
+    private Lock Lock => _subchannel.Lock;
     public DnsEndPoint? CurrentEndPoint => _currentEndPoint;
     public TimeSpan? ConnectTimeout { get; }
     public TransportStatus TransportStatus
@@ -132,7 +132,7 @@ internal class SocketConnectivitySubchannelTransport : ISubchannelTransport, IDi
 
     private void DisconnectUnsynchronized()
     {
-        Debug.Assert(Monitor.IsEntered(Lock));
+        Debug.Assert(Lock.IsHeldByCurrentThread);
         Debug.Assert(!_disposed);
 
         _initialSocket?.Dispose();
@@ -170,7 +170,8 @@ internal class SocketConnectivitySubchannelTransport : ISubchannelTransport, IDi
                 await _socketConnect(socket, currentEndPoint, context.CancellationToken).ConfigureAwait(false);
                 SocketConnectivitySubchannelTransportLog.ConnectedSocket(_logger, _subchannel.Id, currentEndPoint);
 
-                lock (Lock)
+                Lock.Enter();
+                try
                 {
                     _currentEndPoint = currentEndPoint;
                     _lastEndPointIndex = currentIndex;
@@ -183,6 +184,10 @@ internal class SocketConnectivitySubchannelTransport : ISubchannelTransport, IDi
                     // This could happen because of execution delays (e.g. hitting a debugger breakpoint).
                     // Instead, the socket timer target method reschedules the next run after it has finished.
                     _socketConnectedTimer.Change(_socketPingInterval, Timeout.InfiniteTimeSpan);
+                }
+                finally
+                {
+                    Lock.Exit();
                 }
 
                 _subchannel.UpdateConnectivityState(ConnectivityState.Ready, "Successfully connected to socket.");
@@ -223,12 +228,17 @@ internal class SocketConnectivitySubchannelTransport : ISubchannelTransport, IDi
         _subchannel.UpdateConnectivityState(
             ConnectivityState.TransientFailure,
             new Status(StatusCode.Unavailable, "Error connecting to subchannel.", firstConnectionError));
-        lock (Lock)
+        Lock.Enter();
+        try
         {
             if (!_disposed)
             {
                 _socketConnectedTimer.Change(Timeout.InfiniteTimeSpan, Timeout.InfiniteTimeSpan);
             }
+        }
+        finally
+        {
+            Lock.Exit();
         }
         return result;
     }
@@ -319,7 +329,8 @@ internal class SocketConnectivitySubchannelTransport : ISubchannelTransport, IDi
         DnsEndPoint? socketEndPoint = null;
         List<ReadOnlyMemory<byte>>? socketData = null;
         DateTime? socketCreatedTime = null;
-        lock (Lock)
+        Lock.Enter();
+        try
         {
             if (_initialSocket != null)
             {
@@ -344,6 +355,10 @@ internal class SocketConnectivitySubchannelTransport : ISubchannelTransport, IDi
 
                 _socketConnectedTimer.Change(Timeout.InfiniteTimeSpan, Timeout.InfiniteTimeSpan);
             }
+        }
+        finally
+        {
+            Lock.Exit();
         }
 
         if (socket != null)
@@ -384,10 +399,15 @@ internal class SocketConnectivitySubchannelTransport : ISubchannelTransport, IDi
         // This stream wrapper intercepts dispose.
         var stream = new StreamWrapper(networkStream, OnStreamDisposed, socketData);
 
-        lock (Lock)
+        Lock.Enter();
+        try
         {
             _activeStreams.Add(new ActiveStream(endPoint, socket, stream));
             SocketConnectivitySubchannelTransportLog.StreamCreated(_logger, _subchannel.Id, endPoint, CalculateInitialSocketDataLength(socketData), _activeStreams.Count);
+        }
+        finally
+        {
+            Lock.Exit();
         }
 
         return stream;

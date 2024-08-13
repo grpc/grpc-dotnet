@@ -41,7 +41,7 @@ public class HealthServiceImpl : Grpc.Health.V1.Health.HealthBase
     private readonly Dictionary<string, HealthCheckResponse.Types.ServingStatus> statusMap =
         new Dictionary<string, HealthCheckResponse.Types.ServingStatus>();
 
-    private readonly object watchersLock = new object();
+    private readonly Lock watchersLock = new Lock();
     private readonly Dictionary<string, List<ChannelWriter<HealthCheckResponse>>> watchers =
         new Dictionary<string, List<ChannelWriter<HealthCheckResponse>>>();
 
@@ -155,7 +155,8 @@ public class HealthServiceImpl : Grpc.Health.V1.Health.HealthBase
             FullMode = BoundedChannelFullMode.DropOldest
         });
 
-        lock (watchersLock)
+        watchersLock.Enter();
+        try
         {
             if (!watchers.TryGetValue(service, out List<ChannelWriter<HealthCheckResponse>>? channelWriters))
             {
@@ -164,6 +165,10 @@ public class HealthServiceImpl : Grpc.Health.V1.Health.HealthBase
             }
 
             channelWriters.Add(channel.Writer);
+        }
+        finally
+        {
+            watchersLock.Exit();
         }
 
         // Watch calls run until ended by the client canceling them.

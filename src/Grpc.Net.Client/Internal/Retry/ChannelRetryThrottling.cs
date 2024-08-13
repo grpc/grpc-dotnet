@@ -23,7 +23,7 @@ namespace Grpc.Net.Client.Internal.Retry;
 
 internal class ChannelRetryThrottling
 {
-    private readonly object _lock = new object();
+    private readonly Lock _lock = new Lock();
     private readonly double _tokenRatio;
     private readonly int _maxTokens;
     private readonly ILogger _logger;
@@ -72,7 +72,7 @@ internal class ChannelRetryThrottling
 
     private void UpdateRetryThrottlingActive()
     {
-        Debug.Assert(Monitor.IsEntered(_lock));
+        Debug.Assert(_lock.IsHeldByCurrentThread);
 
         var newRetryThrottlingActive = _tokenCount <= _tokenThreshold;
 

@@ -42,7 +42,7 @@ internal abstract partial class RetryCallBase<TRequest, TResponse> : IGrpcCall<T
     // Internal for unit testing.
     internal CancellationTokenRegistration? _ctsRegistration;
 
-    protected object Lock { get; } = new object();
+    protected Lock Lock { get; } = new Lock();
     protected ILogger Logger { get; }
     protected Method<TRequest, TResponse> Method { get; }
     protected CallOptions Options { get; }
@@ -214,7 +214,8 @@ internal abstract partial class RetryCallBase<TRequest, TResponse> : IGrpcCall<T
         return new PushStreamContent<TRequest, TResponse>(clientStreamWriter, async requestStream =>
         {
             Task writeTask;
-            lock (Lock)
+            Lock.Enter();
+            try
             {
                 Log.SendingBufferedMessages(Logger, BufferedMessages.Count);
 
@@ -228,6 +229,10 @@ internal abstract partial class RetryCallBase<TRequest, TResponse> : IGrpcCall<T
                     var bufferedMessageCopy = BufferedMessages.ToArray();
                     writeTask = WriteBufferedMessages(call, requestStream, bufferedMessageCopy);
                 }
+            }
+            finally
+            {
+                Lock.Exit();
             }
 
             await writeTask.ConfigureAwait(false);
@@ -323,7 +328,8 @@ internal abstract partial class RetryCallBase<TRequest, TResponse> : IGrpcCall<T
         // Serialize current message and add to the buffer.
         ReadOnlyMemory<byte> messageData;
 
-        lock (Lock)
+        Lock.Enter();
+        try
         {
             if (!BufferedCurrentMessage)
             {
@@ -360,6 +366,10 @@ internal abstract partial class RetryCallBase<TRequest, TResponse> : IGrpcCall<T
 
                 messageData = BufferedMessages[BufferedMessages.Count - 1];
             }
+        }
+        finally
+        {
+            Lock.Exit();
         }
 
         await call.WriteMessageAsync(writeStream, messageData, callOptions.CancellationToken).ConfigureAwait(false);
@@ -414,7 +424,7 @@ internal abstract partial class RetryCallBase<TRequest, TResponse> : IGrpcCall<T
 
     protected void SetNewActiveCallUnsynchronized(IGrpcCall<TRequest, TResponse> call)
     {
-        Debug.Assert(Monitor.IsEntered(Lock), "Should be called with lock.");
+        Debug.Assert(Lock.IsHeldByCurrentThread, "Should be called with lock.");
 
         if (NewActiveCallTcs != null)
         {
@@ -435,7 +445,7 @@ internal abstract partial class RetryCallBase<TRequest, TResponse> : IGrpcCall<T
 
         var call = await NewActiveCallTcs.Task.ConfigureAwait(false);
 
-        Debug.Assert(Monitor.IsEntered(Lock));
+        Debug.Assert(Lock.IsHeldByCurrentThread);
         if (call == null)
         {
             call = await CommitedCallTask.ConfigureAwait(false);
@@ -577,7 +587,7 @@ internal abstract partial class RetryCallBase<TRequest, TResponse> : IGrpcCall<T
 
     protected void OnStartingAttempt()
     {
-        Debug.Assert(Monitor.IsEntered(Lock));
+        Debug.Assert(Lock.IsHeldByCurrentThread);
 
         AttemptCount++;
         Log.StartingAttempt(Logger, AttemptCount);

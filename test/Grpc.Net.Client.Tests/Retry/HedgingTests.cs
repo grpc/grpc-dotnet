@@ -550,20 +550,25 @@ public class HedgingTests
     public async Task AsyncClientStreamingCall_SuccessAfterRetry_RequestContentSent(int hedgingDelayMS)
     {
         // Arrange
-        var callLock = new object();
+        var callLock = new Lock();
         var requestContent = new MemoryStream();
 
         var callCount = 0;
         var httpClient = ClientTestHelpers.CreateTestClient(async request =>
         {
             var firstCall = false;
-            lock (callLock)
+            callLock.Enter();
+            try
             {
                 callCount++;
                 if (callCount == 1)
                 {
                     firstCall = true;
                 }
+            }
+            finally
+            {
+                callLock.Exit();
             }
             if (firstCall)
             {

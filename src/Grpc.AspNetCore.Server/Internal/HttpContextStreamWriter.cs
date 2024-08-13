@@ -33,7 +33,7 @@ internal class HttpContextStreamWriter<TResponse> : IServerStreamWriter<TRespons
     private readonly Action<TResponse, SerializationContext> _serializer;
     private readonly PipeWriter _bodyWriter;
     private readonly IHttpRequestLifetimeFeature _requestLifetimeFeature;
-    private readonly object _writeLock;
+    private readonly Lock _writeLock;
     private Task? _writeTask;
     private bool _completed;
     private long _writeCount;
@@ -42,7 +42,7 @@ internal class HttpContextStreamWriter<TResponse> : IServerStreamWriter<TRespons
     {
         _context = context;
         _serializer = serializer;
-        _writeLock = new object();
+        _writeLock = new Lock();
 
         // Copy HttpContext values.
         // This is done to avoid a race condition when reading them from HttpContext later when running in a separate thread.
@@ -92,7 +92,8 @@ internal class HttpContextStreamWriter<TResponse> : IServerStreamWriter<TRespons
                 throw new InvalidOperationException("Can't write the message because the request is complete.");
             }
 
-            lock (_writeLock)
+            _writeLock.Enter();
+            try
             {
                 // Pending writes need to be awaited first
                 if (IsWriteInProgressUnsynchronized)
@@ -102,6 +103,10 @@ internal class HttpContextStreamWriter<TResponse> : IServerStreamWriter<TRespons
 
                 // Save write task to track whether it is complete. Must be set inside lock.
                 _writeTask = _bodyWriter.WriteStreamedMessageAsync(message, _context, _serializer, cancellationToken);
+            }
+            finally
+            {
+                _writeLock.Exit();
             }
 
             await _writeTask;
