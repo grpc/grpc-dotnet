@@ -57,7 +57,6 @@
     <PackageVersion Include="OpenTelemetry.Instrumentation.Http" Version="$(OpenTelemetryIntergationPackageVersion)" />
 
     <!-- Other -->
-    <PackageVersion Include="Backport.System.Threading.Lock" Version="1.1.1" />
     <PackageVersion Include="BenchmarkDotNet" Version="0.13.1" />
     <PackageVersion Include="CommandLineParser" Version="2.5.0" />
     <PackageVersion Include="Google.Api.CommonProtos" Version="2.15.0" />

@@ -26,7 +26,7 @@
 
   <ItemGroup Condition=" '$(TargetFramework)' == 'net462' or '$(TargetFramework)' == 'netstandard2.0'">
     <PackageReference Include="System.Threading.Channels" />
-    <PackageReference Include="Backport.System.Threading.Lock" />
+    <Compile Include="..\Shared\Lock.cs" Link="Internal\Lock.cs" />
   </ItemGroup>
 
   <ItemGroup Condition=" '$(TargetFramework)' == 'net462' ">
@@ -35,7 +35,7 @@
   </ItemGroup>
 
   <ItemGroup Condition=" '$(TargetFramework)' == 'net6.0' or '$(TargetFramework)' == 'net7.0' or '$(TargetFramework)' == 'net8.0'">
-    <PackageReference Include="Backport.System.Threading.Lock" />
+    <Compile Include="..\Shared\Lock.cs" Link="Internal\Lock.cs" />
   </ItemGroup>
 
 </Project>

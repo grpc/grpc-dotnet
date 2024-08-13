@@ -18,11 +18,11 @@
 
   <ItemGroup Condition="'$(TargetFramework)' == 'netstandard2.0'">
     <PackageReference Include="Microsoft.Bcl.AsyncInterfaces" />
-    <PackageReference Include="Backport.System.Threading.Lock" />
+    <Compile Include="..\Shared\Lock.cs" Link="Internal\Lock.cs" />
   </ItemGroup>
 
   <ItemGroup Condition="'$(TargetFramework)' == 'netstandard2.1' or '$(TargetFramework)' == 'net6.0' or '$(TargetFramework)' == 'net7.0' or '$(TargetFramework)' == 'net8.0'">
-    <PackageReference Include="Backport.System.Threading.Lock" />
+    <Compile Include="..\Shared\Lock.cs" Link="Internal\Lock.cs" />
   </ItemGroup>
 
 </Project>
