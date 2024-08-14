@@ -1,4 +1,4 @@
-﻿#region Copyright notice and license
+#region Copyright notice and license
 
 // Copyright 2019 The gRPC Authors
 //
@@ -30,7 +30,7 @@ public class GrpcProtocolHelpersTests
     public void CreateAuthContext_CertWithAlternativeNames_UseAlternativeNamesAsPeerIdentity()
     {
         // Arrange
-        X509Certificate2 certificate = new X509Certificate2(TestHelpers.ResolvePath(@"Certs/outlookcom.crt"));
+        var certificate = LoadCertificate(TestHelpers.ResolvePath(@"Certs/outlookcom.crt"));
 
         // Act
         var authContext = GrpcProtocolHelpers.CreateAuthContext(certificate);
@@ -57,7 +57,7 @@ public class GrpcProtocolHelpersTests
     public void CreateAuthContext_CertWithCommonName_UseCommonNameAsPeerIdentity()
     {
         // Arrange
-        var certificate = new X509Certificate2(TestHelpers.ResolvePath(@"Certs/client.crt"));
+        var certificate = LoadCertificate(TestHelpers.ResolvePath(@"Certs/client.crt"));
 
         // Act
         var authContext = GrpcProtocolHelpers.CreateAuthContext(certificate);
@@ -98,5 +98,14 @@ public class GrpcProtocolHelpersTests
         // Assert
         Assert.AreEqual(expectedSuccesfullyDecoded, successfullyDecoded);
         Assert.AreEqual(expectedTimespan, timeSpan);
+    }
+
+    public static X509Certificate2 LoadCertificate(string path)
+    {
+#if NET9_0_OR_GREATER
+        return X509CertificateLoader.LoadCertificateFromFile(path);
+#else
+        return new X509Certificate2(path);
+#endif
     }
 }

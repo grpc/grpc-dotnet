@@ -27,6 +27,7 @@
     <Compile Include="..\Shared\TestResponseBodyFeature.cs" Link="Infrastructure\TestResponseBodyFeature.cs" />
     <Compile Include="..\Shared\TestServerCallContext.cs" Link="Infrastructure\TestServerCallContext.cs" />
     <Compile Include="..\Shared\NUnitLogger.cs" Link="Infrastructure\NUnitLogger.cs" />
+    <Compile Include="..\Shared\Logging\*.cs" LinkBase="Infrastructure\Logging" />
   </ItemGroup>
 
   <ItemGroup>
@@ -36,9 +37,6 @@
     <ProjectReference Include="..\..\src\Grpc.AspNetCore\Grpc.AspNetCore.csproj" />
     <ProjectReference Include="..\..\src\Grpc.AspNetCore.HealthChecks\Grpc.AspNetCore.HealthChecks.csproj" />
     <ProjectReference Include="..\..\src\Grpc.AspNetCore.Server.Reflection\Grpc.AspNetCore.Server.Reflection.csproj" />
-
-    <PackageReference Include="System.IO.Pipelines" />
-    <PackageReference Include="Microsoft.Extensions.Logging.Testing" />
   </ItemGroup>
 
   <ItemGroup>

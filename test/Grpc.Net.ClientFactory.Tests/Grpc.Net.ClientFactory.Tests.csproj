@@ -23,12 +23,12 @@
     <Compile Include="..\Shared\ResponseUtils.cs" Link="Infrastructure\ResponseUtils.cs" />
     <Compile Include="..\Shared\TaskExtensions.cs" Link="Infrastructure\TaskExtensions.cs" />
     <Compile Include="..\Shared\TestHttpMessageHandler.cs" Link="Infrastructure\TestHttpMessageHandler.cs" />
+    <Compile Include="..\Shared\Logging\*.cs" LinkBase="Infrastructure\Logging" />
 
     <ProjectReference Include="..\..\src\Grpc.Net.ClientFactory\Grpc.Net.ClientFactory.csproj" />
 
     <PackageReference Include="Google.Protobuf" />
     <PackageReference Include="Grpc.Tools" PrivateAssets="All" />
-    <PackageReference Include="Microsoft.Extensions.Logging.Testing" />
     <PackageReference Include="Microsoft.Extensions.Http" />
   </ItemGroup>
 
