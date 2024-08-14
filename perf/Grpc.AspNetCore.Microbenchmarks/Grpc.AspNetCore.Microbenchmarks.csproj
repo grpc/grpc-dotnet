@@ -25,7 +25,6 @@
     <FrameworkReference Include="Microsoft.AspNetCore.App" />
 
     <PackageReference Include="BenchmarkDotNet" />
-    <PackageReference Include="System.IO.Pipelines" />
   </ItemGroup>
 
 </Project>

@@ -186,7 +186,11 @@ public class InteropClient
         {
             var pem = File.ReadAllText("Certs/ca.pem");
             var certData = GetBytesFromPem(pem, "CERTIFICATE");
+#if NET9_0_OR_GREATER
+            var cert = X509CertificateLoader.LoadCertificate(certData!);
+#else
             var cert = new X509Certificate2(certData!);
+#endif
 
             httpClientHandler.ClientCertificates.Add(cert);
         }
