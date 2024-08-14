@@ -1,4 +1,4 @@
-﻿#region Copyright notice and license
+#region Copyright notice and license
 
 // Copyright 2019 The gRPC Authors
 //
@@ -537,7 +537,7 @@ public class HttpContextServerCallContextTests
     {
         // Arrange
         var httpContext = new DefaultHttpContext();
-        var certificate = new X509Certificate2(TestHelpers.ResolvePath(@"Certs/client.crt"));
+        var certificate = GrpcProtocolHelpersTests.LoadCertificate(TestHelpers.ResolvePath(@"Certs/client.crt"));
         httpContext.Connection.ClientCertificate = certificate;
         var serverCallContext = CreateServerCallContext(httpContext);
 

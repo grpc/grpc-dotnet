@@ -32,6 +32,7 @@
     <Compile Include="..\Shared\TestResolver.cs" Link="Infrastructure\Balancer\TestResolver.cs" />
     <Compile Include="..\Shared\TestResolverFactory.cs" Link="Infrastructure\Balancer\TestResolverFactory.cs" />
     <Compile Include="..\Shared\BalancerWaitHelpers.cs" Link="Infrastructure\Balancer\BalancerWaitHelpers.cs" />
+    <Compile Include="..\Shared\Logging\*.cs" LinkBase="Infrastructure\Logging" />
   </ItemGroup>
 
   <ItemGroup>
@@ -40,7 +41,6 @@
 
     <PackageReference Include="Google.Protobuf" />
     <PackageReference Include="Grpc.Tools" PrivateAssets="All" />
-    <PackageReference Include="Microsoft.Extensions.Logging.Testing" />
     <PackageReference Include="Microsoft.Extensions.Logging" />
   </ItemGroup>
   

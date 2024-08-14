@@ -476,11 +476,8 @@ class Program
                 {
                     var basePath = Path.GetDirectoryName(AppContext.BaseDirectory);
                     var certPath = Path.Combine(basePath!, "Certs", "client.pfx");
-                    var clientCertificate = new X509Certificate2(certPath, "1111");
-                    httpClientHandler.SslOptions.ClientCertificates = new X509CertificateCollection
-                    {
-                        clientCertificate
-                    };
+                    var clientCertificates = X509CertificateLoader.LoadPkcs12CollectionFromFile(certPath, "1111");
+                    httpClientHandler.SslOptions.ClientCertificates = clientCertificates;
                 }
 #if NET5_0_OR_GREATER
                 if (!string.IsNullOrEmpty(_options.UdsFileName))
