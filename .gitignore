@@ -34,6 +34,7 @@ launchSettings.json
 BenchmarkDotNet.Artifacts/
 BDN.Generated/
 binaries/
+global.json
 .vscode/
 *.binlog
 build/feed

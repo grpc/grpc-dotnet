@@ -1,4 +1,4 @@
-#region Copyright notice and license
+﻿#region Copyright notice and license
 
 // Copyright 2019 The gRPC Authors
 //
@@ -229,5 +229,5 @@ public class Startup
     }
 
     private readonly JwtSecurityTokenHandler JwtTokenHandler = new JwtSecurityTokenHandler();
-    private readonly SymmetricSecurityKey SecurityKey = new SymmetricSecurityKey(new byte[256]);
+    private readonly SymmetricSecurityKey SecurityKey = new SymmetricSecurityKey(Guid.NewGuid().ToByteArray());
 }

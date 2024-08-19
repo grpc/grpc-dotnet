@@ -20,13 +20,13 @@
     <Compile Include="..\Shared\TaskExtensions.cs" Link="Infrastructure\TaskExtensions.cs" />
     <Compile Include="..\Shared\TestHttpMessageHandler.cs" Link="Infrastructure\TestHttpMessageHandler.cs" />
     <Compile Include="..\Shared\TestServerCallContext.cs" Link="Infrastructure\TestServerCallContext.cs" />
-    <Compile Include="..\Shared\Logging\*.cs" LinkBase="Infrastructure\Logging" />
 
     <ProjectReference Include="..\..\src\Grpc.Core.Api\Grpc.Core.Api.csproj" />
     <ProjectReference Include="..\..\src\Grpc.AspNetCore.Server.ClientFactory\Grpc.AspNetCore.Server.ClientFactory.csproj" />
 
     <PackageReference Include="Google.Protobuf" />
     <PackageReference Include="Grpc.Tools" PrivateAssets="All" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Testing" />
   </ItemGroup>
 
 </Project>

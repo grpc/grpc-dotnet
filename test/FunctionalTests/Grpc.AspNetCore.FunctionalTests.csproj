@@ -27,7 +27,6 @@
     <Compile Include="..\Shared\BalancerWaitHelpers.cs" Link="Infrastructure\Balancer\BalancerWaitHelpers.cs" />
     <Compile Include="..\Shared\CallbackInterceptor.cs" Link="Infrastructure\CallbackInterceptor.cs" />
     <Compile Include="..\Shared\HttpEventSourceListener.cs" Link="Infrastructure\HttpEventSourceListener.cs" />
-    <Compile Include="..\Shared\Logging\*.cs" LinkBase="Infrastructure\Logging" />
   </ItemGroup>
   
   <ItemGroup>
@@ -37,6 +36,8 @@
     <ProjectReference Include="..\..\src\Grpc.Net.ClientFactory\Grpc.Net.ClientFactory.csproj" />
 
     <ProjectReference Include="..\..\testassets\FunctionalTestsWebsite\FunctionalTestsWebsite.csproj" />
+
+    <PackageReference Include="Microsoft.Extensions.Logging.Testing" />
 
     <None Update="server1.pfx">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>

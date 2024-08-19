@@ -432,11 +432,7 @@ public class ConnectionTests : FunctionalTestBase
         // even after specifying the correct host override.
         var basePath = Path.GetDirectoryName(typeof(InProcessTestServer).Assembly.Location);
         var certPath = Path.Combine(basePath!, "localhost.pfx");
-#if NET9_0_OR_GREATER
-        var cert = X509CertificateLoader.LoadPkcs12FromFile(certPath, "11111");
-#else
         var cert = new X509Certificate2(certPath, "11111");
-#endif
 
         // Arrange
         using var endpoint1 = BalancerHelpers.CreateGrpcEndpoint<HelloRequest, HelloReply>(UnaryMethod, nameof(UnaryMethod), HttpProtocols.Http1AndHttp2, isHttps: true, certificate: cert);
