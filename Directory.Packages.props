@@ -60,7 +60,7 @@
     <PackageVersion Include="BenchmarkDotNet" Version="0.14.0" />
     <PackageVersion Include="CommandLineParser" Version="2.5.0" />
     <PackageVersion Include="Google.Api.CommonProtos" Version="2.15.0" />
-    <PackageVersion Include="Google.Apis.Auth" Version="1.46.0" />
+    <PackageVersion Include="Google.Apis.Auth" Version="1.57.0" />
     <PackageVersion Include="Google.Protobuf" Version="3.27.0" />
     <PackageVersion Include="Microsoft.Bcl.AsyncInterfaces" Version="6.0.0" />
     <PackageVersion Include="Microsoft.Build.Locator" Version="1.5.5" />
