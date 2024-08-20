@@ -245,7 +245,7 @@ public class InteropClient
         if (options.TestCase == "compute_engine_creds")
         {
             var googleCredential = await GoogleCredential.GetApplicationDefaultAsync();
-            Assert.IsFalse(googleCredential.IsCreateScopedRequired);
+            Assert.IsTrue(googleCredential.UnderlyingCredential is ComputeCredential);
             credentials = ChannelCredentials.Create(credentials, googleCredential.ToCallCredentials());
         }
 #else
