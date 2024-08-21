@@ -310,14 +310,13 @@ public class ConnectionTests : FunctionalTestBase
                 }
             }
         };
-        var grpcWebHandler = new GrpcWebHandler(GrpcWebMode.GrpcWeb, socketsHttpHandler);
+        var grpcWebHandler = new GrpcWebHandler(GrpcWebMode.GrpcWeb, new RequestVersionHandler(socketsHttpHandler));
         var channel = GrpcChannel.ForAddress("static:///localhost", new GrpcChannelOptions
         {
             LoggerFactory = LoggerFactory,
             HttpHandler = grpcWebHandler,
             ServiceProvider = services.BuildServiceProvider(),
-            Credentials = new SslCredentials(),
-            HttpVersionPolicy = HttpVersionPolicy.RequestVersionOrHigher
+            Credentials = new SslCredentials()
         });
 
         var client = TestClientFactory.Create(channel, endpoint1.Method);
@@ -568,6 +567,20 @@ public class ConnectionTests : FunctionalTestBase
         // Assert
         Assert.AreEqual("Bearer TEST", authorization);
         Assert.AreEqual("Balancer", reply.Message);
+    }
+
+    private class RequestVersionHandler : DelegatingHandler
+    {
+        public RequestVersionHandler(HttpMessageHandler innerHandler) : base(innerHandler)
+        {
+        }
+
+        protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
+        {
+            request.VersionPolicy = HttpVersionPolicy.RequestVersionExact;
+
+            return base.SendAsync(request, cancellationToken);
+        }
     }
 
     [Test]
