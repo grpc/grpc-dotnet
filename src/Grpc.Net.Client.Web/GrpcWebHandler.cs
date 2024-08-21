@@ -44,6 +44,7 @@ public sealed class GrpcWebHandler : DelegatingHandler
     /// be overridden.
     /// </para>
     /// </summary>
+    [Obsolete("HttpVersion is obsolete and will be removed in a future release. Use GrpcChannelOptions.HttpVersion and GrpcChannelOptions.HttpVersionPolicy instead.")]
     public Version? HttpVersion { get; set; }
 
     /// <summary>
@@ -136,13 +137,18 @@ public sealed class GrpcWebHandler : DelegatingHandler
         // https://github.com/mono/mono/issues/18718
         request.SetOption(WebAssemblyEnableStreamingResponseKey, true);
 
+#pragma warning disable CS0618 // Type or member is obsolete
         if (HttpVersion != null)
         {
             // This doesn't guarantee that the specified version is used. Some handlers will ignore it.
             // For example, version in the browser always negotiated by the browser and HttpClient
             // uses what the browser has negotiated.
             request.Version = HttpVersion;
+#if NET5_0_OR_GREATER
+            request.VersionPolicy = HttpVersionPolicy.RequestVersionOrHigher;
+#endif
         }
+#pragma warning restore CS0618 // Type or member is obsolete
 #if NET5_0_OR_GREATER
         else if (request.RequestUri?.Scheme == Uri.UriSchemeHttps
             && request.VersionPolicy == HttpVersionPolicy.RequestVersionExact

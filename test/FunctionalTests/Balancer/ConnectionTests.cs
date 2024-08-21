@@ -317,13 +317,13 @@ public class ConnectionTests : FunctionalTestBase
             HttpHandler = grpcWebHandler,
             ServiceProvider = services.BuildServiceProvider(),
             Credentials = new SslCredentials(),
-            HttpVersionPolicy = HttpVersionPolicy.RequestVersionExact
+            HttpVersionPolicy = HttpVersionPolicy.RequestVersionOrHigher
         });
 
         var client = TestClientFactory.Create(channel, endpoint1.Method);
 
         // Act
-        grpcWebHandler.HttpVersion = new Version(1, 1);
+        SetHandlerHttpVersion(grpcWebHandler, new Version(1, 1));
         var http11CallTasks = new List<Task<HelloReply>>();
         for (int i = 0; i < 10; i++)
         {
@@ -353,7 +353,7 @@ public class ConnectionTests : FunctionalTestBase
         }
 
         // Act
-        grpcWebHandler.HttpVersion = new Version(2, 0);
+        SetHandlerHttpVersion(grpcWebHandler, new Version(2, 0));
         var http2CallTasks = new List<Task<HelloReply>>();
         for (int i = 0; i < 10; i++)
         {
@@ -390,7 +390,7 @@ public class ConnectionTests : FunctionalTestBase
             return activeStreams.Count == 10;
         }, "Wait for HTTP/2 connection to end.");
 
-        grpcWebHandler.HttpVersion = new Version(1, 1);
+        SetHandlerHttpVersion(grpcWebHandler, new Version(1, 1));
 
         await Task.Delay(1000);
 
@@ -411,6 +411,13 @@ public class ConnectionTests : FunctionalTestBase
         activeStreams = transport.GetActiveStreams();
         Assert.AreEqual(1, activeStreams.Count);
         Assert.AreEqual(new DnsEndPoint("127.0.0.1", endpoint2.Address.Port), activeStreams[0].EndPoint);
+    }
+
+    private static void SetHandlerHttpVersion(GrpcWebHandler handler, Version version)
+    {
+#pragma warning disable CS0618 // Type or member is obsolete
+        handler.HttpVersion = version;
+#pragma warning restore CS0618 // Type or member is obsolete
     }
 
 #if NET7_0_OR_GREATER
