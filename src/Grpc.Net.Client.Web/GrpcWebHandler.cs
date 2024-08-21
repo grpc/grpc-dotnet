@@ -44,7 +44,11 @@ public sealed class GrpcWebHandler : DelegatingHandler
     /// be overridden.
     /// </para>
     /// </summary>
+#if NET5_0_OR_GREATER
     [Obsolete("HttpVersion is obsolete and will be removed in a future release. Use GrpcChannelOptions.HttpVersion and GrpcChannelOptions.HttpVersionPolicy instead.")]
+#else
+    [Obsolete("HttpVersion is obsolete and will be removed in a future release. Use GrpcChannelOptions.HttpVersion instead.")]
+#endif
     public Version? HttpVersion { get; set; }
 
     /// <summary>
