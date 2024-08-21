@@ -1,4 +1,4 @@
-﻿#region Copyright notice and license
+#region Copyright notice and license
 
 // Copyright 2019 The gRPC Authors
 //
@@ -16,7 +16,6 @@
 
 #endregion
 
-
 namespace Grpc.AspNetCore.FunctionalTests.Infrastructure;
 
 public static class GrpcHttpHelper
@@ -26,7 +25,7 @@ public static class GrpcHttpHelper
         var request = new HttpRequestMessage(method ?? HttpMethod.Post, url);
         request.Version = new Version(2, 0);
 #if NET5_0_OR_GREATER
-        request.VersionPolicy = HttpVersionPolicy.RequestVersionOrHigher;
+        request.VersionPolicy = HttpVersionPolicy.RequestVersionExact;
 #endif
 
         return request;
