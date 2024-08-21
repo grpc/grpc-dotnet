@@ -1,4 +1,4 @@
-﻿#region Copyright notice and license
+#region Copyright notice and license
 
 // Copyright 2019 The gRPC Authors
 //
@@ -44,6 +44,11 @@ public sealed class GrpcWebHandler : DelegatingHandler
     /// be overridden.
     /// </para>
     /// </summary>
+#if NET5_0_OR_GREATER
+    [Obsolete("HttpVersion is obsolete and will be removed in a future release. Use GrpcChannelOptions.HttpVersion and GrpcChannelOptions.HttpVersionPolicy instead.")]
+#else
+    [Obsolete("HttpVersion is obsolete and will be removed in a future release. Use GrpcChannelOptions.HttpVersion instead.")]
+#endif
     public Version? HttpVersion { get; set; }
 
     /// <summary>
@@ -136,22 +141,27 @@ public sealed class GrpcWebHandler : DelegatingHandler
         // https://github.com/mono/mono/issues/18718
         request.SetOption(WebAssemblyEnableStreamingResponseKey, true);
 
+#pragma warning disable CS0618 // Type or member is obsolete
         if (HttpVersion != null)
         {
             // This doesn't guarantee that the specified version is used. Some handlers will ignore it.
             // For example, version in the browser always negotiated by the browser and HttpClient
             // uses what the browser has negotiated.
             request.Version = HttpVersion;
+#if NET5_0_OR_GREATER
+            request.VersionPolicy = HttpVersionPolicy.RequestVersionOrHigher;
+#endif
         }
+#pragma warning restore CS0618 // Type or member is obsolete
 #if NET5_0_OR_GREATER
         else if (request.RequestUri?.Scheme == Uri.UriSchemeHttps
-            && request.VersionPolicy == HttpVersionPolicy.RequestVersionOrHigher
+            && request.VersionPolicy == HttpVersionPolicy.RequestVersionExact
             && request.Version == System.Net.HttpVersion.Version20)
         {
-            // If no explicit HttpVersion is set and the request is using TLS then default to HTTP/1.1.
-            // HTTP/1.1 together with HttpVersionPolicy.RequestVersionOrHigher it will be compatible
-            // with all endpoints.
-            request.Version = System.Net.HttpVersion.Version11;
+            // If no explicit HttpVersion is set and the request is using TLS then change the version policy
+            // to allow for HTTP/1.1. HttpVersionPolicy.RequestVersionOrLower it will be compatible
+            // with HTTP/1.1 and HTTP/2.
+            request.VersionPolicy = HttpVersionPolicy.RequestVersionOrLower;
         }
 #endif
 #if NETSTANDARD2_0

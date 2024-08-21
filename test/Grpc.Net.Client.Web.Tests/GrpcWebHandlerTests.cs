@@ -54,8 +54,9 @@ public class GrpcWebHandlerTests
         Assert.AreEqual(GrpcWebProtocolConstants.Http2Version, response.Version);
     }
 
+#pragma warning disable CS0618 // Type or member is obsolete
     [Test]
-    public async Task HttpVersion_Set_HttpRequestMessageVersionChanged()
+    public async Task HttpVersion_SetOnHandler_HttpRequestMessageVersionChanged()
     {
         // Arrange
         var request = new HttpRequestMessage
@@ -71,6 +72,34 @@ public class GrpcWebHandlerTests
         {
             InnerHandler = testHttpHandler,
             HttpVersion = HttpVersion.Version11
+        };
+        var messageInvoker = new HttpMessageInvoker(grpcWebHandler);
+
+        // Act
+        var response = await messageInvoker.SendAsync(request, CancellationToken.None);
+
+        // Assert
+        Assert.AreEqual(HttpVersion.Version11, testHttpHandler.Request!.Version);
+        Assert.AreEqual(GrpcWebProtocolConstants.Http2Version, response.Version);
+    }
+#pragma warning restore CS0618 // Type or member is obsolete
+
+    [Test]
+    public async Task HttpVersion_SetOnMessage_HttpRequestMessageVersionChanged()
+    {
+        // Arrange
+        var request = new HttpRequestMessage
+        {
+            Version = HttpVersion.Version11,
+            Content = new ByteArrayContent(Array.Empty<byte>())
+            {
+                Headers = { ContentType = new MediaTypeHeaderValue("application/grpc") }
+            }
+        };
+        var testHttpHandler = new TestHttpHandler();
+        var grpcWebHandler = new GrpcWebHandler(GrpcWebMode.GrpcWeb)
+        {
+            InnerHandler = testHttpHandler
         };
         var messageInvoker = new HttpMessageInvoker(grpcWebHandler);
 

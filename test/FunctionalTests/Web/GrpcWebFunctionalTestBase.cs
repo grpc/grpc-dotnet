@@ -1,4 +1,4 @@
-﻿#region Copyright notice and license
+#region Copyright notice and license
 
 // Copyright 2019 The gRPC Authors
 //
@@ -88,7 +88,9 @@ public abstract class GrpcWebFunctionalTestBase : FunctionalTestBase
             var mode = GrpcTestMode == GrpcTestMode.GrpcWeb ? GrpcWebMode.GrpcWeb : GrpcWebMode.GrpcWebText;
             grpcWebHandler = new GrpcWebHandler(mode)
             {
+#pragma warning disable CS0618 // Type or member is obsolete
                 HttpVersion = protocol
+#pragma warning restore CS0618 // Type or member is obsolete
             };
         }
 

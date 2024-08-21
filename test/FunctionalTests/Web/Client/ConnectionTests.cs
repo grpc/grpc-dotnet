@@ -16,6 +16,7 @@
 
 #endregion
 
+using System.Net.Http;
 using Grpc.AspNetCore.FunctionalTests.Infrastructure;
 using Grpc.Core;
 using Grpc.Gateway.Testing;
@@ -31,51 +32,80 @@ public class ConnectionTests : FunctionalTestBase
     private HttpClient CreateGrpcWebClient(TestServerEndpointName endpointName, Version? version)
     {
         GrpcWebHandler grpcWebHandler = new GrpcWebHandler(GrpcWebMode.GrpcWeb);
+#pragma warning disable CS0618 // Type or member is obsolete
         grpcWebHandler.HttpVersion = version;
+#pragma warning restore CS0618 // Type or member is obsolete
 
         return Fixture.CreateClient(endpointName, grpcWebHandler);
     }
 
-    private GrpcChannel CreateGrpcWebChannel(TestServerEndpointName endpointName, Version? version)
+    private GrpcChannel CreateGrpcWebChannel(TestServerEndpointName endpointName, Version? version, bool setVersionOnHandler)
     {
-        var httpClient = CreateGrpcWebClient(endpointName, version);
-        var channel = GrpcChannel.ForAddress(httpClient.BaseAddress!, new GrpcChannelOptions
+        var options = new GrpcChannelOptions
         {
-            HttpClient = httpClient,
             LoggerFactory = LoggerFactory
-        });
-
-        return channel;
+        };
+        if (setVersionOnHandler)
+        {
+            options.HttpClient = CreateGrpcWebClient(endpointName, version: null);
+            if (version != null)
+            {
+                options.HttpVersion = version;
+                options.HttpVersionPolicy = HttpVersionPolicy.RequestVersionOrHigher;
+            }
+            return GrpcChannel.ForAddress(options.HttpClient.BaseAddress!, options);
+        }
+        else
+        {
+            options.HttpClient = CreateGrpcWebClient(endpointName, version);
+            return GrpcChannel.ForAddress(options.HttpClient.BaseAddress!, options);
+        }
     }
 
-    [TestCase(TestServerEndpointName.Http1, "2.0", false)]
-    [TestCase(TestServerEndpointName.Http1, "1.1", true)]
-    [TestCase(TestServerEndpointName.Http1, null, false)]
-    [TestCase(TestServerEndpointName.Http2, "2.0", true)]
-    [TestCase(TestServerEndpointName.Http2, "1.1", false)]
-    [TestCase(TestServerEndpointName.Http2, null, true)]
+    private static IEnumerable<TestCaseData> ConnectionTestData()
+    {
+        yield return new TestCaseData(TestServerEndpointName.Http1, "2.0", false);
+        yield return new TestCaseData(TestServerEndpointName.Http1, "1.1", true);
+        yield return new TestCaseData(TestServerEndpointName.Http1, null, false);
+        yield return new TestCaseData(TestServerEndpointName.Http2, "2.0", true);
+        yield return new TestCaseData(TestServerEndpointName.Http2, "1.1", false);
+        yield return new TestCaseData(TestServerEndpointName.Http2, null, true);
 #if NET5_0_OR_GREATER
-    // Specifing HTTP/2 doesn't work when the server is using TLS with HTTP/1.1
-    // Caused by using HttpVersionPolicy.RequestVersionOrHigher setting
-    [TestCase(TestServerEndpointName.Http1WithTls, "2.0", false)]
+        // Specifing HTTP/2 doesn't work when the server is using TLS with HTTP/1.1
+        // Caused by using HttpVersionPolicy.RequestVersionOrHigher setting
+        yield return new TestCaseData(TestServerEndpointName.Http1WithTls, "2.0", false);
 #else
-    [TestCase(TestServerEndpointName.Http1WithTls, "2.0", true)]
+        yield return new TestCaseData(TestServerEndpointName.Http1WithTls, "2.0", true);
 #endif
-    [TestCase(TestServerEndpointName.Http1WithTls, "1.1", true)]
-    [TestCase(TestServerEndpointName.Http1WithTls, null, true)]
-    [TestCase(TestServerEndpointName.Http2WithTls, "2.0", true)]
+        yield return new TestCaseData(TestServerEndpointName.Http1WithTls, "1.1", true);
+        yield return new TestCaseData(TestServerEndpointName.Http1WithTls, null, true);
+        yield return new TestCaseData(TestServerEndpointName.Http2WithTls, "2.0", true);
 #if NET5_0_OR_GREATER
-    // Specifing HTTP/1.1 does work when the server is using TLS with HTTP/2
-    // Caused by using HttpVersionPolicy.RequestVersionOrHigher setting
-    [TestCase(TestServerEndpointName.Http2WithTls, "1.1", true)]
+        // Specifing HTTP/1.1 does work when the server is using TLS with HTTP/2
+        // Caused by using HttpVersionPolicy.RequestVersionOrHigher setting
+        yield return new TestCaseData(TestServerEndpointName.Http2WithTls, "1.1", true);
 #else
-    [TestCase(TestServerEndpointName.Http2WithTls, "1.1", false)]
+        yield return new TestCaseData(TestServerEndpointName.Http2WithTls, "1.1", false);
 #endif
-    [TestCase(TestServerEndpointName.Http2WithTls, null, true)]
+        yield return new TestCaseData(TestServerEndpointName.Http2WithTls, null, true);
 #if NET7_0_OR_GREATER
-    [TestCase(TestServerEndpointName.Http3WithTls, null, true)]
+        yield return new TestCaseData(TestServerEndpointName.Http3WithTls, null, true);
 #endif
-    public async Task SendValidRequest_WithConnectionOptions(TestServerEndpointName endpointName, string? version, bool success)
+    }
+
+    [TestCaseSource(nameof(ConnectionTestData))]
+    public async Task SendValidRequest_WithConnectionOptionsOnHandler(TestServerEndpointName endpointName, string? version, bool success)
+    {
+        await SendRequestWithConnectionOptionsCore(endpointName, version, success, setVersionOnHandler: true);
+    }
+
+    [TestCaseSource(nameof(ConnectionTestData))]
+    public async Task SendValidRequest_WithConnectionOptionsOnChannel(TestServerEndpointName endpointName, string? version, bool success)
+    {
+        await SendRequestWithConnectionOptionsCore(endpointName, version, success, setVersionOnHandler: false);
+    }
+
+    private async Task SendRequestWithConnectionOptionsCore(TestServerEndpointName endpointName, string? version, bool success, bool setVersionOnHandler)
     {
 #if NET6_0_OR_GREATER
         if (endpointName == TestServerEndpointName.Http3WithTls &&
@@ -92,7 +122,7 @@ public class ConnectionTests : FunctionalTestBase
 
         // Arrage
         Version.TryParse(version, out var v);
-        var channel = CreateGrpcWebChannel(endpointName, v);
+        var channel = CreateGrpcWebChannel(endpointName, v, setVersionOnHandler);
 
         var client = new EchoService.EchoServiceClient(channel);
 

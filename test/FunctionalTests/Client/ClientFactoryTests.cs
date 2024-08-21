@@ -104,7 +104,11 @@ public class ClientFactoryTests : FunctionalTestBase
             {
                 return TestClientFactory.Create(invoker, method);
             })
-            .AddHttpMessageHandler(() => new Http3Handler())
+            .ConfigureChannel(options =>
+            {
+                options.HttpVersion = HttpVersion.Version30;
+                options.HttpVersionPolicy = HttpVersionPolicy.RequestVersionExact;
+            })
             .ConfigurePrimaryHttpMessageHandler(() =>
             {
                 return new SocketsHttpHandler
@@ -124,21 +128,6 @@ public class ClientFactoryTests : FunctionalTestBase
 
         // Assert
         Assert.AreEqual("Hello world", response1.Message);
-    }
-
-    private class Http3Handler : DelegatingHandler
-    {
-        public Http3Handler() { }
-        public Http3Handler(HttpMessageHandler innerHandler) : base(innerHandler) { }
-
-        protected override Task<HttpResponseMessage> SendAsync(
-            HttpRequestMessage request, CancellationToken cancellationToken)
-        {
-            request.Version = HttpVersion.Version30;
-            request.VersionPolicy = HttpVersionPolicy.RequestVersionExact;
-
-            return base.SendAsync(request, cancellationToken);
-        }
     }
 #endif
 }

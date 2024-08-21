@@ -1,4 +1,4 @@
-﻿#region Copyright notice and license
+#region Copyright notice and license
 
 // Copyright 2019 The gRPC Authors
 //
@@ -497,13 +497,14 @@ class Program
 
                 HttpMessageHandler httpMessageHandler = httpClientHandler;
 
+                Version? versionOverride = null;
                 if (_options.Protocol == "h3")
                 {
                     // Stop gRPC channel from creating TCP socket.
                     httpClientHandler.ConnectCallback = (context, cancellationToken) => throw new InvalidOperationException("Should never be called for H3.");
 
                     // Force H3 on all requests.
-                    httpMessageHandler = new Http3DelegatingHandler(httpMessageHandler);
+                    versionOverride = new Version(3, 0);
                 }
 
                 return GrpcChannel.ForAddress(address, new GrpcChannelOptions
@@ -513,7 +514,8 @@ class Program
 #else
                     HttpClient = new HttpClient(httpMessageHandler),
 #endif
-                    LoggerFactory = _loggerFactory
+                    LoggerFactory = _loggerFactory,
+                    HttpVersion = versionOverride
                 });
         }
     }
@@ -758,22 +760,5 @@ class Program
     private static bool IsCallCountExceeded()
     {
         return _options.CallCount != null && _callsStarted > _options.CallCount;
-    }
-
-    private class Http3DelegatingHandler : DelegatingHandler
-    {
-        private static readonly Version Http3Version = new Version(3, 0);
-
-        public Http3DelegatingHandler(HttpMessageHandler innerHandler)
-        {
-            InnerHandler = innerHandler;
-        }
-
-        protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
-        {
-            request.Version = Http3Version;
-            request.VersionPolicy = HttpVersionPolicy.RequestVersionExact;
-            return base.SendAsync(request, cancellationToken);
-        }
     }
 }

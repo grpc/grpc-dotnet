@@ -79,6 +79,10 @@ public sealed class GrpcChannel : ChannelBase, IDisposable
     internal Dictionary<string, ICompressionProvider> CompressionProviders { get; }
     internal string MessageAcceptEncoding { get; }
     internal bool Disposed { get; private set; }
+    internal Version HttpVersion { get; }
+#if NET5_0_OR_GREATER
+    internal HttpVersionPolicy HttpVersionPolicy { get; }
+#endif
 
 #if SUPPORT_LOAD_BALANCING
     // Load balancing
@@ -175,6 +179,10 @@ public sealed class GrpcChannel : ChannelBase, IDisposable
             RetryThrottling = serviceConfig.RetryThrottling != null ? CreateChannelRetryThrottling(serviceConfig.RetryThrottling) : null;
             _serviceConfigMethods = CreateServiceConfigMethods(serviceConfig);
         }
+        HttpVersion = channelOptions.HttpVersion ?? GrpcProtocolConstants.Http2Version;
+#if NET5_0_OR_GREATER
+        HttpVersionPolicy = channelOptions.HttpVersionPolicy ?? HttpVersionPolicy.RequestVersionExact;
+#endif
 
         // Non-HTTP addresses (e.g. dns:///custom-hostname) usually specify a path instead of an authority.
         // Only log about a path being present if HTTP or HTTPS.
