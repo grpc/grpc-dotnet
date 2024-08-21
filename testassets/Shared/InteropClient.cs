@@ -238,7 +238,7 @@ public class InteropClient
         if (options.TestCase == "jwt_token_creds")
         {
             var googleCredential = await GoogleCredential.GetApplicationDefaultAsync();
-            Assert.IsTrue(googleCredential.IsCreateScopedRequired);
+            Assert.IsFalse(googleCredential.UnderlyingCredential is ComputeCredential);
             credentials = ChannelCredentials.Create(credentials, googleCredential.ToCallCredentials());
         }
 
