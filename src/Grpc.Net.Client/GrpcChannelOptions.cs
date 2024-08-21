@@ -304,9 +304,10 @@ public sealed class GrpcChannelOptions
     /// <summary>
     /// Gets or sets the HTTP policy to use when making gRPC calls.
     /// <para>
-    /// The policy determins how <see cref="Version"/> is interpreted when the final HTTP version is
-    /// negotiated with the server. Changing this property allows the HTTP version of gRPC calls to
-    /// be overridden.
+    /// When a <see cref="HttpVersionPolicy"/> is specified the value will be set on <see cref="HttpRequestMessage.VersionPolicy"/>
+    /// as gRPC calls are made. The policy determines how <see cref="Version"/> is interpreted when
+    /// the final HTTP version is negotiated with the server. Changing this property allows the HTTP
+    /// version of gRPC calls to be overridden.
     /// </para>
     /// <para>
     /// A <c>null</c> value doesn't override the HTTP policy of gRPC calls. Defaults to <see cref="HttpVersionPolicy.RequestVersionExact"/>.
