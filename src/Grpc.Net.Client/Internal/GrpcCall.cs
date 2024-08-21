@@ -957,9 +957,9 @@ internal sealed partial class GrpcCall<TRequest, TResponse> : GrpcCall, IGrpcCal
     private HttpRequestMessage CreateHttpRequestMessage(TimeSpan? timeout)
     {
         var message = new HttpRequestMessage(HttpMethod.Post, _grpcMethodInfo.CallUri);
-        message.Version = GrpcProtocolConstants.Http2Version;
+        message.Version = Channel.HttpVersion;
 #if NET5_0_OR_GREATER
-        message.VersionPolicy = HttpVersionPolicy.RequestVersionOrHigher;
+        message.VersionPolicy = Channel.HttpVersionPolicy;
 #endif
 
         // Set raw headers on request using name/values. Typed headers allocate additional objects.

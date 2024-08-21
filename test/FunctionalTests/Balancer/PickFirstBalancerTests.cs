@@ -47,21 +47,6 @@ namespace Grpc.AspNetCore.FunctionalTests.Balancer;
 [TestFixture]
 public class PickFirstBalancerTests : FunctionalTestBase
 {
-    private GrpcChannel CreateGrpcWebChannel(TestServerEndpointName endpointName, Version? version)
-    {
-        var grpcWebHandler = new GrpcWebHandler(GrpcWebMode.GrpcWeb);
-        grpcWebHandler.HttpVersion = version;
-
-        var httpClient = Fixture.CreateClient(endpointName, grpcWebHandler);
-        var channel = GrpcChannel.ForAddress(httpClient.BaseAddress!, new GrpcChannelOptions
-        {
-            HttpClient = httpClient,
-            LoggerFactory = LoggerFactory
-        });
-
-        return channel;
-    }
-
     [Test]
     public async Task UnaryCall_CallAfterConnectionTimeout_Success()
     {

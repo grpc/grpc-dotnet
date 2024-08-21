@@ -1,4 +1,4 @@
-﻿#region Copyright notice and license
+#region Copyright notice and license
 
 // Copyright 2019 The gRPC Authors
 //
@@ -286,6 +286,35 @@ public sealed class GrpcChannelOptions
     /// </para>
     /// </summary>
     public IServiceProvider? ServiceProvider { get; set; }
+
+    /// <summary>
+    /// Gets or sets the HTTP version to use when making gRPC calls.
+    /// <para>
+    /// When a <see cref="Version"/> is specified the value will be set on <see cref="HttpRequestMessage.Version"/>
+    /// as gRPC calls are made. Changing this property allows the HTTP version of gRPC calls to
+    /// be overridden.
+    /// </para>
+    /// <para>
+    /// A <c>null</c> value doesn't override the HTTP version of gRPC calls. Defaults to <c>2.0</c>.
+    /// </para>
+    /// </summary>
+    public Version? HttpVersion { get; set; }
+
+#if NET5_0_OR_GREATER
+    /// <summary>
+    /// Gets or sets the HTTP policy to use when making gRPC calls.
+    /// <para>
+    /// When a <see cref="HttpVersionPolicy"/> is specified the value will be set on <see cref="HttpRequestMessage.VersionPolicy"/>
+    /// as gRPC calls are made. The policy determines how <see cref="Version"/> is interpreted when
+    /// the final HTTP version is negotiated with the server. Changing this property allows the HTTP
+    /// version of gRPC calls to be overridden.
+    /// </para>
+    /// <para>
+    /// A <c>null</c> value doesn't override the HTTP policy of gRPC calls. Defaults to <see cref="HttpVersionPolicy.RequestVersionExact"/>.
+    /// </para>
+    /// </summary>
+    public HttpVersionPolicy? HttpVersionPolicy { get; set; }
+#endif
 
     internal T ResolveService<T>(T defaultValue)
     {
