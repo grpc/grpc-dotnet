@@ -315,8 +315,8 @@ public class AsyncServerStreamingCallTests
 
         call.Dispose();
 
-        // Current is cleared on dispose.
-        Assert.IsNull(responseStream.Current);
+        // Current is cleared and throws after call dispose.
+        Assert.Throws<ObjectDisposedException>(() => { _ = responseStream.Current; });
     }
 
     [Test]

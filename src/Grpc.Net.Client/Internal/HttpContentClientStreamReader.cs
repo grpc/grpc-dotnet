@@ -44,6 +44,7 @@ internal class HttpContentClientStreamReader<TRequest, TResponse> : IAsyncStream
     private string? _grpcEncoding;
     private Stream? _responseStream;
     private Task<bool>? _moveNextTask;
+    private TResponse _current = default!;
 
     public HttpContentClientStreamReader(GrpcCall<TRequest, TResponse> call)
     {
@@ -54,11 +55,18 @@ internal class HttpContentClientStreamReader<TRequest, TResponse> : IAsyncStream
         HttpResponseTcs = new TaskCompletionSource<(HttpResponseMessage, Status?)>(TaskCreationOptions.RunContinuationsAsynchronously);
     }
 
-    public TResponse Current { get; private set; } = default!;
+    public TResponse Current
+    {
+        get
+        {
+            _call.EnsureNotDisposed();
+            return _current;
+        }
+    }
 
     public void Dispose()
     {
-        Current = default!;
+        _current = default!;
     }
 
     public Task<bool> MoveNext(CancellationToken cancellationToken)
@@ -159,7 +167,7 @@ internal class HttpContentClientStreamReader<TRequest, TResponse> : IAsyncStream
 
             // Clear current before moving next. This prevents rooting the previous value while getting the next one.
             // In a long running stream this can allow the previous value to be GCed.
-            Current = null!;
+            _current = null!;
 
             var readMessage = await _call.ReadMessageAsync(
                 _responseStream,
@@ -178,14 +186,14 @@ internal class HttpContentClientStreamReader<TRequest, TResponse> : IAsyncStream
                     throw _call.CreateFailureStatusException(status);
                 }
 
-                Current = null!;
+                _current = null!;
                 return false;
             }
             if (GrpcEventSource.Log.IsEnabled())
             {
                 GrpcEventSource.Log.MessageReceived();
             }
-            Current = readMessage!;
+            _current = readMessage!;
             return true;
         }
         catch (OperationCanceledException ex)
