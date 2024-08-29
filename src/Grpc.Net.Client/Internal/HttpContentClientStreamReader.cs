@@ -58,6 +58,7 @@ internal class HttpContentClientStreamReader<TRequest, TResponse> : IAsyncStream
 
     public void Dispose()
     {
+        Current = default!;
     }
 
     public Task<bool> MoveNext(CancellationToken cancellationToken)

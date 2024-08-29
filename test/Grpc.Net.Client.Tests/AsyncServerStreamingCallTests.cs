@@ -282,6 +282,44 @@ public class AsyncServerStreamingCallTests
     }
 
     [Test]
+    public async Task AsyncServerStreamingCall_MessagesStreamedThenDispose_CurrentCleared()
+    {
+        // Arrange
+        var streamContent = new SyncPointMemoryStream();
+
+        var httpClient = ClientTestHelpers.CreateTestClient(request =>
+        {
+            return Task.FromResult(ResponseUtils.CreateResponse(HttpStatusCode.OK, new StreamContent(streamContent)));
+        });
+        var invoker = HttpClientCallInvokerFactory.Create(httpClient);
+
+        // Act
+        var call = invoker.AsyncServerStreamingCall(new HelloRequest());
+
+        var responseStream = call.ResponseStream;
+
+        // Assert
+        Assert.IsNull(responseStream.Current);
+
+        var moveNextTask1 = responseStream.MoveNext(CancellationToken.None);
+        Assert.IsFalse(moveNextTask1.IsCompleted);
+
+        await streamContent.AddDataAndWait(await ClientTestHelpers.GetResponseDataAsync(new HelloReply
+        {
+            Message = "Hello world 1"
+        }).DefaultTimeout()).DefaultTimeout();
+
+        Assert.IsTrue(await moveNextTask1.DefaultTimeout());
+        Assert.IsNotNull(responseStream.Current);
+        Assert.AreEqual("Hello world 1", responseStream.Current.Message);
+
+        call.Dispose();
+
+        // Current is cleared on dispose.
+        Assert.IsNull(responseStream.Current);
+    }
+
+    [Test]
     public async Task AsyncServerStreamingCall_DisposeDuringPendingRead_NoReadMessageError()
     {
         // Arrange

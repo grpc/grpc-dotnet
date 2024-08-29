@@ -50,7 +50,10 @@ internal class HttpContextStreamReader<TRequest> : IAsyncStreamReader<TRequest> 
 
     public TRequest Current { get; private set; } = default!;
 
-    public void Dispose() { }
+    public void Dispose()
+    {
+        // There is no point clearing current here because references to the call context and stream reader are removed when the HTTP request ends.
+    }
 
     public Task<bool> MoveNext(CancellationToken cancellationToken)
     {
