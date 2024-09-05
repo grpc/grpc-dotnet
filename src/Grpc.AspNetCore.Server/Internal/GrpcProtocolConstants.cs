@@ -1,4 +1,4 @@
-﻿#region Copyright notice and license
+#region Copyright notice and license
 
 // Copyright 2019 The gRPC Authors
 //
@@ -28,51 +28,16 @@ internal static class GrpcProtocolConstants
     internal const string GrpcContentType = "application/grpc";
     internal const string GrpcWebContentType = "application/grpc-web";
     internal const string GrpcWebTextContentType = "application/grpc-web-text";
-
-#if NET5_0_OR_GREATER
     internal static readonly string Http2Protocol = HttpProtocol.Http2;
-#else
-    internal const string Http2Protocol = "HTTP/2";
-    internal const string Http20Protocol = "HTTP/2.0"; // This is what IIS sets
-#endif
-
-#if NET5_0_OR_GREATER
     internal static readonly string TimeoutHeader = HeaderNames.GrpcTimeout;
-#else
-    internal const string TimeoutHeader = "grpc-timeout";
-#endif
-
-#if NET5_0_OR_GREATER
     internal static readonly string MessageEncodingHeader = HeaderNames.GrpcEncoding;
-#else
-    internal const string MessageEncodingHeader = "grpc-encoding";
-#endif
-
-#if NET5_0_OR_GREATER
     internal static readonly string MessageAcceptEncodingHeader = HeaderNames.GrpcAcceptEncoding;
-#else
-    internal const string MessageAcceptEncodingHeader = "grpc-accept-encoding";
-#endif
-
     internal const string CompressionRequestAlgorithmHeader = "grpc-internal-encoding-request";
-
-#if NET5_0_OR_GREATER
     internal static readonly string StatusTrailer = HeaderNames.GrpcStatus;
-#else
-    internal const string StatusTrailer = "grpc-status";
-#endif
-
-#if NET5_0_OR_GREATER
     internal static readonly string MessageTrailer = HeaderNames.GrpcMessage;
-#else
-    internal const string MessageTrailer = "grpc-message";
-#endif
-
     internal const string IdentityGrpcEncoding = "identity";
     internal const int Http2ResetStreamCancel = 0x8;
-#if NET6_0_OR_GREATER
     internal const int Http3ResetStreamCancel = 0x010c;
-#endif
 
     internal static readonly HashSet<string> FilteredHeaders = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
     {
@@ -97,20 +62,14 @@ internal static class GrpcProtocolConstants
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     internal static bool IsHttp2(string protocol)
     {
-#if NET5_0_OR_GREATER
         return HttpProtocol.IsHttp2(protocol);
-#else
-        return protocol == Http2Protocol || protocol == Http20Protocol;
-#endif
     }
 
-#if NET6_0_OR_GREATER
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     internal static bool IsHttp3(string protocol)
     {
         return HttpProtocol.IsHttp3(protocol);
     }
-#endif
 
     internal static bool IsGrpcEncodingIdentity(string encoding)
     {
@@ -120,14 +79,8 @@ internal static class GrpcProtocolConstants
 
     internal static int GetCancelErrorCode(string protocol)
     {
-#if NET6_0_OR_GREATER
         return IsHttp3(protocol) ? Http3ResetStreamCancel : Http2ResetStreamCancel;
-#else
-        return Http2ResetStreamCancel;
-#endif
     }
 
-#if NET5_0_OR_GREATER
     internal const DynamicallyAccessedMemberTypes ServiceAccessibility = DynamicallyAccessedMemberTypes.PublicConstructors | DynamicallyAccessedMemberTypes.PublicMethods | DynamicallyAccessedMemberTypes.NonPublicMethods;
-#endif
 }

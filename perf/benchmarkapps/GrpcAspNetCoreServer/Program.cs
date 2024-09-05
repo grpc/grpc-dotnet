@@ -120,13 +120,8 @@ public class Program
                 {
                     Console.WriteLine($"Console Logging enabled with level '{logLevel}'");
 
-                    loggerFactory
-#if NET5_0_OR_GREATER
-                        .AddSimpleConsole(o => o.TimestampFormat = "ss.ffff ")
-#else
-                        .AddConsole(o => o.TimestampFormat = "ss.ffff ")
-#endif
-                        .SetMinimumLevel(logLevel);
+                    loggerFactory.AddSimpleConsole(o => o.TimestampFormat = "ss.ffff ")
+                                 .SetMinimumLevel(logLevel);
                 }
             })
             .UseDefaultServiceProvider((context, options) =>
@@ -163,7 +158,6 @@ public class Program
                 }
             });
         }
-#if NET6_0_OR_GREATER
         else if (protocol.Equals("h3", StringComparison.OrdinalIgnoreCase))
         {
             listenOptions.Protocols = HttpProtocols.Http1AndHttp2AndHttp3;
@@ -177,7 +171,6 @@ public class Program
                 }
             });
         }
-#endif
         else if (protocol.Equals("h2c", StringComparison.OrdinalIgnoreCase))
         {
             listenOptions.Protocols = HttpProtocols.Http2;

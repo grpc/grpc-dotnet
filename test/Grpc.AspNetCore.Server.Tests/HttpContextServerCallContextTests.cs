@@ -603,9 +603,7 @@ public class HttpContextServerCallContextTests
     }
 
     [TestCase("HTTP/2", GrpcProtocolConstants.Http2ResetStreamCancel)]
-#if NET6_0_OR_GREATER
     [TestCase("HTTP/3", GrpcProtocolConstants.Http3ResetStreamCancel)]
-#endif
     public Task EndCallAsync_LongRunningDeadlineAbort_WaitsUntilDeadlineAbortIsFinished(
         string protocol,
         int expectedResetCode)
@@ -618,9 +616,7 @@ public class HttpContextServerCallContextTests
     }
 
     [TestCase("HTTP/2", GrpcProtocolConstants.Http2ResetStreamCancel)]
-#if NET6_0_OR_GREATER
     [TestCase("HTTP/3", GrpcProtocolConstants.Http3ResetStreamCancel)]
-#endif
     public Task ProcessHandlerErrorAsync_LongRunningDeadlineAbort_WaitsUntilDeadlineAbortIsFinished(
         string protocol,
         int expectedResetCode)

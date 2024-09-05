@@ -1,4 +1,4 @@
-﻿#region Copyright notice and license
+#region Copyright notice and license
 
 // Copyright 2019 The gRPC Authors
 //
@@ -16,7 +16,6 @@
 
 #endregion
 
-#if NET5_0_OR_GREATER
 using System;
 using System.IO;
 using System.Net;
@@ -52,4 +51,3 @@ public class UnixDomainSocketConnectionFactory
         }
     }
 }
-#endif

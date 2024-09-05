@@ -1,4 +1,4 @@
-﻿#region Copyright notice and license
+#region Copyright notice and license
 
 // Copyright 2019 The gRPC Authors
 //
@@ -23,10 +23,8 @@ namespace GrpcClient;
 public class ClientOptions
 {
     public Uri? Url { get; set; }
-#if NET5_0_OR_GREATER
     public string? UdsFileName { get; set; }
     public string? NamedPipeName { get; set; }
-#endif
     public int Connections { get; set; }
     public int Warmup { get; set; }
     public int Duration { get; set; }

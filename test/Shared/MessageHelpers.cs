@@ -1,4 +1,4 @@
-﻿#region Copyright notice and license
+#region Copyright notice and license
 
 // Copyright 2019 The gRPC Authors
 //
@@ -30,12 +30,10 @@ namespace Grpc.Tests.Shared;
 internal static class MessageHelpers
 {
     private static readonly List<ICompressionProvider> DefaultProviders = new List<ICompressionProvider>
-        {
-            new GzipCompressionProvider(CompressionLevel.Fastest),
-#if NET6_0_OR_GREATER
-            new DeflateCompressionProvider(CompressionLevel.Fastest),
-#endif
-        };
+    {
+        new GzipCompressionProvider(CompressionLevel.Fastest),
+        new DeflateCompressionProvider(CompressionLevel.Fastest),
+    };
 
     public static Marshaller<TMessage> GetMarshaller<TMessage>(MessageParser<TMessage> parser) where TMessage : IMessage<TMessage> =>
         Marshallers.Create<TMessage>(r => r.ToByteArray(), data => parser.ParseFrom(data));

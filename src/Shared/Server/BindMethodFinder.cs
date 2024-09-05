@@ -1,4 +1,4 @@
-﻿#region Copyright notice and license
+#region Copyright notice and license
 
 // Copyright 2019 The gRPC Authors
 //
@@ -65,10 +65,8 @@ internal static class BindMethodFinder
         return null;
     }
 
-#if NET5_0_OR_GREATER
     [UnconditionalSuppressMessage("ReflectionAnalysis", "IL2075:UnrecognizedReflectionPattern",
         Justification = "Fallback doesn't have BindServiceMethodAttribute so can't be verified.")]
-#endif
     internal static MethodInfo? GetBindMethodFallback(Type serviceType)
     {
         // Search for the generated service base class

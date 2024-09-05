@@ -1,4 +1,4 @@
-﻿#region Copyright notice and license
+#region Copyright notice and license
 
 // Copyright 2019 The gRPC Authors
 //
@@ -21,9 +21,7 @@ using System.Text;
 using Grpc.Shared;
 using Grpc.Testing;
 using Grpc.Tests.Shared;
-#if NET5_0_OR_GREATER
 using Microsoft.AspNetCore.Authentication.Certificate;
-#endif
 using Newtonsoft.Json;
 
 namespace GrpcAspNetCoreServer;
@@ -41,10 +39,8 @@ public class Startup
     {
         services.AddGrpc(o =>
         {
-#if NET5_0_OR_GREATER
             // Small performance benefit to not add catch-all routes to handle UNIMPLEMENTED for unknown services
             o.IgnoreUnknownServices = true;
-#endif
         });
         services.Configure<RouteOptions>(c =>
         {
@@ -54,7 +50,6 @@ public class Startup
         services.AddSingleton<BenchmarkServiceImpl>();
         services.AddControllers();
 
-#if NET5_0_OR_GREATER
         bool.TryParse(_config["enableCertAuth"], out var enableCertAuth);
         if (enableCertAuth)
         {
@@ -67,7 +62,6 @@ public class Startup
                     options.AllowedCertificateTypes = CertificateTypes.All;
                 });
         }
-#endif
     }
 
     public void Configure(IApplicationBuilder app, IHostApplicationLifetime applicationLifetime)
@@ -83,14 +77,12 @@ public class Startup
 
         app.UseRouting();
 
-#if NET5_0_OR_GREATER
         bool.TryParse(_config["enableCertAuth"], out var enableCertAuth);
         if (enableCertAuth)
         {
             app.UseAuthentication();
             app.UseAuthorization();
         }
-#endif
 
 #if GRPC_WEB
         bool.TryParse(_config["enableGrpcWeb"], out var enableGrpcWeb);
@@ -139,12 +131,10 @@ public class Startup
 
     private void ConfigureAuthorization(IEndpointConventionBuilder builder)
     {
-#if NET5_0_OR_GREATER
         bool.TryParse(_config["enableCertAuth"], out var enableCertAuth);
         if (enableCertAuth)
         {
             builder.RequireAuthorization();
         }
-#endif
     }
 }

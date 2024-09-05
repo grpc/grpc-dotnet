@@ -1,4 +1,4 @@
-﻿#region Copyright notice and license
+#region Copyright notice and license
 
 // Copyright 2019 The gRPC Authors
 //
@@ -39,9 +39,8 @@ internal class GrpcServiceOptionsSetup : IConfigureOptions<GrpcServiceOptions>
         if (options._compressionProviders == null || options._compressionProviders.Count == 0)
         {
             options.CompressionProviders.Add(new GzipCompressionProvider(CompressionLevel.Fastest));
-#if NET6_0_OR_GREATER
+
             options.CompressionProviders.Add(new DeflateCompressionProvider(CompressionLevel.Fastest));
-#endif
         }
     }
 }

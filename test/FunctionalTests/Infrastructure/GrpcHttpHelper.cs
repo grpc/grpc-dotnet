@@ -24,9 +24,7 @@ public static class GrpcHttpHelper
     {
         var request = new HttpRequestMessage(method ?? HttpMethod.Post, url);
         request.Version = new Version(2, 0);
-#if NET5_0_OR_GREATER
         request.VersionPolicy = HttpVersionPolicy.RequestVersionExact;
-#endif
 
         return request;
     }

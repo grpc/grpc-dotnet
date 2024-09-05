@@ -19,21 +19,15 @@
 using System.Diagnostics.CodeAnalysis;
 using Grpc.AspNetCore.Server.Internal;
 using Grpc.Core;
-using Grpc.Shared;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Routing;
-using Microsoft.AspNetCore.Routing.Patterns;
 using Microsoft.Extensions.Logging;
 using Log = Grpc.AspNetCore.Server.Model.Internal.ServiceRouteBuilderLog;
 
 namespace Grpc.AspNetCore.Server.Model.Internal;
 
-internal class ServiceRouteBuilder<
-#if NET5_0_OR_GREATER
-    [DynamicallyAccessedMembers(GrpcProtocolConstants.ServiceAccessibility)]
-#endif
-    TService> where TService : class
+internal class ServiceRouteBuilder<[DynamicallyAccessedMembers(GrpcProtocolConstants.ServiceAccessibility)] TService> where TService : class
 {
     private readonly IEnumerable<IServiceMethodProvider<TService>> _serviceMethodProviders;
     private readonly ServerCallHandlerFactory<TService> _serverCallHandlerFactory;

@@ -58,14 +58,10 @@ public class GrpcTestFixture<TStartup> : IDisposable where TStartup : class
         _host = builder.Start();
         _server = _host.GetTestServer();
 
-#if !NET5_0
         // Need to set the response version to 2.0.
         // Required because of this TestServer issue - https://github.com/aspnet/AspNetCore/issues/16940
         var handler = new ResponseVersionHandler();
         handler.InnerHandler = _server.CreateHandler();
-#else
-        var handler = _server.CreateHandler();
-#endif
 
         var client = new HttpClient(handler);
         client.BaseAddress = new Uri("http://localhost");
@@ -84,7 +80,6 @@ public class GrpcTestFixture<TStartup> : IDisposable where TStartup : class
         _server.Dispose();
     }
 
-#if !NET5_0
     private class ResponseVersionHandler : DelegatingHandler
     {
         protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
@@ -95,7 +90,6 @@ public class GrpcTestFixture<TStartup> : IDisposable where TStartup : class
             return response;
         }
     }
-#endif
 
     public IDisposable GetTestContext()
     {
