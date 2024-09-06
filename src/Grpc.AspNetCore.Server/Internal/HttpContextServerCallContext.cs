@@ -195,7 +195,7 @@ internal sealed partial class HttpContextServerCallContext : ServerCallContext, 
         {
             if (ex is OperationCanceledException or IOException && CancellationTokenCore.IsCancellationRequested)
             {
-                // Request cancellation can causes OCE and IO errors.
+                // Request cancellation can cause OCE and IOException.
                 // When the request has been canceled log these error types at the info-level to avoid creating error-level noise.
                 GrpcServerLog.ServiceMethodCanceled(Logger, method, ex);
             }
