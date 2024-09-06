@@ -193,7 +193,16 @@ internal sealed partial class HttpContextServerCallContext : ServerCallContext, 
         }
         else
         {
-            GrpcServerLog.ErrorExecutingServiceMethod(Logger, method, ex);
+            if (ex is OperationCanceledException or IOException && CancellationTokenCore.IsCancellationRequested)
+            {
+                // Request cancellation can causes OCE and IO errors.
+                // When the request has been canceled log these error types at the info-level to avoid creating error-level noise.
+                GrpcServerLog.ServiceMethodCanceled(Logger, method, ex);
+            }
+            else
+            {
+                GrpcServerLog.ErrorExecutingServiceMethod(Logger, method, ex);
+            }
 
             var message = ErrorMessageHelper.BuildErrorMessage("Exception was thrown by handler.", ex, Options.EnableDetailedErrors);
 
