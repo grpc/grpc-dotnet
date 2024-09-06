@@ -2,7 +2,7 @@
   <PropertyGroup>
 
     <!-- package version of grpc-dotnet -->
-    <GrpcDotnetVersion>2.66.0-dev</GrpcDotnetVersion>
+    <GrpcDotnetVersion>2.66.0-pre1</GrpcDotnetVersion>
 
     <!-- assembly version of grpc-dotnet -->
     <GrpcDotnetAssemblyVersion>2.0.0.0</GrpcDotnetAssemblyVersion>
