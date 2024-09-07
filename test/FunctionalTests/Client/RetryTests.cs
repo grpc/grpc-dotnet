@@ -693,7 +693,6 @@ public class RetryTests : FunctionalTestBase
         Assert.AreEqual(0, channel.CurrentRetryBufferSize);
     }
 
-#if NET5_0_OR_GREATER
     [Test]
     public async Task ClientStreaming_WriteAsyncCancellationBefore_ClientAbort()
     {
@@ -865,5 +864,4 @@ public class RetryTests : FunctionalTestBase
         // Assert
         Assert.AreEqual(StatusCode.Cancelled, ex.StatusCode);
     }
-#endif
 }

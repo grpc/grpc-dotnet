@@ -1,4 +1,4 @@
-﻿#region Copyright notice and license
+#region Copyright notice and license
 
 // Copyright 2019 The gRPC Authors
 //
@@ -29,11 +29,7 @@ namespace Grpc.AspNetCore.Server.Model;
 /// A context for <see cref="IServiceMethodProvider{TService}"/>.
 /// </summary>
 /// <typeparam name="TService">Service type for the context.</typeparam>
-public class ServiceMethodProviderContext<
-#if NET5_0_OR_GREATER
-    [DynamicallyAccessedMembers(GrpcProtocolConstants.ServiceAccessibility)]
-#endif
-    TService> where TService : class
+public class ServiceMethodProviderContext<[DynamicallyAccessedMembers(GrpcProtocolConstants.ServiceAccessibility)] TService> where TService : class
 {
     private readonly ServerCallHandlerFactory<TService> _serverCallHandlerFactory;
 

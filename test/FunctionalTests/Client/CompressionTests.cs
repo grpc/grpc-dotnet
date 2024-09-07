@@ -1,4 +1,4 @@
-﻿#region Copyright notice and license
+#region Copyright notice and license
 
 // Copyright 2019 The gRPC Authors
 //
@@ -31,9 +31,7 @@ public class CompressionTests : FunctionalTestBase
 {
     [TestCase("identity")]
     [TestCase("gzip")]
-#if NET6_0_OR_GREATER
     [TestCase("deflate")]
-#endif
     public async Task SendCompressedMessage_ServiceCompressionConfigured_ResponseGzipEncoding(string algorithmName)
     {
         // Arrange

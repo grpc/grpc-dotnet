@@ -411,14 +411,12 @@ internal sealed partial class HttpContextServerCallContext : ServerCallContext, 
 
     private Activity? GetHostActivity()
     {
-#if NET6_0_OR_GREATER
         // Feature always returns the host activity
         var feature = HttpContext.Features.Get<IHttpActivityFeature>();
         if (feature != null)
         {
             return feature.Activity;
         }
-#endif
 
         // If feature isn't available, or not supported, then fallback to Activity.Current.
         var activity = Activity.Current;

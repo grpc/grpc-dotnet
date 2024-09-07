@@ -40,13 +40,11 @@ public abstract class GrpcWebFunctionalTestBase : FunctionalTestBase
         GrpcTestMode = grpcTestMode;
         EndpointName = endpointName;
 
-#if NET6_0_OR_GREATER
         if (endpointName == TestServerEndpointName.Http3WithTls &&
             !RequireHttp3Attribute.IsSupported(out var message))
         {
             Assert.Ignore(message);
         }
-#endif
     }
 
     protected HttpClient CreateGrpcWebClient()
@@ -71,12 +69,10 @@ public abstract class GrpcWebFunctionalTestBase : FunctionalTestBase
         {
             protocol = new Version(1, 1);
         }
-#if NET6_0_OR_GREATER
         else if (EndpointName == TestServerEndpointName.Http3WithTls)
         {
             protocol = new Version(3, 0);
         }
-#endif
         else
         {
             protocol = new Version(2, 0);

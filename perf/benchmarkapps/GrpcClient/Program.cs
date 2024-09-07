@@ -465,10 +465,6 @@ class Program
                 var address = useTls ? "https://" : "http://";
                 address += target;
 
-#if NETCOREAPP3_1
-                AppContext.SetSwitch("System.Net.Http.SocketsHttpHandler.Http2UnencryptedSupport", true);
-#endif
-
                 var httpClientHandler = new SocketsHttpHandler();
                 httpClientHandler.UseProxy = false;
                 httpClientHandler.AllowAutoRedirect = false;
@@ -479,7 +475,7 @@ class Program
                     var clientCertificates = X509CertificateLoader.LoadPkcs12CollectionFromFile(certPath, "1111");
                     httpClientHandler.SslOptions.ClientCertificates = clientCertificates;
                 }
-#if NET5_0_OR_GREATER
+
                 if (!string.IsNullOrEmpty(_options.UdsFileName))
                 {
                     var connectionFactory = new UnixDomainSocketConnectionFactory(new UnixDomainSocketEndPoint(ResolveUdsPath(_options.UdsFileName)));
@@ -490,7 +486,6 @@ class Program
                     var connectionFactory = new NamedPipeConnectionFactory(_options.NamedPipeName);
                     httpClientHandler.ConnectCallback = connectionFactory.ConnectAsync;
                 }
-#endif
 
                 httpClientHandler.SslOptions.RemoteCertificateValidationCallback =
                     (object sender, X509Certificate? certificate, X509Chain? chain, SslPolicyErrors sslPolicyErrors) => true;
@@ -509,11 +504,7 @@ class Program
 
                 return GrpcChannel.ForAddress(address, new GrpcChannelOptions
                 {
-#if NET5_0_OR_GREATER
                     HttpHandler = httpMessageHandler,
-#else
-                    HttpClient = new HttpClient(httpMessageHandler),
-#endif
                     LoggerFactory = _loggerFactory,
                     HttpVersion = versionOverride
                 });

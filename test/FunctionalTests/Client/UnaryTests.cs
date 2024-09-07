@@ -128,7 +128,6 @@ public class UnaryTests : FunctionalTestBase
         Assert.AreEqual(expectedServerCulture, serverCulture);
     }
 
-#if NET5_0_OR_GREATER
     [Test]
     public async Task MaxConcurrentStreams_StartConcurrently_AdditionalConnectionsCreated()
     {
@@ -226,7 +225,6 @@ public class UnaryTests : FunctionalTestBase
             }
         }
     }
-#endif
 
     [Test]
     public async Task Health_Check_Success()

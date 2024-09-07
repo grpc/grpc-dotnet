@@ -238,7 +238,6 @@ internal static class BalancerHelpers
 
         public ISubchannelTransport Create(Subchannel subchannel)
         {
-#if NET5_0_OR_GREATER
             return new SocketConnectivitySubchannelTransport(
                 subchannel,
                 _socketPingInterval,
@@ -246,9 +245,6 @@ internal static class BalancerHelpers
                 _connectionIdleTimeout,
                 subchannel._manager.LoggerFactory,
                 _socketConnect);
-#else
-            return new PassiveSubchannelTransport(subchannel);
-#endif
         }
     }
 }

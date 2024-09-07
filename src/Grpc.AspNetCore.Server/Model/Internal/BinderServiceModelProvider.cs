@@ -1,4 +1,4 @@
-﻿#region Copyright notice and license
+#region Copyright notice and license
 
 // Copyright 2019 The gRPC Authors
 //
@@ -24,11 +24,7 @@ using Log = Grpc.AspNetCore.Server.Model.Internal.BinderServiceMethodProviderLog
 
 namespace Grpc.AspNetCore.Server.Model.Internal;
 
-internal class BinderServiceMethodProvider<
-#if NET5_0_OR_GREATER
-    [DynamicallyAccessedMembers(GrpcProtocolConstants.ServiceAccessibility)]
-#endif
-    TService> : IServiceMethodProvider<TService> where TService : class
+internal class BinderServiceMethodProvider<[DynamicallyAccessedMembers(GrpcProtocolConstants.ServiceAccessibility)] TService> : IServiceMethodProvider<TService> where TService : class
 {
     private readonly ILogger<BinderServiceMethodProvider<TService>> _logger;
 

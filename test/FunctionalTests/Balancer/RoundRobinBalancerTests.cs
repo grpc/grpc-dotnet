@@ -17,7 +17,6 @@
 #endregion
 
 #if SUPPORT_LOAD_BALANCING
-#if NET5_0_OR_GREATER
 
 using System;
 using System.Collections.Generic;
@@ -461,5 +460,4 @@ public class RoundRobinBalancerTests : FunctionalTestBase
     }
 }
 
-#endif
 #endif

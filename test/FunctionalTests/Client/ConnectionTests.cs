@@ -55,24 +55,17 @@ public class ConnectionTests : FunctionalTestBase
 
         // Assert
         Assert.AreEqual(StatusCode.Internal, ex.StatusCode);
-#if NET5_0_OR_GREATER
         var debugException = ex.Status.DebugException!;
         Assert.AreEqual("The SSL connection could not be established, see inner exception.", debugException.Message);
-#else
-        Assert.AreEqual("Request protocol 'HTTP/1.1' is not supported.", ex.Status.Detail);
-#endif
     }
 
-#if NET5_0_OR_GREATER
     [Test]
     public async Task UnixDomainSockets()
     {
         Task<HelloReply> UnaryUds(HelloRequest request, ServerCallContext context)
         {
-#if NET6_0_OR_GREATER
             var endPoint = (UnixDomainSocketEndPoint)context.GetHttpContext().Features.Get<IConnectionSocketFeature>()!.Socket.LocalEndPoint!;
             Assert.NotNull(endPoint);
-#endif
 
             return Task.FromResult(new HelloReply { Message = "Hello " + request.Name });
         }
@@ -96,7 +89,6 @@ public class ConnectionTests : FunctionalTestBase
         // Assert
         Assert.AreEqual("Hello John", response.Message);
     }
-#endif
 
 #if NET7_0_OR_GREATER
     [Test]
@@ -122,7 +114,6 @@ public class ConnectionTests : FunctionalTestBase
     }
 #endif
 
-#if NET5_0_OR_GREATER
     [Test]
     public async Task ShareSocketsHttpHandler()
     {
@@ -200,5 +191,4 @@ public class ConnectionTests : FunctionalTestBase
         var expected = $"CONNECT {http.address.Host}:{http.address.Port} HTTP/1.1";
         Assert.AreEqual(expected, proxyServer.Requests[0].RequestLine);
     }
-#endif
 }

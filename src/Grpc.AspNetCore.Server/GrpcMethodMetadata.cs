@@ -33,12 +33,7 @@ public sealed class GrpcMethodMetadata
     /// </summary>
     /// <param name="serviceType">The implementing service type.</param>
     /// <param name="method">The method representation.</param>
-    public GrpcMethodMetadata(
-#if NET5_0_OR_GREATER
-        [DynamicallyAccessedMembers(GrpcProtocolConstants.ServiceAccessibility)]
-#endif
-        Type serviceType,
-        IMethod method)
+    public GrpcMethodMetadata([DynamicallyAccessedMembers(GrpcProtocolConstants.ServiceAccessibility)] Type serviceType, IMethod method)
     {
         ArgumentNullThrowHelper.ThrowIfNull(serviceType);
         ArgumentNullThrowHelper.ThrowIfNull(method);
@@ -50,9 +45,7 @@ public sealed class GrpcMethodMetadata
     /// <summary>
     /// Gets the implementing service type.
     /// </summary>
-#if NET5_0_OR_GREATER
     [DynamicallyAccessedMembers(GrpcProtocolConstants.ServiceAccessibility)]
-#endif
     public Type ServiceType { get; }
 
     /// <summary>
