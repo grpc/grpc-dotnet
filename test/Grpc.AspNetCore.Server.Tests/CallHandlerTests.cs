@@ -150,27 +150,6 @@ public class CallHandlerTests
         Assert.AreEqual("Request protocol of 'HTTP/1.1' is not supported.", log!.Message);
     }
 
-#if !NET5_0_OR_GREATER
-    // .NET Core 3.0 + IIS returned HTTP/2.0 as the protocol
-    [Test]
-    public async Task ProtocolValidation_IISHttp2Protocol_Success()
-    {
-        // Arrange
-        var testSink = new TestSink();
-        var testLoggerFactory = new TestLoggerFactory(testSink, true);
-
-        var httpContext = HttpContextHelpers.CreateContext(protocol: GrpcProtocolConstants.Http20Protocol);
-        var call = CreateHandler(MethodType.ClientStreaming, testLoggerFactory);
-
-        // Act
-        await call.HandleCallAsync(httpContext).DefaultTimeout();
-
-        // Assert
-        var log = testSink.Writes.SingleOrDefault(w => w.EventId.Name == "UnsupportedRequestProtocol");
-        Assert.IsNull(log);
-    }
-#endif
-
 #if NET8_0_OR_GREATER
     [TestCase(MethodType.Unary, false)]
     [TestCase(MethodType.ClientStreaming, true)]

@@ -1,4 +1,4 @@
-﻿#region Copyright notice and license
+#region Copyright notice and license
 
 // Copyright 2019 The gRPC Authors
 //
@@ -21,11 +21,7 @@ using Microsoft.Extensions.DependencyInjection;
 
 namespace Grpc.AspNetCore.Server.Internal;
 
-internal sealed class DefaultGrpcServiceActivator<
-#if NET5_0_OR_GREATER
-    [DynamicallyAccessedMembers(GrpcProtocolConstants.ServiceAccessibility)]
-#endif
-    TGrpcService> : IGrpcServiceActivator<TGrpcService> where TGrpcService : class
+internal sealed class DefaultGrpcServiceActivator<[DynamicallyAccessedMembers(GrpcProtocolConstants.ServiceAccessibility)] TGrpcService> : IGrpcServiceActivator<TGrpcService> where TGrpcService : class
 {
     private static readonly Lazy<ObjectFactory> _objectFactory = new Lazy<ObjectFactory>(static () => ActivatorUtilities.CreateFactory(typeof(TGrpcService), Type.EmptyTypes));
 

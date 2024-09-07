@@ -1,4 +1,4 @@
-﻿#region Copyright notice and license
+#region Copyright notice and license
 
 // Copyright 2019 The gRPC Authors
 //
@@ -25,11 +25,7 @@ namespace Grpc.AspNetCore.Server;
 /// A <typeparamref name="TGrpcService"/> activator abstraction.
 /// </summary>
 /// <typeparam name="TGrpcService">The service type.</typeparam>
-public interface IGrpcServiceActivator<
-#if NET5_0_OR_GREATER
-    [DynamicallyAccessedMembers(GrpcProtocolConstants.ServiceAccessibility)]
-#endif
-    TGrpcService> where TGrpcService : class
+public interface IGrpcServiceActivator<[DynamicallyAccessedMembers(GrpcProtocolConstants.ServiceAccessibility)] TGrpcService> where TGrpcService : class
 {
     /// <summary>
     /// Creates a service.

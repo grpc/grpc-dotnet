@@ -20,9 +20,7 @@ using System.Buffers;
 using System.Buffers.Binary;
 using System.Diagnostics;
 using System.IO.Pipelines;
-#if NET6_0_OR_GREATER
 using System.Runtime.CompilerServices;
-#endif
 using Grpc.Core;
 using Grpc.Net.Compression;
 using Microsoft.Extensions.Logging;
@@ -293,9 +291,7 @@ internal static partial class PipeExtensions
     /// <param name="deserializer">Message deserializer.</param>
     /// <param name="cancellationToken">The cancellation token.</param>
     /// <returns>Complete message data or null if the stream is complete.</returns>
-#if NET6_0_OR_GREATER
     [AsyncMethodBuilder(typeof(PoolingAsyncValueTaskMethodBuilder<>))]
-#endif
     public static async ValueTask<T?> ReadStreamMessageAsync<T>(this PipeReader input, HttpContextServerCallContext serverCallContext, Func<DeserializationContext, T> deserializer, CancellationToken cancellationToken = default)
         where T : class
     {

@@ -73,9 +73,7 @@ public sealed class IPEndpointInfoContainer(Func<EndpointInfo> accessor) : Endpo
 
 public class GrpcTestFixture<TStartup> : IDisposable where TStartup : class
 {
-#if NET5_0_OR_GREATER
     private readonly string _socketPath = Path.GetTempFileName();
-#endif
     private readonly InProcessTestServer _server;
 
     public GrpcTestFixture(
@@ -143,7 +141,6 @@ public class GrpcTestFixture<TStartup> : IDisposable where TStartup : class
                     urls[TestServerEndpointName.Http1WithTls] = IPEndpointInfoContainer.Create(listenOptions, isHttps: true);
                 });
 
-#if NET5_0_OR_GREATER
                 if (File.Exists(_socketPath))
                 {
                     File.Delete(_socketPath);
@@ -155,9 +152,7 @@ public class GrpcTestFixture<TStartup> : IDisposable where TStartup : class
 
                     urls[TestServerEndpointName.UnixDomainSocket] = new SocketsEndpointInfoContainer(_socketPath);
                 });
-#endif
 
-#if NET6_0_OR_GREATER
                 if (RequireHttp3Attribute.IsSupported(out _))
                 {
                     var http3Port = Convert.ToInt32(context.Configuration["Http3Port"], CultureInfo.InvariantCulture);
@@ -175,16 +170,13 @@ public class GrpcTestFixture<TStartup> : IDisposable where TStartup : class
                         urls[TestServerEndpointName.Http3WithTls] = IPEndpointInfoContainer.Create(listenOptions, isHttps: true);
                     });
                 }
-#endif
             });
 
         _server.StartServer();
 
         DynamicGrpc = _server.Host!.Services.GetRequiredService<DynamicGrpcServiceRegistry>();
 
-#if !NET5_0
         AppContext.SetSwitch("System.Net.Http.SocketsHttpHandler.Http2UnencryptedSupport", true);
-#endif
 
         (Client, Handler) = CreateHttpCore(defaultClientEndpointName);
     }
@@ -221,7 +213,6 @@ public class GrpcTestFixture<TStartup> : IDisposable where TStartup : class
 
         configureHandler?.Invoke(socketsHttpHandler);
 
-#if NET5_0_OR_GREATER
         if (endpointName == TestServerEndpointName.UnixDomainSocket)
         {
             var udsEndPoint = new UnixDomainSocketEndPoint(_server.GetUrl(endpointName.Value));
@@ -229,7 +220,6 @@ public class GrpcTestFixture<TStartup> : IDisposable where TStartup : class
 
             socketsHttpHandler.ConnectCallback = connectionFactory.ConnectAsync;
         }
-#endif
 
         HttpClient client;
         HttpMessageHandler handler;
@@ -243,23 +233,19 @@ public class GrpcTestFixture<TStartup> : IDisposable where TStartup : class
             handler = socketsHttpHandler;
         }
 
-#if NET6_0_OR_GREATER
         if (endpointName == TestServerEndpointName.Http3WithTls)
         {
             // TODO(JamesNK): There is a bug with SocketsHttpHandler and HTTP/3 that prevents calls
             // upgrading from 2 to 3. Force HTTP/3 calls to require that protocol.
             handler = new Http3DelegatingHandler(handler);
         }
-#endif
 
         client = new HttpClient(handler);
 
         if (endpointName == TestServerEndpointName.Http2)
         {
             client.DefaultRequestVersion = new Version(2, 0);
-#if NET5_0_OR_GREATER
             client.DefaultVersionPolicy = HttpVersionPolicy.RequestVersionOrHigher;
-#endif
         }
 
         client.BaseAddress = CalculateBaseAddress(endpointName.Value);
@@ -269,12 +255,10 @@ public class GrpcTestFixture<TStartup> : IDisposable where TStartup : class
 
     private Uri CalculateBaseAddress(TestServerEndpointName endpointName)
     {
-#if NET5_0_OR_GREATER
         if (endpointName == TestServerEndpointName.UnixDomainSocket)
         {
             return new Uri("http://localhost");
         }
-#endif
 
         return new Uri(_server.GetUrl(endpointName));
     }
@@ -287,14 +271,10 @@ public class GrpcTestFixture<TStartup> : IDisposable where TStartup : class
             case TestServerEndpointName.Http2:
             case TestServerEndpointName.Http1WithTls:
             case TestServerEndpointName.Http2WithTls:
-#if NET6_0_OR_GREATER
             case TestServerEndpointName.Http3WithTls:
-#endif
                 return new Uri(_server.GetUrl(endpointName));
-#if NET5_0_OR_GREATER
             case TestServerEndpointName.UnixDomainSocket:
                 return new Uri("http://localhost");
-#endif
             default:
                 throw new ArgumentException("Unexpected value: " + endpointName, nameof(endpointName));
         }
@@ -310,16 +290,13 @@ public class GrpcTestFixture<TStartup> : IDisposable where TStartup : class
     {
         Client.Dispose();
         _server.Dispose();
-#if NET5_0_OR_GREATER
         if (File.Exists(_socketPath))
         {
             File.Delete(_socketPath);
         }
-#endif
     }
 
-#if NET6_0_OR_GREATER
-private class Http3DelegatingHandler : DelegatingHandler
+    private class Http3DelegatingHandler : DelegatingHandler
     {
         public Http3DelegatingHandler(HttpMessageHandler innerHandler)
         {
@@ -333,5 +310,4 @@ private class Http3DelegatingHandler : DelegatingHandler
             return base.SendAsync(request, cancellationToken);
         }
     }
-#endif
 }

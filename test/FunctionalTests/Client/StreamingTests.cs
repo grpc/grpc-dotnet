@@ -953,7 +953,6 @@ public class StreamingTests : FunctionalTestBase
         Assert.AreEqual(StatusCode.NotFound, ex.StatusCode);
     }
 
-#if NET5_0_OR_GREATER
     [Test]
     public Task MaxConcurrentStreams_StartConcurrently_AdditionalConnectionsCreated()
     {
@@ -1322,5 +1321,4 @@ public class StreamingTests : FunctionalTestBase
         Logger.LogInformation("Client waiting for server canceled confirmation.");
         Assert.IsTrue(await serverCanceledTcs.Task.DefaultTimeout());
     }
-#endif
 }

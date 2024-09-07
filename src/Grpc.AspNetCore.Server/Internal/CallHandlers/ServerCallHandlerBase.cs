@@ -30,11 +30,7 @@ using Microsoft.Net.Http.Headers;
 
 namespace Grpc.AspNetCore.Server.Internal.CallHandlers;
 
-internal abstract class ServerCallHandlerBase<
-#if NET5_0_OR_GREATER
-    [DynamicallyAccessedMembers(GrpcProtocolConstants.ServiceAccessibility)]
-#endif
-    TService, TRequest, TResponse>
+internal abstract class ServerCallHandlerBase<[DynamicallyAccessedMembers(GrpcProtocolConstants.ServiceAccessibility)] TService, TRequest, TResponse>
     where TService : class
     where TRequest : class
     where TResponse : class
@@ -60,10 +56,7 @@ internal abstract class ServerCallHandlerBase<
         }
 
         if (!GrpcProtocolConstants.IsHttp2(httpContext.Request.Protocol)
-#if NET6_0_OR_GREATER
-            && !GrpcProtocolConstants.IsHttp3(httpContext.Request.Protocol)
-#endif
-            )
+            && !GrpcProtocolConstants.IsHttp3(httpContext.Request.Protocol))
         {
             return ProcessNonHttp2Request(httpContext);
         }

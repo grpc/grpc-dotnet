@@ -1,4 +1,4 @@
-﻿#region Copyright notice and license
+#region Copyright notice and license
 
 // Copyright 2019 The gRPC Authors
 //
@@ -24,10 +24,6 @@ public enum TestServerEndpointName
     Http1,
     Http2WithTls,
     Http1WithTls,
-#if NET5_0_OR_GREATER
     UnixDomainSocket,
-#endif
-#if NET6_0_OR_GREATER
     Http3WithTls,
-#endif
 }

@@ -70,23 +70,15 @@ public class ConnectionTests : FunctionalTestBase
         yield return new TestCaseData(TestServerEndpointName.Http2, "2.0", true);
         yield return new TestCaseData(TestServerEndpointName.Http2, "1.1", false);
         yield return new TestCaseData(TestServerEndpointName.Http2, null, true);
-#if NET5_0_OR_GREATER
         // Specifing HTTP/2 doesn't work when the server is using TLS with HTTP/1.1
         // Caused by using HttpVersionPolicy.RequestVersionOrHigher setting
         yield return new TestCaseData(TestServerEndpointName.Http1WithTls, "2.0", false);
-#else
-        yield return new TestCaseData(TestServerEndpointName.Http1WithTls, "2.0", true);
-#endif
         yield return new TestCaseData(TestServerEndpointName.Http1WithTls, "1.1", true);
         yield return new TestCaseData(TestServerEndpointName.Http1WithTls, null, true);
         yield return new TestCaseData(TestServerEndpointName.Http2WithTls, "2.0", true);
-#if NET5_0_OR_GREATER
         // Specifing HTTP/1.1 does work when the server is using TLS with HTTP/2
         // Caused by using HttpVersionPolicy.RequestVersionOrHigher setting
         yield return new TestCaseData(TestServerEndpointName.Http2WithTls, "1.1", true);
-#else
-        yield return new TestCaseData(TestServerEndpointName.Http2WithTls, "1.1", false);
-#endif
         yield return new TestCaseData(TestServerEndpointName.Http2WithTls, null, true);
 #if NET7_0_OR_GREATER
         yield return new TestCaseData(TestServerEndpointName.Http3WithTls, null, true);
@@ -107,13 +99,11 @@ public class ConnectionTests : FunctionalTestBase
 
     private async Task SendRequestWithConnectionOptionsCore(TestServerEndpointName endpointName, string? version, bool success, bool setVersionOnHandler)
     {
-#if NET6_0_OR_GREATER
         if (endpointName == TestServerEndpointName.Http3WithTls &&
             !RequireHttp3Attribute.IsSupported(out var message))
         {
             Assert.Ignore(message);
         }
-#endif
 
         SetExpectedErrorsFilter(writeContext =>
         {

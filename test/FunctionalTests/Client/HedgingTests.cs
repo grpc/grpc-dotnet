@@ -679,7 +679,6 @@ public class HedgingTests : FunctionalTestBase
         Assert.AreEqual(1, serverAbortCount);
     }
 
-#if NET5_0_OR_GREATER
     [Test]
     public async Task ClientStreaming_WriteAsyncCancellationBefore_ClientAbort()
     {
@@ -949,5 +948,4 @@ public class HedgingTests : FunctionalTestBase
         var response = await call.ResponseAsync.DefaultTimeout();
         Assert.IsTrue(clientWriteWaitedForServerRead);
     }
-#endif
 }

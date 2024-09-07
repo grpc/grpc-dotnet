@@ -1,4 +1,4 @@
-﻿#region Copyright notice and license
+#region Copyright notice and license
 
 // Copyright 2019 The gRPC Authors
 //
@@ -25,10 +25,5 @@ internal static class GrpcWebProtocolConstants
     internal const string GrpcContentType = "application/grpc";
     internal const string GrpcWebContentType = "application/grpc-web";
     internal const string GrpcWebTextContentType = "application/grpc-web-text";
-
-#if NET5_0_OR_GREATER
     internal static readonly string Http2Protocol = HttpProtocol.Http2;
-#else
-    internal const string Http2Protocol = "HTTP/2";
-#endif
 }

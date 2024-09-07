@@ -1,4 +1,4 @@
-﻿#region Copyright notice and license
+#region Copyright notice and license
 
 // Copyright 2019 The gRPC Authors
 //
@@ -38,7 +38,6 @@ public class TelemetryTests : FunctionalTestBase
         await TestTelemetryHeaderIsSet(clientType, handler: null);
     }
 
-#if NET5_0_OR_GREATER
     [TestCase(ClientType.Channel)]
     [TestCase(ClientType.ClientFactory)]
     public async Task Channel_SocketsHttpHandler_UnaryCall_TelemetryHeaderSentWithRequest(ClientType clientType)
@@ -59,20 +58,13 @@ public class TelemetryTests : FunctionalTestBase
         {
         }
     }
-#endif
 
     private async Task TestTelemetryHeaderIsSet(ClientType clientType, HttpMessageHandler? handler)
     {
         string? telemetryHeader = null;
         Task<HelloReply> UnaryTelemetryHeader(HelloRequest request, ServerCallContext context)
         {
-            telemetryHeader = context.RequestHeaders.GetValue(
-#if NET5_0_OR_GREATER
-                "traceparent"
-#else
-                "request-id"
-#endif
-                );
+            telemetryHeader = context.RequestHeaders.GetValue("traceparent");
 
             return Task.FromResult(new HelloReply());
         }
@@ -82,7 +74,6 @@ public class TelemetryTests : FunctionalTestBase
         var client = CreateClient(clientType, method, handler);
 
         // Act
-#if NET5_0_OR_GREATER
         var result = new List<KeyValuePair<string, object?>>();
 
         using var allSubscription = new AllListenersObserver(new Dictionary<string, IObserver<KeyValuePair<string, object?>>>
@@ -90,21 +81,17 @@ public class TelemetryTests : FunctionalTestBase
             ["HttpHandlerDiagnosticListener"] = new ObserverToList<KeyValuePair<string, object?>>(result)
         });
         using (DiagnosticListener.AllListeners.Subscribe(allSubscription))
-#endif
         {
             await client.UnaryCall(new HelloRequest()).ResponseAsync.DefaultTimeout();
         }
 
         // Assert
         Assert.IsNotNull(telemetryHeader);
-
-#if NET5_0_OR_GREATER
         Assert.AreEqual(4, result.Count);
         Assert.AreEqual("System.Net.Http.HttpRequestOut.Start", result[0].Key);
         Assert.AreEqual("System.Net.Http.Request", result[1].Key);
         Assert.AreEqual("System.Net.Http.HttpRequestOut.Stop", result[2].Key);
         Assert.AreEqual("System.Net.Http.Response", result[3].Key);
-#endif
     }
 
     private TestClient<HelloRequest, HelloReply> CreateClient(ClientType clientType, Method<HelloRequest, HelloReply> method, HttpMessageHandler? handler)
