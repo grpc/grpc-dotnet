@@ -1,4 +1,4 @@
-﻿#region Copyright notice and license
+#region Copyright notice and license
 
 // Copyright 2019 The gRPC Authors
 //
@@ -103,6 +103,9 @@ internal static class GrpcServerLog
 
     private static readonly Action<ILogger, Exception?> _deadlineStopped =
         LoggerMessage.Define(LogLevel.Trace, new EventId(27, "DeadlineStopped"), "Request deadline stopped.");
+
+    private static readonly Action<ILogger, string, Exception?> _serviceMethodCanceled =
+        LoggerMessage.Define<string>(LogLevel.Information, new EventId(28, "ServiceMethodCanceled"), "Service method '{ServiceMethod}' canceled.");
 
     internal static void DeadlineStopped(ILogger logger)
     {
@@ -237,5 +240,10 @@ internal static class GrpcServerLog
     public static void DeadlineTimerRescheduled(ILogger logger, TimeSpan remaining)
     {
         _deadlineTimerRescheduled(logger, remaining, null);
+    }
+
+    public static void ServiceMethodCanceled(ILogger logger, string serviceMethod, Exception ex)
+    {
+        _serviceMethodCanceled(logger, serviceMethod, ex);
     }
 }

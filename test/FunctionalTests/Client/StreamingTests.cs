@@ -429,7 +429,7 @@ public class StreamingTests : FunctionalTestBase
         AssertHasLog(LogLevel.Information, "GrpcStatusError", "Call failed with gRPC error status. Status code: 'Cancelled', Message: ''.");
 
         await TestHelpers.AssertIsTrueRetryAsync(
-            () => HasLog(LogLevel.Error, "ErrorExecutingServiceMethod", "Error when executing service method 'ClientStreamedDataTimeout'."),
+            () => HasLog(LogLevel.Information, "ServiceMethodCanceled", "Service method 'ClientStreamedDataTimeout' canceled."),
             "Wait for server error so it doesn't impact other tests.").DefaultTimeout();
     }
 
