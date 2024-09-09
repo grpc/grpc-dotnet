@@ -23,11 +23,14 @@ namespace Grpc.AspNetCore.Server.Internal;
 
 internal static partial class GrpcServerLog
 {
-    [LoggerMessage(Level = LogLevel.Trace, EventId = 27, EventName = "DeadlineStopped", Message = "Request deadline stopped.")]
-    internal static partial void DeadlineStopped(ILogger logger);
+    [LoggerMessage(Level = LogLevel.Debug, EventId = 1, EventName = "UnableToDisableMaxRequestBodySizeLimit", Message = "Unable to disable the max request body size limit.")]
+    public static partial void UnableToDisableMaxRequestBodySize(ILogger logger);
 
-    [LoggerMessage(Level = LogLevel.Trace, EventId = 26, EventName = "DeadlineStarted", Message = "Request deadline timeout of {Timeout} started.")]
-    public static partial void DeadlineStarted(ILogger logger, TimeSpan timeout);
+    [LoggerMessage(Level = LogLevel.Information, EventId = 2, EventName = "UnsupportedRequestContentType", Message = "Request content-type of '{ContentType}' is not supported.")]
+    public static partial void UnsupportedRequestContentType(ILogger logger, string? contentType);
+
+    [LoggerMessage(Level = LogLevel.Information, EventId = 3, EventName = "UnsupportedRequestProtocol", Message = "Request protocol of '{Protocol}' is not supported.")]
+    public static partial void UnsupportedRequestProtocol(ILogger logger, string? protocol);
 
     [LoggerMessage(Level = LogLevel.Debug, EventId = 4, EventName = "DeadlineExceeded", Message = "Request with timeout of {Timeout} has exceeded its deadline.")]
     public static partial void DeadlineExceeded(ILogger logger, TimeSpan timeout);
@@ -46,15 +49,6 @@ internal static partial class GrpcServerLog
 
     [LoggerMessage(Level = LogLevel.Error, EventId = 9, EventName = "DeadlineCancellationError", Message = "Error occurred while trying to cancel the request due to deadline exceeded.")]
     public static partial void DeadlineCancellationError(ILogger logger, Exception ex);
-
-    [LoggerMessage(Level = LogLevel.Debug, EventId = 1, EventName = "UnableToDisableMaxRequestBodySizeLimit", Message = "Unable to disable the max request body size limit.")]
-    public static partial void UnableToDisableMaxRequestBodySize(ILogger logger);
-
-    [LoggerMessage(Level = LogLevel.Information, EventId = 2, EventName = "UnsupportedRequestContentType", Message = "Request content-type of '{ContentType}' is not supported.")]
-    public static partial void UnsupportedRequestContentType(ILogger logger, string? contentType);
-
-    [LoggerMessage(Level = LogLevel.Information, EventId = 3, EventName = "UnsupportedRequestProtocol", Message = "Request protocol of '{Protocol}' is not supported.")]
-    public static partial void UnsupportedRequestProtocol(ILogger logger, string? protocol);
 
     [LoggerMessage(Level = LogLevel.Debug, EventId = 10, EventName = "ReadingMessage", Message = "Reading message.")]
     public static partial void ReadingMessage(ILogger logger);
@@ -103,6 +97,12 @@ internal static partial class GrpcServerLog
 
     [LoggerMessage(Level = LogLevel.Trace, EventId = 25, EventName = "DeadlineTimerRescheduled", Message = "Deadline timer triggered but {Remaining} remaining before deadline exceeded. Deadline timer rescheduled.")]
     public static partial void DeadlineTimerRescheduled(ILogger logger, TimeSpan remaining);
+
+    [LoggerMessage(Level = LogLevel.Trace, EventId = 26, EventName = "DeadlineStarted", Message = "Request deadline timeout of {Timeout} started.")]
+    public static partial void DeadlineStarted(ILogger logger, TimeSpan timeout);
+
+    [LoggerMessage(Level = LogLevel.Trace, EventId = 27, EventName = "DeadlineStopped", Message = "Request deadline stopped.")]
+    internal static partial void DeadlineStopped(ILogger logger);
 
     [LoggerMessage(Level = LogLevel.Information, EventId = 28, EventName = "ServiceMethodCanceled", Message = "Service method '{ServiceMethod}' canceled.")]
     public static partial void ServiceMethodCanceled(ILogger logger, string serviceMethod, Exception ex);
