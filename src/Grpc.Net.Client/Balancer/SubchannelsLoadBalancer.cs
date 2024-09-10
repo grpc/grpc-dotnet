@@ -336,56 +336,36 @@ public abstract class SubchannelsLoadBalancer : LoadBalancer
     }
 }
 
-internal static class SubchannelsLoadBalancerLog
+internal static partial class SubchannelsLoadBalancerLog
 {
-    private static readonly Action<ILogger, string, ConnectivityState, string, Exception?> _processingSubchannelStateChanged =
-        LoggerMessage.Define<string, ConnectivityState, string>(LogLevel.Trace, new EventId(1, "ProcessingSubchannelStateChanged"), "Processing subchannel id '{SubchannelId}' state changed to {State}. Detail: '{Detail}'.");
-
-    private static readonly Action<ILogger, string, Exception?> _ignoredSubchannelStateChange =
-        LoggerMessage.Define<string>(LogLevel.Trace, new EventId(2, "IgnoredSubchannelStateChange"), "Ignored state change because of unknown subchannel id '{SubchannelId}'.");
-
-    private static readonly Action<ILogger, Exception?> _connectionsUnchanged =
-        LoggerMessage.Define(LogLevel.Trace, new EventId(3, "ConnectionsUnchanged"), "Connections unchanged.");
-
-    private static readonly Action<ILogger, string, ConnectivityState, Exception?> _refreshingResolverForSubchannel =
-        LoggerMessage.Define<string, ConnectivityState>(LogLevel.Trace, new EventId(4, "RefreshingResolverForSubchannel"), "Refreshing resolver because subchannel id '{SubchannelId}' is in state {State}.");
-
-    private static readonly Action<ILogger, string, ConnectivityState, Exception?> _requestingConnectionForSubchannel =
-        LoggerMessage.Define<string, ConnectivityState>(LogLevel.Trace, new EventId(5, "RequestingConnectionForSubchannel"), "Requesting connection for subchannel id '{SubchannelId}' because it is in state {State}.");
-
-    private static readonly Action<ILogger, int, string, Exception?> _creatingReadyPicker =
-        LoggerMessage.Define<int, string>(LogLevel.Trace, new EventId(6, "CreatingReadyPicker"), "Creating ready picker with {SubchannelCount} subchannels: {Subchannels}");
+    [LoggerMessage(Level = LogLevel.Trace, EventId = 1, EventName = "ProcessingSubchannelStateChanged", Message = "Processing subchannel id '{SubchannelId}' state changed to {State}. Detail: '{Detail}'.")]
+    private static partial void ProcessingSubchannelStateChanged(ILogger logger, string subchannelId, ConnectivityState state, string Detail, Exception? DebugException);
 
     public static void ProcessingSubchannelStateChanged(ILogger logger, string subchannelId, ConnectivityState state, Status status)
     {
-        _processingSubchannelStateChanged(logger, subchannelId, state, status.Detail, status.DebugException);
+        ProcessingSubchannelStateChanged(logger, subchannelId, state, status.Detail, status.DebugException);
     }
 
-    public static void IgnoredSubchannelStateChange(ILogger logger, string subchannelId)
-    {
-        _ignoredSubchannelStateChange(logger, subchannelId, null);
-    }
+    [LoggerMessage(Level = LogLevel.Trace, EventId = 2, EventName = "IgnoredSubchannelStateChange", Message = "Ignored state change because of unknown subchannel id '{SubchannelId}'.")]
+    public static partial void IgnoredSubchannelStateChange(ILogger logger, string subchannelId);
 
-    public static void ConnectionsUnchanged(ILogger logger)
-    {
-        _connectionsUnchanged(logger, null);
-    }
+    [LoggerMessage(Level = LogLevel.Trace, EventId = 3, EventName = "ConnectionsUnchanged", Message = "Connections unchanged.")]
+    public static partial void ConnectionsUnchanged(ILogger logger);
 
-    public static void RefreshingResolverForSubchannel(ILogger logger, string subchannelId, ConnectivityState state)
-    {
-        _refreshingResolverForSubchannel(logger, subchannelId, state, null);
-    }
+    [LoggerMessage(Level = LogLevel.Trace, EventId = 4, EventName = "RefreshingResolverForSubchannel", Message = "Refreshing resolver because subchannel id '{SubchannelId}' is in state {State}.")]
+    public static partial void RefreshingResolverForSubchannel(ILogger logger, string subchannelId, ConnectivityState state);
 
-    public static void RequestingConnectionForSubchannel(ILogger logger, string subchannelId, ConnectivityState state)
-    {
-        _requestingConnectionForSubchannel(logger, subchannelId, state, null);
-    }
+    [LoggerMessage(Level = LogLevel.Trace, EventId = 5, EventName = "RequestingConnectionForSubchannel", Message = "Requesting connection for subchannel id '{SubchannelId}' because it is in state {State}.")]
+    public static partial void RequestingConnectionForSubchannel(ILogger logger, string subchannelId, ConnectivityState state);
+
+    [LoggerMessage(Level = LogLevel.Trace, EventId = 6, EventName = "CreatingReadyPicker", Message = "Creating ready picker with {SubchannelCount} subchannels: {Subchannels}")]
+    private static partial void CreatingReadyPicker(ILogger logger, int subchannelCount, string subchannels);
 
     public static void CreatingReadyPicker(ILogger logger, List<Subchannel> readySubchannels)
     {
         if (logger.IsEnabled(LogLevel.Trace))
         {
-            _creatingReadyPicker(logger, readySubchannels.Count, string.Join(", ", readySubchannels.Select(s => $"id '{s.Id}' ({string.Join(",", s.GetAddresses())})")), null);
+            CreatingReadyPicker(logger, readySubchannels.Count, string.Join(", ", readySubchannels.Select(s => $"id '{s.Id}' ({string.Join(",", s.GetAddresses())})")));
         }
     }
 }

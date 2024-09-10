@@ -30,7 +30,7 @@ namespace Grpc.AspNetCore.ClientFactory;
 /// The interceptor gets the request from IHttpContextAccessor, which is a singleton.
 /// IHttpContextAccessor uses an async local value.
 /// </summary>
-internal class ContextPropagationInterceptor : Interceptor
+internal partial class ContextPropagationInterceptor : Interceptor
 {
     private readonly GrpcContextPropagationOptions _options;
     private readonly IHttpContextAccessor _httpContextAccessor;
@@ -258,15 +258,10 @@ internal class ContextPropagationInterceptor : Interceptor
         }
     }
 
-    private static class Log
+    private static partial class Log
     {
-        private static readonly Action<ILogger, string, Exception?> _propagateServerCallContextFailure =
-            LoggerMessage.Define<string>(LogLevel.Debug, new EventId(1, "PropagateServerCallContextFailure"), "Unable to propagate server context values to the call. {ErrorMessage}");
-
-        public static void PropagateServerCallContextFailure(ILogger logger, string errorMessage)
-        {
-            _propagateServerCallContextFailure(logger, errorMessage, null);
-        }
+        [LoggerMessage(Level = LogLevel.Debug, EventId = 1, EventName = "PropagateServerCallContextFailure", Message = "Unable to propagate server context values to the call. {ErrorMessage}")]
+        public static partial void PropagateServerCallContextFailure(ILogger logger, string errorMessage);
     }
 
     // Store static callbacks so delegates are allocated once

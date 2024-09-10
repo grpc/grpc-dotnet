@@ -1,4 +1,4 @@
-﻿#region Copyright notice and license
+#region Copyright notice and license
 
 // Copyright 2019 The gRPC Authors
 //
@@ -24,7 +24,7 @@ using Microsoft.Extensions.Options;
 
 namespace Grpc.AspNetCore.Web.Internal;
 
-internal sealed class GrpcWebMiddleware
+internal sealed partial class GrpcWebMiddleware
 {
     private readonly GrpcWebOptions _options;
     private readonly ILogger<GrpcWebMiddleware> _logger;
@@ -158,30 +158,15 @@ internal sealed class GrpcWebMiddleware
         return false;
     }
 
-    private static class Log
+    private static partial class Log
     {
-        private static readonly Action<ILogger, string, Exception?> _detectedGrpcWebRequest =
-            LoggerMessage.Define<string>(LogLevel.Debug, new EventId(1, "DetectedGrpcWebRequest"), "Detected gRPC-Web request from content-type '{ContentType}'.");
+       [LoggerMessage(Level = LogLevel.Debug, EventId = 1, EventName = "DetectedGrpcWebRequest", Message = "Detected gRPC-Web request from content-type '{ContentType}'.")]
+        public static partial void DetectedGrpcWebRequest(ILogger<GrpcWebMiddleware> logger, string contentType);
 
-        private static readonly Action<ILogger, Exception?> _grpcWebRequestNotProcessed =
-            LoggerMessage.Define(LogLevel.Debug, new EventId(2, "GrpcWebRequestNotProcessed"), $"gRPC-Web request not processed. gRPC-Web must be enabled by placing the [EnableGrpcWeb] attribute on a service or method, or enable for all services in the app with {nameof(GrpcWebOptions)}.");
+        [LoggerMessage(Level = LogLevel.Debug, EventId = 2, EventName = "GrpcWebRequestNotProcessed", Message = $"gRPC-Web request not processed. gRPC-Web must be enabled by placing the [EnableGrpcWeb] attribute on a service or method, or enable for all services in the app with {nameof(GrpcWebOptions)}.")]
+        public static partial void GrpcWebRequestNotProcessed(ILogger<GrpcWebMiddleware> logger);
 
-        private static readonly Action<ILogger, string, Exception?> _sendingGrpcWebResponse =
-            LoggerMessage.Define<string>(LogLevel.Debug, new EventId(3, "SendingGrpcWebResponse"), "Sending gRPC-Web response with content-type '{ContentType}'.");
-
-        public static void DetectedGrpcWebRequest(ILogger<GrpcWebMiddleware> logger, string contentType)
-        {
-            _detectedGrpcWebRequest(logger, contentType, null);
-        }
-
-        public static void GrpcWebRequestNotProcessed(ILogger<GrpcWebMiddleware> logger)
-        {
-            _grpcWebRequestNotProcessed(logger, null);
-        }
-
-        public static void SendingGrpcWebResponse(ILogger<GrpcWebMiddleware> logger, string contentType)
-        {
-            _sendingGrpcWebResponse(logger, contentType, null);
-        }
+        [LoggerMessage(Level = LogLevel.Debug, EventId = 3, EventName = "SendingGrpcWebResponse", Message = "Sending gRPC-Web response with content-type '{ContentType}'.")]
+        public static partial void SendingGrpcWebResponse(ILogger<GrpcWebMiddleware> logger, string contentType);
     }
 }

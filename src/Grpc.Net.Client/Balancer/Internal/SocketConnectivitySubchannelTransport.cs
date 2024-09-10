@@ -544,142 +544,57 @@ internal class SocketConnectivitySubchannelTransport : ISubchannelTransport, IDi
     }
 }
 
-internal static class SocketConnectivitySubchannelTransportLog
+internal static partial class SocketConnectivitySubchannelTransportLog
 {
-    private static readonly Action<ILogger, string, DnsEndPoint, Exception?> _connectingSocket =
-        LoggerMessage.Define<string, DnsEndPoint>(LogLevel.Trace, new EventId(1, "ConnectingSocket"), "Subchannel id '{SubchannelId}' connecting socket to {EndPoint}.");
+    [LoggerMessage(Level = LogLevel.Trace, EventId = 1, EventName = "ConnectingSocket", Message = "Subchannel id '{SubchannelId}' connecting socket to {EndPoint}.")]
+    public static partial void ConnectingSocket(ILogger logger, string subchannelId, DnsEndPoint endPoint);
 
-    private static readonly Action<ILogger, string, DnsEndPoint, Exception?> _connectedSocket =
-        LoggerMessage.Define<string, DnsEndPoint>(LogLevel.Debug, new EventId(2, "ConnectedSocket"), "Subchannel id '{SubchannelId}' connected to socket {EndPoint}.");
+    [LoggerMessage(Level = LogLevel.Debug, EventId = 2, EventName = "ConnectedSocket", Message = "Subchannel id '{SubchannelId}' connected to socket {EndPoint}.")]
+    public static partial void ConnectedSocket(ILogger logger, string subchannelId, DnsEndPoint endPoint);
 
-    private static readonly Action<ILogger, string, DnsEndPoint, Exception> _errorConnectingSocket =
-        LoggerMessage.Define<string, DnsEndPoint>(LogLevel.Debug, new EventId(3, "ErrorConnectingSocket"), "Subchannel id '{SubchannelId}' error connecting to socket {EndPoint}.");
+    [LoggerMessage(Level = LogLevel.Debug, EventId = 3, EventName = "ErrorConnectingSocket", Message = "Subchannel id '{SubchannelId}' error connecting to socket {EndPoint}.")]
+    public static partial void ErrorConnectingSocket(ILogger logger, string subchannelId, DnsEndPoint endPoint, Exception ex);
 
-    private static readonly Action<ILogger, string, DnsEndPoint, Exception?> _checkingSocket =
-        LoggerMessage.Define<string, DnsEndPoint>(LogLevel.Trace, new EventId(4, "CheckingSocket"), "Subchannel id '{SubchannelId}' checking socket {EndPoint}.");
+    [LoggerMessage(Level = LogLevel.Trace, EventId = 4, EventName = "CheckingSocket", Message = "Subchannel id '{SubchannelId}' checking socket {EndPoint}.")]
+    public static partial void CheckingSocket(ILogger logger, string subchannelId, DnsEndPoint endPoint);
 
-    private static readonly Action<ILogger, string, DnsEndPoint, Exception> _errorCheckingSocket =
-        LoggerMessage.Define<string, DnsEndPoint>(LogLevel.Debug, new EventId(5, "ErrorCheckingSocket"), "Subchannel id '{SubchannelId}' error checking socket {EndPoint}.");
+    [LoggerMessage(Level = LogLevel.Debug, EventId = 5, EventName = "ErrorCheckingSocket", Message = "Subchannel id '{SubchannelId}' error checking socket {EndPoint}.")]
+    public static partial void ErrorCheckingSocket(ILogger logger, string subchannelId, DnsEndPoint endPoint, Exception ex);
 
-    private static readonly Action<ILogger, string, Exception> _errorSocketTimer =
-        LoggerMessage.Define<string>(LogLevel.Error, new EventId(6, "ErrorSocketTimer"), "Subchannel id '{SubchannelId}' unexpected error in check socket timer.");
+    [LoggerMessage(Level = LogLevel.Error, EventId = 6, EventName = "ErrorSocketTimer", Message = "Subchannel id '{SubchannelId}' unexpected error in check socket timer.")]
+    public static partial void ErrorSocketTimer(ILogger logger, string subchannelId, Exception ex);
 
-    private static readonly Action<ILogger, string, DnsEndPoint, Exception?> _creatingStream =
-        LoggerMessage.Define<string, DnsEndPoint>(LogLevel.Trace, new EventId(7, "CreatingStream"), "Subchannel id '{SubchannelId}' creating stream for {EndPoint}.");
+    [LoggerMessage(Level = LogLevel.Trace, EventId = 7, EventName = "CreatingStream", Message = "Subchannel id '{SubchannelId}' creating stream for {EndPoint}.")]
+    public static partial void CreatingStream(ILogger logger, string subchannelId, DnsEndPoint endPoint);
 
-    private static readonly Action<ILogger, string, DnsEndPoint, int, Exception?> _disposingStream =
-        LoggerMessage.Define<string, DnsEndPoint, int>(LogLevel.Trace, new EventId(8, "DisposingStream"), "Subchannel id '{SubchannelId}' disposing stream for {EndPoint}. Transport has {ActiveStreams} active streams.");
+    [LoggerMessage(Level = LogLevel.Trace, EventId = 8, EventName = "DisposingStream", Message = "Subchannel id '{SubchannelId}' disposing stream for {EndPoint}. Transport has {ActiveStreams} active streams.")]
+    public static partial void DisposingStream(ILogger logger, string subchannelId, DnsEndPoint endPoint, int activeStreams);
 
-    private static readonly Action<ILogger, string, Exception?> _disposingTransport =
-        LoggerMessage.Define<string>(LogLevel.Trace, new EventId(9, "DisposingTransport"), "Subchannel id '{SubchannelId}' disposing transport.");
+    [LoggerMessage(Level = LogLevel.Trace, EventId = 9, EventName = "DisposingTransport", Message = "Subchannel id '{SubchannelId}' disposing transport.")]
+    public static partial void DisposingTransport(ILogger logger, string subchannelId);
 
-    private static readonly Action<ILogger, string, Exception> _errorOnDisposingStream =
-        LoggerMessage.Define<string>(LogLevel.Error, new EventId(10, "ErrorOnDisposingStream"), "Subchannel id '{SubchannelId}' unexpected error when reacting to transport stream dispose.");
+    [LoggerMessage(Level = LogLevel.Error, EventId = 10, EventName = "ErrorOnDisposingStream", Message = "Subchannel id '{SubchannelId}' unexpected error when reacting to transport stream dispose.")]
+    public static partial void ErrorOnDisposingStream(ILogger logger, string subchannelId, Exception ex);
 
-    private static readonly Action<ILogger, string, DnsEndPoint, Exception?> _connectingOnCreateStream =
-        LoggerMessage.Define<string, DnsEndPoint>(LogLevel.Trace, new EventId(11, "ConnectingOnCreateStream"), "Subchannel id '{SubchannelId}' doesn't have a connected socket available. Connecting new stream socket for {EndPoint}.");
+    [LoggerMessage(Level = LogLevel.Trace, EventId = 11, EventName = "ConnectingOnCreateStream", Message = "Subchannel id '{SubchannelId}' doesn't have a connected socket available. Connecting new stream socket for {EndPoint}.")]
+    public static partial void ConnectingOnCreateStream(ILogger logger, string subchannelId, DnsEndPoint endPoint);
 
-    private static readonly Action<ILogger, string, DnsEndPoint, int, int, Exception?> _streamCreated =
-        LoggerMessage.Define<string, DnsEndPoint, int, int>(LogLevel.Trace, new EventId(12, "StreamCreated"), "Subchannel id '{SubchannelId}' created stream for {EndPoint} with {BufferedBytes} buffered bytes. Transport has {ActiveStreams} active streams.");
+    [LoggerMessage(Level = LogLevel.Trace, EventId = 12, EventName = "StreamCreated", Message = "Subchannel id '{SubchannelId}' created stream for {EndPoint} with {BufferedBytes} buffered bytes. Transport has {ActiveStreams} active streams.")]
+    public static partial void StreamCreated(ILogger logger, string subchannelId, DnsEndPoint endPoint, int bufferedBytes, int activeStreams);
 
-    private static readonly Action<ILogger, string, DnsEndPoint, Exception> _errorPollingSocket =
-        LoggerMessage.Define<string, DnsEndPoint>(LogLevel.Debug, new EventId(13, "ErrorPollingSocket"), "Subchannel id '{SubchannelId}' error checking socket {EndPoint}.");
+    [LoggerMessage(Level = LogLevel.Debug, EventId = 13, EventName = "ErrorPollingSocket", Message = "Subchannel id '{SubchannelId}' error checking socket {EndPoint}.")]
+    public static partial void ErrorPollingSocket(ILogger logger, string subchannelId, DnsEndPoint endPoint, Exception ex);
 
-    private static readonly Action<ILogger, string, DnsEndPoint, Exception?> _socketPollBadState =
-        LoggerMessage.Define<string, DnsEndPoint>(LogLevel.Debug, new EventId(14, "SocketPollBadState"), "Subchannel id '{SubchannelId}' socket {EndPoint} is in a bad state and can't be used.");
+    [LoggerMessage(Level = LogLevel.Debug, EventId = 14, EventName = "SocketPollBadState", Message = "Subchannel id '{SubchannelId}' socket {EndPoint} is in a bad state and can't be used.")]
+    public static partial void SocketPollBadState(ILogger logger, string subchannelId, DnsEndPoint endPoint);
 
-    private static readonly Action<ILogger, string, DnsEndPoint, int, Exception?> _socketReceivingAvailable =
-        LoggerMessage.Define<string, DnsEndPoint, int>(LogLevel.Trace, new EventId(15, "SocketReceivingAvailable"), "Subchannel id '{SubchannelId}' socket {EndPoint} is receiving {ReadBytesAvailableCount} available bytes.");
+    [LoggerMessage(Level = LogLevel.Trace, EventId = 15, EventName = "SocketReceivingAvailable", Message = "Subchannel id '{SubchannelId}' socket {EndPoint} is receiving {ReadBytesAvailableCount} available bytes.")]
+    public static partial void SocketReceivingAvailable(ILogger logger, string subchannelId, DnsEndPoint endPoint, int readBytesAvailableCount);
 
-    private static readonly Action<ILogger, string, DnsEndPoint, TimeSpan, Exception?> _closingUnusableSocket =
-        LoggerMessage.Define<string, DnsEndPoint, TimeSpan>(LogLevel.Debug, new EventId(16, "ClosingUnusableSocket"), "Subchannel id '{SubchannelId}' socket {EndPoint} is being closed because it can't be used. Socket lifetime of {SocketLifetime}. The socket either can't receive data or it has received unexpected data.");
+    [LoggerMessage(Level = LogLevel.Debug, EventId = 16, EventName = "ClosingUnusableSocket", Message = "Subchannel id '{SubchannelId}' socket {EndPoint} is being closed because it can't be used. Socket lifetime of {SocketLifetime}. The socket either can't receive data or it has received unexpected data.")]
+    public static partial void ClosingUnusableSocket(ILogger logger, string subchannelId, DnsEndPoint endPoint, TimeSpan socketLifetime);
 
-    private static readonly Action<ILogger, string, DnsEndPoint, TimeSpan, Exception?> _closingSocketFromIdleTimeoutOnCreateStream =
-        LoggerMessage.Define<string, DnsEndPoint, TimeSpan>(LogLevel.Debug, new EventId(16, "ClosingSocketFromIdleTimeoutOnCreateStream"), "Subchannel id '{SubchannelId}' socket {EndPoint} is being closed because it exceeds the idle timeout of {SocketIdleTimeout}.");
-
-    public static void ConnectingSocket(ILogger logger, string subchannelId, DnsEndPoint endPoint)
-    {
-        _connectingSocket(logger, subchannelId, endPoint, null);
-    }
-
-    public static void ConnectedSocket(ILogger logger, string subchannelId, DnsEndPoint endPoint)
-    {
-        _connectedSocket(logger, subchannelId, endPoint, null);
-    }
-
-    public static void ErrorConnectingSocket(ILogger logger, string subchannelId, DnsEndPoint endPoint, Exception ex)
-    {
-        _errorConnectingSocket(logger, subchannelId, endPoint, ex);
-    }
-
-    public static void CheckingSocket(ILogger logger, string subchannelId, DnsEndPoint endPoint)
-    {
-        _checkingSocket(logger, subchannelId, endPoint, null);
-    }
-
-    public static void ErrorCheckingSocket(ILogger logger, string subchannelId, DnsEndPoint endPoint, Exception ex)
-    {
-        _errorCheckingSocket(logger, subchannelId, endPoint, ex);
-    }
-
-    public static void ErrorSocketTimer(ILogger logger, string subchannelId, Exception ex)
-    {
-        _errorSocketTimer(logger, subchannelId, ex);
-    }
-
-    public static void CreatingStream(ILogger logger, string subchannelId, DnsEndPoint endPoint)
-    {
-        _creatingStream(logger, subchannelId, endPoint, null);
-    }
-
-    public static void DisposingStream(ILogger logger, string subchannelId, DnsEndPoint endPoint, int activeStreams)
-    {
-        _disposingStream(logger, subchannelId, endPoint, activeStreams, null);
-    }
-
-    public static void DisposingTransport(ILogger logger, string subchannelId)
-    {
-        _disposingTransport(logger, subchannelId, null);
-    }
-
-    public static void ErrorOnDisposingStream(ILogger logger, string subchannelId, Exception ex)
-    {
-        _errorOnDisposingStream(logger, subchannelId, ex);
-    }
-
-    public static void ConnectingOnCreateStream(ILogger logger, string subchannelId, DnsEndPoint endPoint)
-    {
-        _connectingOnCreateStream(logger, subchannelId, endPoint, null);
-    }
-
-    public static void StreamCreated(ILogger logger, string subchannelId, DnsEndPoint endPoint, int bufferedBytes, int activeStreams)
-    {
-        _streamCreated(logger, subchannelId, endPoint, bufferedBytes, activeStreams, null);
-    }
-
-    public static void ErrorPollingSocket(ILogger logger, string subchannelId, DnsEndPoint endPoint, Exception ex)
-    {
-        _errorPollingSocket(logger, subchannelId, endPoint, ex);
-    }
-
-    public static void SocketPollBadState(ILogger logger, string subchannelId, DnsEndPoint endPoint)
-    {
-        _socketPollBadState(logger, subchannelId, endPoint, null);
-    }
-
-    public static void SocketReceivingAvailable(ILogger logger, string subchannelId, DnsEndPoint endPoint, int readBytesAvailableCount)
-    {
-        _socketReceivingAvailable(logger, subchannelId, endPoint, readBytesAvailableCount, null);
-    }
-
-    public static void ClosingUnusableSocket(ILogger logger, string subchannelId, DnsEndPoint endPoint, TimeSpan socketLifetime)
-    {
-        _closingUnusableSocket(logger, subchannelId, endPoint, socketLifetime, null);
-    }
-
-    public static void ClosingSocketFromIdleTimeoutOnCreateStream(ILogger logger, string subchannelId, DnsEndPoint endPoint, TimeSpan socketIdleTimeout)
-    {
-        _closingSocketFromIdleTimeoutOnCreateStream(logger, subchannelId, endPoint, socketIdleTimeout, null);
-    }
+    [LoggerMessage(Level = LogLevel.Debug, EventId = 17, EventName = "ClosingSocketFromIdleTimeoutOnCreateStream", Message = "Subchannel id '{SubchannelId}' socket {EndPoint} is being closed because it exceeds the idle timeout of {SocketIdleTimeout}.")]
+    public static partial void ClosingSocketFromIdleTimeoutOnCreateStream(ILogger logger, string subchannelId, DnsEndPoint endPoint, TimeSpan socketIdleTimeout);
 }
 #endif
