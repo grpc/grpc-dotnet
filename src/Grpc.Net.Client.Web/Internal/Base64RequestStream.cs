@@ -1,4 +1,4 @@
-﻿#region Copyright notice and license
+#region Copyright notice and license
 
 // Copyright 2019 The gRPC Authors
 //
@@ -88,7 +88,7 @@ internal class Base64RequestStream : Stream
 
             EnsureSuccess(
                 Base64.EncodeToUtf8(data.Span.Slice(0, encodeLength), localBuffer.Span, out var bytesConsumed, out var bytesWritten, isFinalBlock: false),
-#if NETSTANDARD2_1 || NETSTANDARD2_0
+#if NETSTANDARD2_0
                 OperationStatus.NeedMoreData
 #else
                 // React to fix https://github.com/dotnet/runtime/pull/281

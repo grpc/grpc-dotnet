@@ -5,7 +5,7 @@
 
     <IsGrpcPublishedPackage>true</IsGrpcPublishedPackage>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
-    <TargetFrameworks>$(NetFrameworkMinimum);netstandard2.0;netstandard2.1</TargetFrameworks>
+    <TargetFrameworks>$(NetCoreAppCurrent);$(NetCoreAppPrevious);$(NetCoreAppMinimum);$(NetFrameworkMinimum);netstandard2.0</TargetFrameworks>
     <PackageReadmeFile>README.md</PackageReadmeFile>
 
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
@@ -17,9 +17,12 @@
     <None Include="README.md" Pack="true" PackagePath="\" />
 
     <Compile Include="..\Shared\CodeAnalysisAttributes.cs" Link="Internal\CodeAnalysisAttributes.cs" />
+    <Compile Include="..\Shared\NullableAttributes.cs" Link="Internal\NullableAttributes.cs" />
+    <Compile Include="..\Shared\CallerArgumentExpressionAttribute.cs" Link="Internal\CallerArgumentExpressionAttribute.cs" />
+    <Compile Include="..\Shared\ThrowHelpers\ArgumentNullThrowHelper.cs" Link="Internal\ArgumentNullThrowHelper.cs" />
   </ItemGroup>
 
-  <ItemGroup Condition="'$(TargetFramework)' != 'netstandard2.1'">
+  <ItemGroup Condition=" '$(TargetFramework)' == '$(NetFrameworkMinimum)' or '$(TargetFramework)' == 'netstandard2.0'">
     <PackageReference Include="System.Memory" />
   </ItemGroup>
 

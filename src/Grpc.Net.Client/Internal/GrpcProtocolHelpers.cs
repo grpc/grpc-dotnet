@@ -475,7 +475,7 @@ internal static class GrpcProtocolHelpers
                 }
             }
 #else
-#if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
+#if NET6_0_OR_GREATER
             else if (current.GetType().FullName == "System.Net.Http.Http2StreamException")
             {
                 // Http2StreamException is private and there is no public API to get RST_STREAM error
@@ -486,8 +486,6 @@ internal static class GrpcProtocolHelpers
                     statusCode = MapHttp2ErrorCodeToStatus(e);
                 }
             }
-#endif
-#if NET6_0_OR_GREATER
             else if (current.GetType().FullName == "System.Net.Quic.QuicStreamAbortedException")
             {
                 // QuicStreamAbortedException is private and there is no public API to get abort error
@@ -514,8 +512,8 @@ internal static class GrpcProtocolHelpers
 
         return statusCode ?? StatusCode.Internal;
 
-#if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
-#if !NET7_0_OR_GREATER
+#if NET6_0_OR_GREATER
+#if NET6_0
         static bool TryGetProtocol(string message, out long protocolError)
         {
             // Example content to parse:

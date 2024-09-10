@@ -16,9 +16,9 @@
 
 #endregion
 
-using System;
 using System.Threading;
 using System.Threading.Tasks;
+using Grpc.Shared;
 
 namespace Grpc.Core;
 
@@ -39,10 +39,7 @@ public static class AsyncStreamReaderExtensions
     public static Task<bool> MoveNext<T>(this IAsyncStreamReader<T> streamReader)
         where T : class
     {
-        if (streamReader == null)
-        {
-            throw new ArgumentNullException(nameof(streamReader));
-        }
+        ArgumentNullThrowHelper.ThrowIfNull(streamReader);
 
         return streamReader.MoveNext(CancellationToken.None);
     }

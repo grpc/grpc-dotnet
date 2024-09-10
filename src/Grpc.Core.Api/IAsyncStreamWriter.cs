@@ -37,7 +37,7 @@ public interface IAsyncStreamWriter<in T>
     /// <param name="message">The message to be written. Cannot be null.</param>
     Task WriteAsync(T message);
 
-#if NETSTANDARD2_1_OR_GREATER || NET5_0_OR_GREATER
+#if NET6_0_OR_GREATER
     /// <summary>
     /// Writes a message asynchronously. Only one write can be pending at a time.
     /// </summary>

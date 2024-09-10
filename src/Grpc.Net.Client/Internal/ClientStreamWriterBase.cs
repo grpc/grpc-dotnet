@@ -41,7 +41,7 @@ internal abstract class ClientStreamWriterBase<TRequest> : IClientStreamWriter<T
 
     public Task WriteAsync(TRequest message) => WriteCoreAsync(message, CancellationToken.None);
 
-#if NETSTANDARD2_1_OR_GREATER || NET5_0_OR_GREATER
+#if NET6_0_OR_GREATER
     // Explicit implementation because this WriteAsync has a default interface implementation.
     Task IAsyncStreamWriter<TRequest>.WriteAsync(TRequest message, CancellationToken cancellationToken)
     {
