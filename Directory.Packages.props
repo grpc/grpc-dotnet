@@ -3,14 +3,14 @@
     <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
     <MicrosoftAspNetCoreAppPackageVersion>9.0.0-preview.5.24306.11</MicrosoftAspNetCoreAppPackageVersion>
     <MicrosoftAspNetCoreApp8PackageVersion>8.0.6</MicrosoftAspNetCoreApp8PackageVersion>
-    <MicrosoftAspNetCoreApp7PackageVersion>7.0.5</MicrosoftAspNetCoreApp7PackageVersion>
     <MicrosoftAspNetCoreApp6PackageVersion>6.0.33</MicrosoftAspNetCoreApp6PackageVersion>
     <GrpcDotNetPackageVersion>2.63.0</GrpcDotNetPackageVersion>
     <OpenTelemetryPackageVersion>1.6.0</OpenTelemetryPackageVersion>
     <OpenTelemetryIntergationPackageVersion>1.8.1</OpenTelemetryIntergationPackageVersion>
     <OpenTelemetryGrpcPackageVersion>1.8.0-beta.1</OpenTelemetryGrpcPackageVersion>
     <MicrosoftExtensionsPackageVersion>9.0.0-preview.5.24306.7</MicrosoftExtensionsPackageVersion>
-    <MicrosoftExtensionsLtsPackageVersion>6.0.0</MicrosoftExtensionsLtsPackageVersion>
+    <MicrosoftExtensions8PackageVersion>8.0.0</MicrosoftExtensions8PackageVersion>
+    <MicrosoftExtensions6PackageVersion>6.0.0</MicrosoftExtensions6PackageVersion>
   </PropertyGroup>
   <ItemGroup>
     <!-- ASP.NET Core -->

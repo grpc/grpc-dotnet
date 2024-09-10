@@ -1,7 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFrameworks>net462;net6.0;net7.0;net8.0;net9.0</TargetFrameworks>
+    <TargetFrameworks>$(NetCoreAppCurrent);$(NetCoreAppPrevious);$(NetCoreAppMinimum);$(NetFrameworkMinimum)</TargetFrameworks>
     <IsPackable>false</IsPackable>
     <DisableAspNetCoreDefaultClientTypeOverride>true</DisableAspNetCoreDefaultClientTypeOverride>
   </PropertyGroup>
@@ -19,7 +19,7 @@
     <Compile Include="..\Shared\TaskExtensions.cs" Link="Infrastructure\TaskExtensions.cs" />
   </ItemGroup>
 
-  <ItemGroup Condition="'$(TargetFramework)'=='net462'">
+  <ItemGroup Condition="'$(TargetFramework)'=='$(NetFrameworkMinimum)'">
     <Reference Include="System.Net.Http" />
 
     <PackageReference Include="Microsoft.Bcl.AsyncInterfaces" />

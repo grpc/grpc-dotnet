@@ -2,6 +2,11 @@
   <Import Project="build\version.props" />
 
   <PropertyGroup>
+    <NetCoreAppCurrent>net9.0</NetCoreAppCurrent>
+    <NetCoreAppPrevious>net8.0</NetCoreAppPrevious>
+    <NetCoreAppMinimum>net6.0</NetCoreAppMinimum>
+    <NetFrameworkMinimum>net462</NetFrameworkMinimum>
+    
     <!-- Set versions for all projects. Avoids warnings from non-preview projects referencing preview projects -->
     <Version>$(GrpcDotnetVersion)</Version>
     <AssemblyVersion>$(GrpcDotnetAssemblyVersion)</AssemblyVersion>

@@ -1,10 +1,10 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <Description>Command line tool for gRPC projects</Description>
     <PackageTags>gRPC RPC CLI</PackageTags>
 
     <IsGrpcPublishedPackage>true</IsGrpcPublishedPackage>
-    <TargetFramework>net6.0</TargetFramework>
+    <TargetFramework>$(NetCoreAppCurrent)</TargetFramework>
 
     <OutputType>exe</OutputType>
     <PackAsTool>true</PackAsTool>
@@ -25,8 +25,6 @@
     <PackageReference Include="Microsoft.Build" ExcludeAssets="runtime" />
     <PackageReference Include="Microsoft.Build.Locator" />
     <PackageReference Include="System.CommandLine.Rendering" />
-    <PackageReference Include="System.Security.Principal.Windows" />
-    <PackageReference Include="Microsoft.Win32.Registry" />
   </ItemGroup>
 
   <ItemGroup>

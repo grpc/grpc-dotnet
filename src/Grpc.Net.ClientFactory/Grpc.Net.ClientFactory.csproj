@@ -6,7 +6,7 @@
 
     <IsGrpcPublishedPackage>true</IsGrpcPublishedPackage>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
-    <TargetFrameworks>netstandard2.0;netstandard2.1;net6.0;net7.0;net8.0</TargetFrameworks>
+    <TargetFrameworks>$(NetCoreAppCurrent);$(NetCoreAppPrevious);$(NetCoreAppMinimum);netstandard2.0;netstandard2.1</TargetFrameworks>
     <PackageReadmeFile>README.md</PackageReadmeFile>
   </PropertyGroup>
 
@@ -26,6 +26,20 @@
   <ItemGroup>
     <!-- PrivateAssets set to None to ensure the build targets/props are propagated to parent project -->
     <ProjectReference Include="..\Grpc.Net.Client\Grpc.Net.Client.csproj" PrivateAssets="None" />
-    <PackageReference Include="Microsoft.Extensions.Http" VersionOverride="$(MicrosoftExtensionsLtsPackageVersion)" />
   </ItemGroup>
+
+  <ItemGroup Condition="'$(TargetFramework)'=='$(NetCoreAppCurrent)'">
+    <PackageReference Include="Microsoft.Extensions.Http" />
+  </ItemGroup>
+  <ItemGroup Condition="'$(TargetFramework)'=='$(NetCoreAppPrevious)'">
+    <PackageReference Include="Microsoft.Extensions.Http" VersionOverride="$(MicrosoftExtensions8PackageVersion)" />
+  </ItemGroup>
+  <ItemGroup Condition="'$(TargetFramework)'=='$(NetCoreAppMinimum)'">
+    <PackageReference Include="Microsoft.Extensions.Http" VersionOverride="$(MicrosoftExtensions6PackageVersion)" />
+  </ItemGroup>
+
+  <ItemGroup Condition="'$(TargetFramework)' == 'netstandard2.0' OR '$(TargetFramework)' == 'netstandard2.1'">
+    <PackageReference Include="Microsoft.Extensions.Http" />
+  </ItemGroup>
+  
 </Project>

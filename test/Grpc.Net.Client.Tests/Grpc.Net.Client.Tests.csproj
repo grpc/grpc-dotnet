@@ -1,12 +1,12 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFrameworks>net462;net6.0;net7.0;net8.0;net9.0</TargetFrameworks>
+    <TargetFrameworks>$(NetCoreAppCurrent);$(NetCoreAppPrevious);$(NetCoreAppMinimum);$(NetFrameworkMinimum)</TargetFrameworks>
     <IsPackable>false</IsPackable>
     <DisableAspNetCoreDefaultClientTypeOverride>true</DisableAspNetCoreDefaultClientTypeOverride>
   </PropertyGroup>
 
-  <PropertyGroup Condition="'$(TargetFramework)' == 'net6.0' OR '$(TargetFramework)' == 'net7.0' OR '$(TargetFramework)' == 'net8.0' OR '$(TargetFramework)' == 'net9.0'">
+  <PropertyGroup Condition="'$(TargetFramework)' == '$(NetCoreAppCurrent)' OR '$(TargetFramework)' == '$(NetCoreAppPrevious)' OR '$(TargetFramework)' == '$(NetCoreAppMinimum)'">
     <DefineConstants>SUPPORT_LOAD_BALANCING;$(DefineConstants)</DefineConstants>
   </PropertyGroup>
 
@@ -44,7 +44,7 @@
     <PackageReference Include="Microsoft.Extensions.Logging" />
   </ItemGroup>
   
-  <ItemGroup Condition="'$(TargetFramework)'=='net462'">
+  <ItemGroup Condition="'$(TargetFramework)'=='$(NetFrameworkMinimum)'">
     <Reference Include="System.Net.Http" />
   </ItemGroup>
 
