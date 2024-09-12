@@ -154,21 +154,11 @@ internal partial class ServerCallHandlerFactory<[DynamicallyAccessedMembers(Grpc
     }
 }
 
-internal static class ServerCallHandlerFactoryLog
+internal static partial class ServerCallHandlerFactoryLog
 {
-    private static readonly Action<ILogger, string, Exception?> _serviceUnimplemented =
-        LoggerMessage.Define<string>(LogLevel.Information, new EventId(1, "ServiceUnimplemented"), "Service '{ServiceName}' is unimplemented.");
+    [LoggerMessage(Level = LogLevel.Information, EventId = 1, EventName = "ServiceUnimplemented", Message = "Service '{ServiceName}' is unimplemented.")]
+    public static partial void ServiceUnimplemented(ILogger logger, string serviceName);
 
-    private static readonly Action<ILogger, string, Exception?> _methodUnimplemented =
-        LoggerMessage.Define<string>(LogLevel.Information, new EventId(2, "MethodUnimplemented"), "Method '{MethodName}' is unimplemented.");
-
-    public static void ServiceUnimplemented(ILogger logger, string serviceName)
-    {
-        _serviceUnimplemented(logger, serviceName, null);
-    }
-
-    public static void MethodUnimplemented(ILogger logger, string methodName)
-    {
-        _methodUnimplemented(logger, methodName, null);
-    }
+    [LoggerMessage(Level = LogLevel.Information, EventId = 2, EventName = "MethodUnimplemented", Message = "Method '{MethodName}' is unimplemented.")]
+    public static partial void MethodUnimplemented(ILogger logger, string methodName);
 }

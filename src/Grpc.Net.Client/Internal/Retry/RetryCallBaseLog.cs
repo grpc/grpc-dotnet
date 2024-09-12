@@ -1,4 +1,4 @@
-﻿#region Copyright notice and license
+#region Copyright notice and license
 
 // Copyright 2019 The gRPC Authors
 //
@@ -21,109 +21,44 @@ using Microsoft.Extensions.Logging;
 
 namespace Grpc.Net.Client.Internal.Retry;
 
-internal static class RetryCallBaseLog
+internal static partial class RetryCallBaseLog
 {
-    private static readonly Action<ILogger, StatusCode, int, bool, Exception?> _retryEvaluated =
-        LoggerMessage.Define<StatusCode, int, bool>(LogLevel.Debug, new EventId(1, "RetryEvaluated"), "Evaluated retry for failed gRPC call. Status code: '{StatusCode}', Attempt: {AttemptCount}, Retry: {WillRetry}");
+    [LoggerMessage(Level = LogLevel.Debug, EventId = 1, EventName = "RetryEvaluated", Message = "Evaluated retry for failed gRPC call. Status code: '{StatusCode}', Attempt: {AttemptCount}, Retry: {WillRetry}")]
+    internal static partial void RetryEvaluated(ILogger logger, StatusCode statusCode, int attemptCount, bool willRetry);
 
-    private static readonly Action<ILogger, string, Exception?> _retryPushbackReceived =
-        LoggerMessage.Define<string>(LogLevel.Debug, new EventId(2, "RetryPushbackReceived"), "Retry pushback of '{RetryPushback}' received from the failed gRPC call.");
+    [LoggerMessage(Level = LogLevel.Debug, EventId = 2, EventName = "RetryPushbackReceived", Message = "Retry pushback of '{RetryPushback}' received from the failed gRPC call.")]
+    internal static partial void RetryPushbackReceived(ILogger logger, string retryPushback);
 
-    private static readonly Action<ILogger, TimeSpan, Exception?> _startingRetryDelay =
-        LoggerMessage.Define<TimeSpan>(LogLevel.Trace, new EventId(3, "StartingRetryDelay"), "Starting retry delay of {DelayDuration}.");
+    [LoggerMessage(Level = LogLevel.Trace, EventId = 3, EventName = "StartingRetryDelay", Message = "Starting retry delay of {DelayDuration}.")]
+    internal static partial void StartingRetryDelay(ILogger logger, TimeSpan delayDuration);
 
-    private static readonly Action<ILogger, Exception> _errorRetryingCall =
-        LoggerMessage.Define(LogLevel.Error, new EventId(4, "ErrorRetryingCall"), "Error retrying gRPC call.");
+    [LoggerMessage(Level = LogLevel.Error, EventId = 4, EventName = "ErrorRetryingCall", Message = "Error retrying gRPC call.")]
+    internal static partial void ErrorRetryingCall(ILogger logger, Exception ex);
 
-    private static readonly Action<ILogger, int, Exception?> _sendingBufferedMessages =
-        LoggerMessage.Define<int>(LogLevel.Trace, new EventId(5, "SendingBufferedMessages"), "Sending {MessageCount} buffered messages from previous failed gRPC calls.");
+    [LoggerMessage(Level = LogLevel.Trace, EventId = 5, EventName = "SendingBufferedMessages", Message = "Sending {MessageCount} buffered messages from previous failed gRPC calls.")]
+    internal static partial void SendingBufferedMessages(ILogger logger, int messageCount);
 
-    private static readonly Action<ILogger, int, long, Exception?> _messageAddedToBuffer =
-        LoggerMessage.Define<int, long>(LogLevel.Trace, new EventId(6, "MessageAddedToBuffer"), "Message with {MessageSize} bytes added to the buffer. There are {CallBufferSize} bytes buffered for this call.");
+    [LoggerMessage(Level = LogLevel.Trace, EventId = 6, EventName = "MessageAddedToBuffer", Message = "Message with {MessageSize} bytes added to the buffer. There are {CallBufferSize} bytes buffered for this call.")]
+    internal static partial void MessageAddedToBuffer(ILogger logger, int messageSize, long callBufferSize);
 
-    private static readonly Action<ILogger, CommitReason, Exception?> _callCommited =
-        LoggerMessage.Define<CommitReason>(LogLevel.Debug, new EventId(7, "CallCommited"), "Call commited. Reason: {CommitReason}");
+    [LoggerMessage(Level = LogLevel.Debug, EventId = 7, EventName = "CallCommited", Message = "Call commited. Reason: {CommitReason}")]
+    internal static partial void CallCommited(ILogger logger, CommitReason commitReason);
 
-    private static readonly Action<ILogger, Exception?> _startingRetryWorker =
-        LoggerMessage.Define(LogLevel.Trace, new EventId(8, "StartingRetryWorker"), "Starting retry worker.");
+    [LoggerMessage(Level = LogLevel.Trace, EventId = 8, EventName = "StartingRetryWorker", Message = "Starting retry worker.")]
+    internal static partial void StartingRetryWorker(ILogger logger);
 
-    private static readonly Action<ILogger, Exception?> _stoppingRetryWorker =
-        LoggerMessage.Define(LogLevel.Trace, new EventId(9, "StoppingRetryWorker"), "Stopping retry worker.");
+    [LoggerMessage(Level = LogLevel.Trace, EventId = 9, EventName = "StoppingRetryWorker", Message = "Stopping retry worker.")]
+    internal static partial void StoppingRetryWorker(ILogger logger);
 
-    private static readonly Action<ILogger, int, int, Exception?> _maxAttemptsLimited =
-        LoggerMessage.Define<int, int>(LogLevel.Debug, new EventId(10, "MaxAttemptsLimited"), "The method has {ServiceConfigMaxAttempts} attempts specified in the service config. The number of attempts has been limited by channel configuration to {ChannelMaxAttempts}.");
+    [LoggerMessage(Level = LogLevel.Debug, EventId = 10, EventName = "MaxAttemptsLimited", Message = "The method has {ServiceConfigMaxAttempts} attempts specified in the service config. The number of attempts has been limited by channel configuration to {ChannelMaxAttempts}.")]
+    internal static partial void MaxAttemptsLimited(ILogger logger, int serviceConfigMaxAttempts, int channelMaxAttempts);
 
-    private static readonly Action<ILogger, Exception?> _additionalCallsBlockedByRetryThrottling =
-        LoggerMessage.Define(LogLevel.Debug, new EventId(11, "AdditionalCallsBlockedByRetryThrottling"), "Additional calls blocked by retry throttling.");
+    [LoggerMessage(Level = LogLevel.Debug, EventId = 11, EventName = "AdditionalCallsBlockedByRetryThrottling", Message = "Additional calls blocked by retry throttling.")]
+    internal static partial void AdditionalCallsBlockedByRetryThrottling(ILogger logger);
 
-    private static readonly Action<ILogger, int, Exception?> _startingAttempt =
-        LoggerMessage.Define<int>(LogLevel.Debug, new EventId(12, "StartingAttempt"), "Starting attempt {AttemptCount}.");
+    [LoggerMessage(Level = LogLevel.Debug, EventId = 12, EventName = "StartingAttempt", Message = "Starting attempt {AttemptCount}.")]
+    internal static partial void StartingAttempt(ILogger logger, int AttemptCount);
 
-    private static readonly Action<ILogger, Exception?> _canceledRetry =
-        LoggerMessage.Define(LogLevel.Debug, new EventId(13, "CanceledRetry"), "gRPC retry call canceled.");
-
-    internal static void RetryEvaluated(ILogger logger, StatusCode statusCode, int attemptCount, bool willRetry)
-    {
-        _retryEvaluated(logger, statusCode, attemptCount, willRetry, null);
-    }
-
-    internal static void RetryPushbackReceived(ILogger logger, string retryPushback)
-    {
-        _retryPushbackReceived(logger, retryPushback, null);
-    }
-
-    internal static void StartingRetryDelay(ILogger logger, TimeSpan delayDuration)
-    {
-        _startingRetryDelay(logger, delayDuration, null);
-    }
-
-    internal static void ErrorRetryingCall(ILogger logger, Exception ex)
-    {
-        _errorRetryingCall(logger, ex);
-    }
-
-    internal static void SendingBufferedMessages(ILogger logger, int messageCount)
-    {
-        _sendingBufferedMessages(logger, messageCount, null);
-    }
-
-    internal static void MessageAddedToBuffer(ILogger logger, int messageSize, long callBufferSize)
-    {
-        _messageAddedToBuffer(logger, messageSize, callBufferSize, null);
-    }
-
-    internal static void CallCommited(ILogger logger, CommitReason commitReason)
-    {
-        _callCommited(logger, commitReason, null);
-    }
-
-    internal static void StartingRetryWorker(ILogger logger)
-    {
-        _startingRetryWorker(logger, null);
-    }
-
-    internal static void StoppingRetryWorker(ILogger logger)
-    {
-        _stoppingRetryWorker(logger, null);
-    }
-
-    internal static void MaxAttemptsLimited(ILogger logger, int serviceConfigMaxAttempts, int channelMaxAttempts)
-    {
-        _maxAttemptsLimited(logger, serviceConfigMaxAttempts, channelMaxAttempts, null);
-    }
-
-    internal static void AdditionalCallsBlockedByRetryThrottling(ILogger logger)
-    {
-        _additionalCallsBlockedByRetryThrottling(logger, null);
-    }
-
-    internal static void StartingAttempt(ILogger logger, int attempts)
-    {
-        _startingAttempt(logger, attempts, null);
-    }
-
-    internal static void CanceledRetry(ILogger logger)
-    {
-        _canceledRetry(logger, null);
-    }
+    [LoggerMessage(Level = LogLevel.Debug, EventId = 13, EventName = "CanceledRetry", Message = "gRPC retry call canceled.")]
+    internal static partial void CanceledRetry(ILogger logger);
 }

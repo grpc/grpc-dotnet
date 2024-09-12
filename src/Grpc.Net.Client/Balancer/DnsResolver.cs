@@ -145,50 +145,30 @@ internal sealed class DnsResolver : PollingResolver
     }
 }
 
-internal static class DnsResolverLog
+internal static partial class DnsResolverLog
 {
-    private static readonly Action<ILogger, TimeSpan, TimeSpan, Exception?> _startingRateLimitDelay =
-        LoggerMessage.Define<TimeSpan, TimeSpan>(LogLevel.Debug, new EventId(1, "StartingRateLimitDelay"), "Starting rate limit delay of {DelayDuration}. DNS resolution rate limit is once every {RateLimitDuration}.");
+    [LoggerMessage(Level = LogLevel.Debug, EventId = 1, EventName = "StartingRateLimitDelay", Message = "Starting rate limit delay of {DelayDuration}. DNS resolution rate limit is once every {RateLimitDuration}.")]
+    public static partial void StartingRateLimitDelay(ILogger logger, TimeSpan delayDuration, TimeSpan rateLimitDuration);
 
-    private static readonly Action<ILogger, string, Exception?> _startingDnsQuery =
-        LoggerMessage.Define<string>(LogLevel.Trace, new EventId(2, "StartingDnsQuery"), "Starting DNS query to get hosts from '{DnsAddress}'.");
+    [LoggerMessage(Level = LogLevel.Trace, EventId = 2, EventName = "StartingDnsQuery", Message = "Starting DNS query to get hosts from '{DnsAddress}'.")]
+    public static partial void StartingDnsQuery(ILogger logger, string dnsAddress);
 
-    private static readonly Action<ILogger, int, string, string, Exception?> _receivedDnsResults =
-        LoggerMessage.Define<int, string, string>(LogLevel.Debug, new EventId(3, "ReceivedDnsResults"), "Received {ResultCount} DNS results from '{DnsAddress}'. Results: {DnsResults}");
-
-    private static readonly Action<ILogger, string, Exception?> _errorQueryingDns =
-        LoggerMessage.Define<string>(LogLevel.Error, new EventId(4, "ErrorQueryingDns"), "Error querying DNS hosts for '{DnsAddress}'.");
-
-    private static readonly Action<ILogger, Exception?> _errorFromRefreshInterval =
-        LoggerMessage.Define(LogLevel.Error, new EventId(5, "ErrorFromRefreshIntervalTimer"), "Error from refresh interval timer.");
-
-    public static void StartingRateLimitDelay(ILogger logger, TimeSpan delayDuration, TimeSpan rateLimitDuration)
-    {
-        _startingRateLimitDelay(logger, delayDuration, rateLimitDuration, null);
-    }
-
-    public static void StartingDnsQuery(ILogger logger, string dnsAddress)
-    {
-        _startingDnsQuery(logger, dnsAddress, null);
-    }
+    [LoggerMessage(Level = LogLevel.Debug, EventId = 3, EventName = "ReceivedDnsResults", Message = "Received {ResultCount} DNS results from '{DnsAddress}'. Results: {DnsResults}")]
+    private static partial void ReceivedDnsResults(ILogger logger, int resultCount, string dnsAddress, string dnsResults);
 
     public static void ReceivedDnsResults(ILogger logger, int resultCount, string dnsAddress, IList<IPAddress> dnsResults)
     {
         if (logger.IsEnabled(LogLevel.Debug))
         {
-            _receivedDnsResults(logger, resultCount, dnsAddress, string.Join(", ", dnsResults), null);
+            ReceivedDnsResults(logger, resultCount, dnsAddress, string.Join(", ", dnsResults));
         }
     }
 
-    public static void ErrorQueryingDns(ILogger logger, string dnsAddress, Exception ex)
-    {
-        _errorQueryingDns(logger, dnsAddress, ex);
-    }
+    [LoggerMessage(Level = LogLevel.Error, EventId = 4, EventName = "ErrorQueryingDns", Message = "Error querying DNS hosts for '{DnsAddress}'.")]
+    public static partial void ErrorQueryingDns(ILogger logger, string dnsAddress, Exception ex);
 
-    public static void ErrorFromRefreshInterval(ILogger logger, Exception ex)
-    {
-        _errorFromRefreshInterval(logger, ex);
-    }
+    [LoggerMessage(Level = LogLevel.Error, EventId = 5, EventName = "ErrorFromRefreshIntervalTimer", Message = "Error from refresh interval timer.")]
+    public static partial void ErrorFromRefreshInterval(ILogger logger, Exception ex);
 }
 
 /// <summary>

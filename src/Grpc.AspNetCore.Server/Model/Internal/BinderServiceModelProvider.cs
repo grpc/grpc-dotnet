@@ -61,13 +61,8 @@ internal class BinderServiceMethodProvider<[DynamicallyAccessedMembers(GrpcProto
     }
 }
 
-internal static class BinderServiceMethodProviderLog
+internal static partial class BinderServiceMethodProviderLog
 {
-    private static readonly Action<ILogger, Type, Exception?> _bindMethodNotFound =
-        LoggerMessage.Define<Type>(LogLevel.Debug, new EventId(1, "BindMethodNotFound"), "Could not find bind method for {ServiceType}.");
-
-    public static void BindMethodNotFound(ILogger logger, Type serviceType)
-    {
-        _bindMethodNotFound(logger, serviceType, null);
-    }
+    [LoggerMessage(Level = LogLevel.Debug, EventId = 1, EventName = "BindMethodNotFound", Message = "Could not find bind method for {ServiceType}.")]
+    public static partial void BindMethodNotFound(ILogger logger, Type serviceType);
 }

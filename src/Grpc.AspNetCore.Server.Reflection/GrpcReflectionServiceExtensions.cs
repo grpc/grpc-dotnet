@@ -31,7 +31,7 @@ namespace Microsoft.Extensions.DependencyInjection;
 /// <summary>
 /// Extension methods for the gRPC reflection services.
 /// </summary>
-public static class GrpcReflectionServiceExtensions
+public static partial class GrpcReflectionServiceExtensions
 {
     /// <summary>
     /// Adds gRPC reflection services to the specified <see cref="IServiceCollection" />.
@@ -150,14 +150,13 @@ public static class GrpcReflectionServiceExtensions
         return baseType;
     }
 
-    private static class Log
+    private static partial class Log
     {
-        private static readonly Action<ILogger, string, Exception?> _serviceDescriptorNotResolved =
-            LoggerMessage.Define<string>(LogLevel.Debug, new EventId(1, "ServiceDescriptorNotResolved"), "Could not resolve service descriptor for '{ServiceType}'. The service metadata will not be exposed by the reflection service.");
-
+        [LoggerMessage(Level = LogLevel.Debug, EventId = 1, EventName = "ServiceDescriptorNotResolved", Message = "Could not resolve service descriptor for '{ServiceType}'. The service metadata will not be exposed by the reflection service.")]
+        private static partial void ServiceDescriptorNotResolved(ILogger logger, string serviceType);
         public static void ServiceDescriptorNotResolved(ILogger logger, Type serviceType)
         {
-            _serviceDescriptorNotResolved(logger, serviceType.FullName ?? string.Empty, null);
+            ServiceDescriptorNotResolved(logger, serviceType.FullName ?? string.Empty);
         }
     }
 }

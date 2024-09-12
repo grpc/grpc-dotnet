@@ -29,7 +29,7 @@ using Microsoft.Extensions.Logging;
 
 namespace Grpc.Net.Client.Balancer.Internal;
 
-internal class BalancerHttpHandler : DelegatingHandler
+internal partial class BalancerHttpHandler : DelegatingHandler
 {
     private static readonly object SetupLock = new object();
 
@@ -171,24 +171,20 @@ internal class BalancerHttpHandler : DelegatingHandler
         }
     }
 
-    internal static class Log
+    internal static partial class Log
     {
-        private static readonly Action<ILogger, Uri, Exception?> _sendingRequest =
-            LoggerMessage.Define<Uri>(LogLevel.Trace, new EventId(1, "SendingRequest"), "Sending request {RequestUri}.");
 
-        private static readonly Action<ILogger, string, Exception?> _startingConnectCallback =
-            LoggerMessage.Define<string>(LogLevel.Trace, new EventId(2, "StartingConnectCallback"), "Starting connect callback for {Endpoint}.");
+        [LoggerMessage(Level = LogLevel.Trace, EventId = 1, EventName = "SendingRequest", Message = "Sending request {RequestUri}.")]
+        public static partial void SendingRequest(ILogger logger, Uri requestUri);
 
-        public static void SendingRequest(ILogger logger, Uri requestUri)
-        {
-            _sendingRequest(logger, requestUri, null);
-        }
+        [LoggerMessage(Level = LogLevel.Trace, EventId = 2, EventName = "StartingConnectCallback", Message = "Starting connect callback for {Endpoint}.")]
+        private static partial void StartingConnectCallback(ILogger logger, string endpoint); 
 
         public static void StartingConnectCallback(ILogger logger, DnsEndPoint endpoint)
         {
             if (logger.IsEnabled(LogLevel.Trace))
             {
-                _startingConnectCallback(logger, $"{endpoint.Host}:{endpoint.Port}", null);
+                StartingConnectCallback(logger, $"{endpoint.Host}:{endpoint.Port}");
             }
         }
     }

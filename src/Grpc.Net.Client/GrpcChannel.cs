@@ -39,7 +39,7 @@ namespace Grpc.Net.Client;
 /// a remote call so in general you should reuse a single channel for as many calls as possible.
 /// </summary>
 [DebuggerDisplay("{DebuggerToString(),nq}")]
-public sealed class GrpcChannel : ChannelBase, IDisposable
+public sealed partial class GrpcChannel : ChannelBase, IDisposable
 {
     internal const int DefaultMaxReceiveMessageSize = 1024 * 1024 * 4; // 4 MB
 #if SUPPORT_LOAD_BALANCING
@@ -934,15 +934,10 @@ public sealed class GrpcChannel : ChannelBase, IDisposable
             (Method != null ? StringComparer.Ordinal.GetHashCode(Method) : 0);
     }
 
-    private static class Log
+    private static partial class Log
     {
-        private static readonly Action<ILogger, string, Exception?> _addressPathUnused =
-            LoggerMessage.Define<string>(LogLevel.Debug, new EventId(1, "AddressPathUnused"), "The path in the channel's address '{Address}' won't be used when making gRPC calls. A DelegatingHandler can be used to include a path with gRPC calls. See https://aka.ms/aspnet/grpc/subdir for details.");
-
-        public static void AddressPathUnused(ILogger logger, string address)
-        {
-            _addressPathUnused(logger, address, null);
-        }
+        [LoggerMessage(Level = LogLevel.Debug, EventId = 1, EventName = "AddressPathUnused", Message = "The path in the channel's address '{Address}' won't be used when making gRPC calls. A DelegatingHandler can be used to include a path with gRPC calls. See https://aka.ms/aspnet/grpc/subdir for details.")]
+        public static partial void AddressPathUnused(ILogger logger, string address);
     }
 
     private readonly record struct HttpHandlerContext(HttpHandlerType HttpHandlerType, TimeSpan? ConnectTimeout = null, TimeSpan? ConnectionIdleTimeout = null);

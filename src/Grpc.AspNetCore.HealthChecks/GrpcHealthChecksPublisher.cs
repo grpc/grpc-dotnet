@@ -25,7 +25,7 @@ using Microsoft.Extensions.Options;
 
 namespace Grpc.AspNetCore.HealthChecks;
 
-internal sealed class GrpcHealthChecksPublisher : IHealthCheckPublisher
+internal sealed partial class GrpcHealthChecksPublisher : IHealthCheckPublisher
 {
     private readonly HealthServiceImpl _healthService;
     private readonly ILogger _logger;
@@ -75,22 +75,13 @@ internal sealed class GrpcHealthChecksPublisher : IHealthCheckPublisher
         return Task.CompletedTask;
     }
 
-    private static class Log
+    private static partial class Log
     {
-        private static readonly Action<ILogger, int, int, Exception?> _evaluatingPublishedHealthReport =
-            LoggerMessage.Define<int, int>(LogLevel.Trace, new EventId(1, "EvaluatingPublishedHealthReport"), "Evaluating {HealthReportEntryCount} published health report entries against {ServiceMappingCount} service mappings.");
+        [LoggerMessage(Level = LogLevel.Trace, EventId = 1, EventName = "EvaluatingPublishedHealthReport", Message = "Evaluating {HealthReportEntryCount} published health report entries against {ServiceMappingCount} service mappings.")]
+        public static partial void EvaluatingPublishedHealthReport(ILogger logger, int healthReportEntryCount, int serviceMappingCount);
 
-        private static readonly Action<ILogger, string, HealthCheckResponse.Types.ServingStatus, int, Exception?> _serviceMappingStatusUpdated =
-            LoggerMessage.Define<string, HealthCheckResponse.Types.ServingStatus, int>(LogLevel.Debug, new EventId(2, "ServiceMappingStatusUpdated"), "Service '{ServiceName}' status updated to {Status}. {EntriesCount} health report entries evaluated.");
+        [LoggerMessage(Level = LogLevel.Debug, EventId = 2, EventName = "ServiceMappingStatusUpdated", Message = "Service '{ServiceName}' status updated to {Status}. {EntriesCount} health report entries evaluated.")]
+        public static partial void ServiceMappingStatusUpdated(ILogger logger, string serviceName, HealthCheckResponse.Types.ServingStatus status, int entriesCount);
 
-        public static void EvaluatingPublishedHealthReport(ILogger logger, int healthReportEntryCount, int serviceMappingCount)
-        {
-            _evaluatingPublishedHealthReport(logger, healthReportEntryCount, serviceMappingCount, null);
-        }
-
-        public static void ServiceMappingStatusUpdated(ILogger logger, string serviceName, HealthCheckResponse.Types.ServingStatus status, int entriesCount)
-        {
-            _serviceMappingStatusUpdated(logger, serviceName, status, entriesCount, null);
-        }
     }
 }

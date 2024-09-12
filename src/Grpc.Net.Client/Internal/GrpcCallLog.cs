@@ -21,216 +21,88 @@ using Microsoft.Extensions.Logging;
 
 namespace Grpc.Net.Client.Internal;
 
-internal static class GrpcCallLog
+internal static partial class GrpcCallLog
 {
-    private static readonly Action<ILogger, MethodType, Uri, Exception?> _startingCall =
-        LoggerMessage.Define<MethodType, Uri>(LogLevel.Debug, new EventId(1, "StartingCall"), "Starting gRPC call. Method type: '{MethodType}', URI: '{Uri}'.");
+    [LoggerMessage(Level = LogLevel.Debug, EventId = 1, EventName = "StartingCall", Message = "Starting gRPC call. Method type: '{MethodType}', URI: '{Uri}'.")]
+    public static partial void StartingCall(ILogger logger, MethodType methodType, Uri uri);
 
-    private static readonly Action<ILogger, Exception?> _responseHeadersReceived =
-        LoggerMessage.Define(LogLevel.Trace, new EventId(2, "ResponseHeadersReceived"), "Response headers received.");
+    [LoggerMessage(Level = LogLevel.Trace, EventId = 2, EventName = "ResponseHeadersReceived", Message = "Response headers received.")]
+    public static partial void ResponseHeadersReceived(ILogger logger);
 
-    private static readonly Action<ILogger, StatusCode, string, Exception?> _grpcStatusError =
-        LoggerMessage.Define<StatusCode, string>(LogLevel.Information, new EventId(3, "GrpcStatusError"), "Call failed with gRPC error status. Status code: '{StatusCode}', Message: '{StatusMessage}'.");
+    [LoggerMessage(Level = LogLevel.Information, EventId = 3, EventName = "GrpcStatusError", Message = "Call failed with gRPC error status. Status code: '{StatusCode}', Message: '{StatusMessage}'.")]
+    public static partial void GrpcStatusError(ILogger logger, StatusCode statusCode, string statusMessage, Exception? debugException);
 
-    private static readonly Action<ILogger, Exception?> _finishedCall =
-        LoggerMessage.Define(LogLevel.Debug, new EventId(4, "FinishedCall"), "Finished gRPC call.");
+    [LoggerMessage(Level = LogLevel.Debug, EventId = 4, EventName = "FinishedCall", Message = "Finished gRPC call.")]
+    public static partial void FinishedCall(ILogger logger);
 
-    private static readonly Action<ILogger, TimeSpan, Exception?> _startingDeadlineTimeout =
-        LoggerMessage.Define<TimeSpan>(LogLevel.Trace, new EventId(5, "StartingDeadlineTimeout"), "Starting deadline timeout. Duration: {DeadlineTimeout}.");
+    [LoggerMessage(Level = LogLevel.Trace, EventId = 5, EventName = "StartingDeadlineTimeout", Message = "Starting deadline timeout. Duration: {DeadlineTimeout}.")]
+    public static partial void StartingDeadlineTimeout(ILogger logger, TimeSpan deadlineTimeout);
 
-    private static readonly Action<ILogger, Exception?> _errorStartingCall =
-        LoggerMessage.Define(LogLevel.Debug, new EventId(6, "ErrorStartingCall"), "Error starting gRPC call.");
+    [LoggerMessage(Level = LogLevel.Debug, EventId = 6, EventName = "ErrorStartingCall", Message = "Error starting gRPC call.")]
+    public static partial void ErrorStartingCall(ILogger logger);
 
-    private static readonly Action<ILogger, Exception?> _deadlineExceeded =
-        LoggerMessage.Define(LogLevel.Warning, new EventId(7, "DeadlineExceeded"), "gRPC call deadline exceeded.");
+    [LoggerMessage(Level = LogLevel.Warning, EventId = 7, EventName = "DeadlineExceeded", Message = "gRPC call deadline exceeded.")]
+    public static partial void DeadlineExceeded(ILogger logger);
 
-    private static readonly Action<ILogger, Exception?> _canceledCall =
-        LoggerMessage.Define(LogLevel.Debug, new EventId(8, "CanceledCall"), "gRPC call canceled.");
+    [LoggerMessage(Level = LogLevel.Debug, EventId = 8, EventName = "CanceledCall", Message = "gRPC call canceled.")]
+    public static partial void CanceledCall(ILogger logger);
 
-    private static readonly Action<ILogger, Exception?> _messageNotReturned =
-        LoggerMessage.Define(LogLevel.Debug, new EventId(9, "MessageNotReturned"), "Message not returned from unary or client streaming call.");
+    [LoggerMessage(Level = LogLevel.Debug, EventId = 9, EventName = "MessageNotReturned", Message = "Message not returned from unary or client streaming call.")]
+    public static partial void MessageNotReturned(ILogger logger);
 
     // 10, 11 unused.
 
-    private static readonly Action<ILogger, Exception?> _callCredentialsNotUsed =
-        LoggerMessage.Define(LogLevel.Warning, new EventId(12, "CallCredentialsNotUsed"), "The configured CallCredentials were not used because the call does not use TLS.");
+    [LoggerMessage(Level = LogLevel.Warning, EventId = 12, EventName = "CallCredentialsNotUsed", Message = "The configured CallCredentials were not used because the call does not use TLS.")]
+    public static partial void CallCredentialsNotUsed(ILogger logger);
 
-    private static readonly Action<ILogger, Exception?> _readingMessage =
-        LoggerMessage.Define(LogLevel.Debug, new EventId(13, "ReadingMessage"), "Reading message.");
+    [LoggerMessage(Level = LogLevel.Debug, EventId = 13, EventName = "ReadingMessage", Message = "Reading message.")]
+    public static partial void ReadingMessage(ILogger logger);
 
-    private static readonly Action<ILogger, Exception?> _noMessageReturned =
-        LoggerMessage.Define(LogLevel.Trace, new EventId(14, "NoMessageReturned"), "No message returned.");
+    [LoggerMessage(Level = LogLevel.Trace, EventId = 14, EventName = "NoMessageReturned", Message = "No message returned.")]
+    public static partial void NoMessageReturned(ILogger logger);
 
-    private static readonly Action<ILogger, int, Type, Exception?> _deserializingMessage =
-        LoggerMessage.Define<int, Type>(LogLevel.Trace, new EventId(15, "DeserializingMessage"), "Deserializing {MessageLength} byte message to '{MessageType}'.");
+    [LoggerMessage(Level = LogLevel.Trace, EventId = 15, EventName = "DeserializingMessage", Message = "Deserializing {MessageLength} byte message to '{MessageType}'.")]
+    public static partial void DeserializingMessage(ILogger logger, int messageLength, Type messageType);
 
-    private static readonly Action<ILogger, Exception?> _receivedMessage =
-        LoggerMessage.Define(LogLevel.Trace, new EventId(16, "ReceivedMessage"), "Received message.");
+    [LoggerMessage(Level = LogLevel.Trace, EventId = 16, EventName = "ReceivedMessage", Message = "Received message.")]
+    public static partial void ReceivedMessage(ILogger logger);
 
-    private static readonly Action<ILogger, Exception> _errorReadingMessage =
-        LoggerMessage.Define(LogLevel.Information, new EventId(17, "ErrorReadingMessage"), "Error reading message.");
+    [LoggerMessage(Level = LogLevel.Information, EventId = 17, EventName = "ErrorReadingMessage", Message = "Error reading message.")]
+    public static partial void ErrorReadingMessage(ILogger logger, Exception ex);
 
-    private static readonly Action<ILogger, Exception?> _sendingMessage =
-        LoggerMessage.Define(LogLevel.Debug, new EventId(18, "SendingMessage"), "Sending message.");
+    [LoggerMessage(Level = LogLevel.Debug, EventId = 18, EventName = "SendingMessage", Message = "Sending message.")]
+    public static partial void SendingMessage(ILogger logger);
 
-    private static readonly Action<ILogger, Exception?> _messageSent =
-        LoggerMessage.Define(LogLevel.Trace, new EventId(19, "MessageSent"), "Message sent.");
+    [LoggerMessage(Level = LogLevel.Trace, EventId = 19, EventName = "MessageSent", Message = "Message sent.")]
+    public static partial void MessageSent(ILogger logger);
 
-    private static readonly Action<ILogger, Exception> _errorSendingMessage =
-        LoggerMessage.Define(LogLevel.Information, new EventId(20, "ErrorSendingMessage"), "Error sending message.");
+    [LoggerMessage(Level = LogLevel.Information, EventId = 20, EventName = "ErrorSendingMessage", Message = "Error sending message.")]
+    public static partial void ErrorSendingMessage(ILogger logger, Exception ex);
 
-    private static readonly Action<ILogger, Type, int, Exception?> _serializedMessage =
-        LoggerMessage.Define<Type, int>(LogLevel.Trace, new EventId(21, "SerializedMessage"), "Serialized '{MessageType}' to {MessageLength} byte message.");
+    [LoggerMessage(Level = LogLevel.Trace, EventId = 21, EventName = "SerializedMessage", Message = "Serialized '{MessageType}' to {MessageLength} byte message.")]
+    public static partial void SerializedMessage(ILogger logger, Type messageType, int messageLength);
 
-    private static readonly Action<ILogger, string, Exception?> _compressingMessage =
-        LoggerMessage.Define<string>(LogLevel.Trace, new EventId(22, "CompressingMessage"), "Compressing message with '{MessageEncoding}' encoding.");
+    [LoggerMessage(Level = LogLevel.Trace, EventId = 22, EventName = "CompressingMessage", Message = "Compressing message with '{MessageEncoding}' encoding.")]
+    public static partial void CompressingMessage(ILogger logger, string messageEncoding);
 
-    private static readonly Action<ILogger, string, Exception?> _decompressingMessage =
-        LoggerMessage.Define<string>(LogLevel.Trace, new EventId(23, "DecompressingMessage"), "Decompressing message with '{MessageEncoding}' encoding.");
+    [LoggerMessage(Level = LogLevel.Trace, EventId = 23, EventName = "DecompressingMessage", Message = "Decompressing message with '{MessageEncoding}' encoding.")]
+    public static partial void DecompressingMessage(ILogger logger, string messageEncoding);
 
-    private static readonly Action<ILogger, TimeSpan, Exception?> _deadlineTimeoutTooLong =
-        LoggerMessage.Define<TimeSpan>(LogLevel.Debug, new EventId(24, "DeadlineTimeoutTooLong"), "Deadline timeout {Timeout} is above maximum allowed timeout of 99999999 seconds. Maximum timeout will be used.");
+    [LoggerMessage(Level = LogLevel.Debug, EventId = 24, EventName = "DeadlineTimeoutTooLong", Message = "Deadline timeout {Timeout} is above maximum allowed timeout of 99999999 seconds. Maximum timeout will be used.")]
+    public static partial void DeadlineTimeoutTooLong(ILogger logger, TimeSpan timeout);
 
-    private static readonly Action<ILogger, TimeSpan, Exception?> _deadlineTimerRescheduled =
-        LoggerMessage.Define<TimeSpan>(LogLevel.Trace, new EventId(25, "DeadlineTimerRescheduled"), "Deadline timer triggered but {Remaining} remaining before deadline exceeded. Deadline timer rescheduled.");
+    [LoggerMessage(Level = LogLevel.Trace, EventId = 25, EventName = "DeadlineTimerRescheduled", Message = "Deadline timer triggered but {Remaining} remaining before deadline exceeded. Deadline timer rescheduled.")]
+    public static partial void DeadlineTimerRescheduled(ILogger logger, TimeSpan remaining);
 
-    private static readonly Action<ILogger, Exception> _errorParsingTrailers =
-        LoggerMessage.Define(LogLevel.Error, new EventId(26, "ErrorParsingTrailers"), "Error parsing trailers.");
+    [LoggerMessage(Level = LogLevel.Error, EventId = 26, EventName = "ErrorParsingTrailers", Message = "Error parsing trailers.")]
+    public static partial void ErrorParsingTrailers(ILogger logger, Exception ex);
 
-    private static readonly Action<ILogger, Exception> _errorExceedingDeadline =
-        LoggerMessage.Define(LogLevel.Error, new EventId(27, "ErrorExceedingDeadline"), "Error exceeding deadline.");
+    [LoggerMessage(Level = LogLevel.Error, EventId = 27, EventName = "ErrorExceedingDeadline", Message = "Error exceeding deadline.")]
+    public static partial void ErrorExceedingDeadline(ILogger logger, Exception ex);
 
-    private static readonly Action<ILogger, Exception?> _invalidGrpcStatusInHeader =
-      LoggerMessage.Define(LogLevel.Error, new EventId(28, "InvalidGrpcStatusInHeader"), "Header contains an OK gRPC status. This is invalid for unary or client streaming calls because a status in the header indicates there is no response body. " +
-          "A message in the response body is required for unary and client streaming calls.");
+    [LoggerMessage(Level = LogLevel.Error, EventId = 28, EventName = "InvalidGrpcStatusInHeader",
+        Message = "Header contains an OK gRPC status. This is invalid for unary or client streaming calls because a status in the header indicates there is no response body." +
+        " A message in the response body is required for unary and client streaming calls.")]
+    public static partial void InvalidGrpcStatusInHeader(ILogger logger);
 
-    public static void StartingCall(ILogger logger, MethodType methodType, Uri uri)
-    {
-        _startingCall(logger, methodType, uri, null);
-    }
-
-    public static void ResponseHeadersReceived(ILogger logger)
-    {
-        _responseHeadersReceived(logger, null);
-    }
-
-    public static void GrpcStatusError(ILogger logger, StatusCode status, string message, Exception? debugException)
-    {
-        _grpcStatusError(logger, status, message, debugException);
-    }
-
-    public static void FinishedCall(ILogger logger)
-    {
-        _finishedCall(logger, null);
-    }
-
-    public static void StartingDeadlineTimeout(ILogger logger, TimeSpan deadlineTimeout)
-    {
-        _startingDeadlineTimeout(logger, deadlineTimeout, null);
-    }
-
-    public static void ErrorStartingCall(ILogger logger)
-    {
-        _errorStartingCall(logger, null);
-    }
-
-    public static void DeadlineExceeded(ILogger logger)
-    {
-        _deadlineExceeded(logger, null);
-    }
-
-    public static void CanceledCall(ILogger logger)
-    {
-        _canceledCall(logger, null);
-    }
-
-    public static void MessageNotReturned(ILogger logger)
-    {
-        _messageNotReturned(logger, null);
-    }
-
-    public static void CallCredentialsNotUsed(ILogger logger)
-    {
-        _callCredentialsNotUsed(logger, null);
-    }
-
-    public static void ReadingMessage(ILogger logger)
-    {
-        _readingMessage(logger, null);
-    }
-
-    public static void NoMessageReturned(ILogger logger)
-    {
-        _noMessageReturned(logger, null);
-    }
-
-    public static void DeserializingMessage(ILogger logger, int messageLength, Type messageType)
-    {
-        _deserializingMessage(logger, messageLength, messageType, null);
-    }
-
-    public static void ReceivedMessage(ILogger logger)
-    {
-        _receivedMessage(logger, null);
-    }
-
-    public static void ErrorReadingMessage(ILogger logger, Exception ex)
-    {
-        _errorReadingMessage(logger, ex);
-    }
-
-    public static void SendingMessage(ILogger logger)
-    {
-        _sendingMessage(logger, null);
-    }
-
-    public static void MessageSent(ILogger logger)
-    {
-        _messageSent(logger, null);
-    }
-
-    public static void ErrorSendingMessage(ILogger logger, Exception ex)
-    {
-        _errorSendingMessage(logger, ex);
-    }
-
-    public static void SerializedMessage(ILogger logger, Type messageType, int messageLength)
-    {
-        _serializedMessage(logger, messageType, messageLength, null);
-    }
-
-    public static void CompressingMessage(ILogger logger, string messageEncoding)
-    {
-        _compressingMessage(logger, messageEncoding, null);
-    }
-
-    public static void DecompressingMessage(ILogger logger, string messageEncoding)
-    {
-        _decompressingMessage(logger, messageEncoding, null);
-    }
-
-    public static void DeadlineTimeoutTooLong(ILogger logger, TimeSpan timeout)
-    {
-        _deadlineTimeoutTooLong(logger, timeout, null);
-    }
-
-    public static void DeadlineTimerRescheduled(ILogger logger, TimeSpan remaining)
-    {
-        _deadlineTimerRescheduled(logger, remaining, null);
-    }
-
-    public static void ErrorParsingTrailers(ILogger logger, Exception ex)
-    {
-        _errorParsingTrailers(logger, ex);
-    }
-
-    public static void ErrorExceedingDeadline(ILogger logger, Exception ex)
-    {
-        _errorExceedingDeadline(logger, ex);
-    }
-
-    public static void InvalidGrpcStatusInHeader(ILogger logger)
-    {
-        _invalidGrpcStatusInHeader(logger, null);
-    }
 }

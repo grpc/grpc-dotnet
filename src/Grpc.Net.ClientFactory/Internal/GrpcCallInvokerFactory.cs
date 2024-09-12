@@ -31,7 +31,7 @@ namespace Grpc.Net.ClientFactory.Internal;
 
 internal readonly record struct EntryKey(string Name, Type Type);
 
-internal class GrpcCallInvokerFactory
+internal partial class GrpcCallInvokerFactory
 {
     private readonly ILoggerFactory _loggerFactory;
     private readonly IOptionsMonitor<GrpcClientFactoryOptions> _grpcClientFactoryOptionsMonitor;
@@ -251,14 +251,9 @@ internal class GrpcCallInvokerFactory
         }
     }
 
-    private static class Log
+    private static partial class Log
     {
-        private static readonly Action<ILogger, string, Exception?> _httpClientActionsPartiallySupported =
-            LoggerMessage.Define<string>(LogLevel.Debug, new EventId(1, "HttpClientActionsPartiallySupported"), "The ConfigureHttpClient method is used to configure gRPC client '{ClientName}'. ConfigureHttpClient is partially supported when creating gRPC clients and only some HttpClient properties such as BaseAddress and DefaultRequestHeaders are applied to the gRPC client.");
-
-        public static void HttpClientActionsPartiallySupported(ILogger<GrpcCallInvokerFactory> logger, string clientName)
-        {
-            _httpClientActionsPartiallySupported(logger, clientName, null);
-        }
+        [LoggerMessage(Level = LogLevel.Debug, EventId = 1, EventName = "HttpClientActionsPartiallySupported", Message = "The ConfigureHttpClient method is used to configure gRPC client '{ClientName}'. ConfigureHttpClient is partially supported when creating gRPC clients and only some HttpClient properties such as BaseAddress and DefaultRequestHeaders are applied to the gRPC client.")]
+        public static partial void HttpClientActionsPartiallySupported(ILogger<GrpcCallInvokerFactory> logger, string clientName);
     }
 }
