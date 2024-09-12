@@ -21,229 +21,89 @@ using Microsoft.Extensions.Logging;
 
 namespace Grpc.AspNetCore.Server.Internal;
 
-internal static class GrpcServerLog
+internal static partial class GrpcServerLog
 {
-    private static readonly Action<ILogger, Exception?> _unableToDisableMaxRequestBodySize =
-        LoggerMessage.Define(LogLevel.Debug, new EventId(1, "UnableToDisableMaxRequestBodySizeLimit"), "Unable to disable the max request body size limit.");
+    [LoggerMessage(Level = LogLevel.Debug, EventId = 1, EventName = "UnableToDisableMaxRequestBodySizeLimit", Message = "Unable to disable the max request body size limit.")]
+    public static partial void UnableToDisableMaxRequestBodySize(ILogger logger);
 
-    private static readonly Action<ILogger, string?, Exception?> _unsupportedRequestContentType =
-        LoggerMessage.Define<string?>(LogLevel.Information, new EventId(2, "UnsupportedRequestContentType"), "Request content-type of '{ContentType}' is not supported.");
+    [LoggerMessage(Level = LogLevel.Information, EventId = 2, EventName = "UnsupportedRequestContentType", Message = "Request content-type of '{ContentType}' is not supported.")]
+    public static partial void UnsupportedRequestContentType(ILogger logger, string? contentType);
 
-    private static readonly Action<ILogger, string?, Exception?> _unsupportedRequestProtocol =
-        LoggerMessage.Define<string?>(LogLevel.Information, new EventId(3, "UnsupportedRequestProtocol"), "Request protocol of '{Protocol}' is not supported.");
+    [LoggerMessage(Level = LogLevel.Information, EventId = 3, EventName = "UnsupportedRequestProtocol", Message = "Request protocol of '{Protocol}' is not supported.")]
+    public static partial void UnsupportedRequestProtocol(ILogger logger, string? protocol);
 
-    private static readonly Action<ILogger, TimeSpan, Exception?> _deadlineExceeded =
-        LoggerMessage.Define<TimeSpan>(LogLevel.Debug, new EventId(4, "DeadlineExceeded"), "Request with timeout of {Timeout} has exceeded its deadline.");
+    [LoggerMessage(Level = LogLevel.Debug, EventId = 4, EventName = "DeadlineExceeded", Message = "Request with timeout of {Timeout} has exceeded its deadline.")]
+    public static partial void DeadlineExceeded(ILogger logger, TimeSpan timeout);
 
-    private static readonly Action<ILogger, string, Exception?> _invalidTimeoutIgnored =
-        LoggerMessage.Define<string>(LogLevel.Debug, new EventId(5, "InvalidTimeoutIgnored"), "Invalid grpc-timeout header value '{Timeout}' has been ignored.");
+    [LoggerMessage(Level = LogLevel.Debug, EventId = 5, EventName = "InvalidTimeoutIgnored", Message = "Invalid grpc-timeout header value '{Timeout}' has been ignored.")]
+    public static partial void InvalidTimeoutIgnored(ILogger logger, string timeout);
 
-    private static readonly Action<ILogger, string, Exception?> _errorExecutingServiceMethod =
-        LoggerMessage.Define<string>(LogLevel.Error, new EventId(6, "ErrorExecutingServiceMethod"), "Error when executing service method '{ServiceMethod}'.");
+    [LoggerMessage(Level = LogLevel.Error, EventId = 6, EventName = "ErrorExecutingServiceMethod", Message = "Error when executing service method '{ServiceMethod}'.")]
+    public static partial void ErrorExecutingServiceMethod(ILogger logger, string serviceMethod, Exception ex);
 
-    private static readonly Action<ILogger, StatusCode, string, Exception?> _rpcConnectionError =
-        LoggerMessage.Define<StatusCode, string>(LogLevel.Information, new EventId(7, "RpcConnectionError"), "Error status code '{StatusCode}' with detail '{Detail}' raised.");
+    [LoggerMessage(Level = LogLevel.Information, EventId = 7, EventName = "RpcConnectionError", Message = "Error status code '{StatusCode}' with detail '{Detail}' raised.")]
+    public static partial void RpcConnectionError(ILogger logger, StatusCode statusCode, string detail, Exception? debugException);
 
-    private static readonly Action<ILogger, string, Exception?> _encodingNotInAcceptEncoding =
-        LoggerMessage.Define<string>(LogLevel.Debug, new EventId(8, "EncodingNotInAcceptEncoding"), "Request grpc-encoding header value '{GrpcEncoding}' is not in grpc-accept-encoding.");
+    [LoggerMessage(Level = LogLevel.Debug, EventId = 8, EventName = "EncodingNotInAcceptEncoding", Message = "Request grpc-encoding header value '{GrpcEncoding}' is not in grpc-accept-encoding.")]
+    public static partial void EncodingNotInAcceptEncoding(ILogger logger, string grpcEncoding);
 
-    private static readonly Action<ILogger, Exception?> _deadlineCancellationError =
-        LoggerMessage.Define(LogLevel.Error, new EventId(9, "DeadlineCancellationError"), "Error occurred while trying to cancel the request due to deadline exceeded.");
+    [LoggerMessage(Level = LogLevel.Error, EventId = 9, EventName = "DeadlineCancellationError", Message = "Error occurred while trying to cancel the request due to deadline exceeded.")]
+    public static partial void DeadlineCancellationError(ILogger logger, Exception ex);
 
-    private static readonly Action<ILogger, Exception?> _readingMessage =
-        LoggerMessage.Define(LogLevel.Debug, new EventId(10, "ReadingMessage"), "Reading message.");
+    [LoggerMessage(Level = LogLevel.Debug, EventId = 10, EventName = "ReadingMessage", Message = "Reading message.")]
+    public static partial void ReadingMessage(ILogger logger);
 
-    private static readonly Action<ILogger, Exception?> _noMessageReturned =
-        LoggerMessage.Define(LogLevel.Trace, new EventId(11, "NoMessageReturned"), "No message returned.");
+    [LoggerMessage(Level = LogLevel.Trace, EventId = 11, EventName = "NoMessageReturned", Message = "No message returned.")]
+    public static partial void NoMessageReturned(ILogger logger);
 
-    private static readonly Action<ILogger, int, Type, Exception?> _deserializingMessage =
-        LoggerMessage.Define<int, Type>(LogLevel.Trace, new EventId(12, "DeserializingMessage"), "Deserializing {MessageLength} byte message to '{MessageType}'.");
+    [LoggerMessage(Level = LogLevel.Trace, EventId = 12, EventName = "DeserializingMessage", Message = "Deserializing {MessageLength} byte message to '{MessageType}'.")]
+    public static partial void DeserializingMessage(ILogger logger, int messageLength, Type messageType);
 
-    private static readonly Action<ILogger, Exception?> _receivedMessage =
-        LoggerMessage.Define(LogLevel.Trace, new EventId(13, "ReceivedMessage"), "Received message.");
+    [LoggerMessage(Level = LogLevel.Trace, EventId = 13, EventName = "ReceivedMessage", Message = "Received message.")]
+    public static partial void ReceivedMessage(ILogger logger);
 
-    private static readonly Action<ILogger, Exception?> _errorReadingMessage =
-        LoggerMessage.Define(LogLevel.Information, new EventId(14, "ErrorReadingMessage"), "Error reading message.");
+    [LoggerMessage(Level = LogLevel.Information, EventId = 14, EventName = "ErrorReadingMessage", Message = "Error reading message.")]
+    public static partial void ErrorReadingMessage(ILogger logger, Exception ex);
 
-    private static readonly Action<ILogger, Exception?> _sendingMessage =
-        LoggerMessage.Define(LogLevel.Debug, new EventId(15, "SendingMessage"), "Sending message.");
+    [LoggerMessage(Level = LogLevel.Debug, EventId = 15, EventName = "SendingMessage", Message = "Sending message.")]
+    public static partial void SendingMessage(ILogger logger);
 
-    private static readonly Action<ILogger, Exception?> _messageSent =
-        LoggerMessage.Define(LogLevel.Trace, new EventId(16, "MessageSent"), "Message sent.");
+    [LoggerMessage(Level = LogLevel.Trace, EventId = 16, EventName = "MessageSent", Message = "Message sent.")]
+    public static partial void MessageSent(ILogger logger);
 
-    private static readonly Action<ILogger, Exception?> _errorSendingMessage =
-        LoggerMessage.Define(LogLevel.Information, new EventId(17, "ErrorSendingMessage"), "Error sending message.");
+    [LoggerMessage(Level = LogLevel.Information, EventId = 17, EventName = "ErrorSendingMessage", Message = "Error sending message.")]
+    public static partial void ErrorSendingMessage(ILogger logger, Exception ex);
 
-    private static readonly Action<ILogger, Type, int, Exception?> _serializedMessage =
-        LoggerMessage.Define<Type, int>(LogLevel.Trace, new EventId(18, "SerializedMessage"), "Serialized '{MessageType}' to {MessageLength} byte message.");
+    [LoggerMessage(Level = LogLevel.Trace, EventId = 18, EventName = "SerializedMessage", Message = "Serialized '{MessageType}' to {MessageLength} byte message.")]
+    public static partial void SerializedMessage(ILogger logger, Type messageType, int messageLength);
 
-    private static readonly Action<ILogger, string, Exception?> _compressingMessage =
-        LoggerMessage.Define<string>(LogLevel.Trace, new EventId(19, "CompressingMessage"), "Compressing message with '{MessageEncoding}' encoding.");
+    [LoggerMessage(Level = LogLevel.Trace, EventId = 19, EventName = "CompressingMessage", Message = "Compressing message with '{MessageEncoding}' encoding.")]
+    public static partial void CompressingMessage(ILogger logger, string messageEncoding);
 
-    private static readonly Action<ILogger, string, Exception?> _decompressingMessage =
-        LoggerMessage.Define<string>(LogLevel.Trace, new EventId(20, "DecompressingMessage"), "Decompressing message with '{MessageEncoding}' encoding.");
+    [LoggerMessage(Level = LogLevel.Trace, EventId = 20, EventName = "DecompressingMessage", Message = "Decompressing message with '{MessageEncoding}' encoding.")]
+    public static partial void DecompressingMessage(ILogger logger, string messageEncoding);
 
-    private static readonly Action<ILogger, int, Exception?> _resettingResponse =
-        LoggerMessage.Define<int>(LogLevel.Debug, new EventId(21, "ResettingResponse"), "Resetting response stream with error code {ErrorCode}.");
+    [LoggerMessage(Level = LogLevel.Debug, EventId = 21, EventName = "ResettingResponse", Message = "Resetting response stream with error code {ErrorCode}.")]
+    public static partial void ResettingResponse(ILogger logger, int errorCode);
 
-    private static readonly Action<ILogger, Exception?> _abortingResponse =
-        LoggerMessage.Define(LogLevel.Debug, new EventId(22, "AbortingResponse"), "IHttpResetFeature is not available so unable to cleanly reset response stream. Aborting response stream.");
+    [LoggerMessage(Level = LogLevel.Debug, EventId = 22, EventName = "AbortingResponse", Message = "IHttpResetFeature is not available so unable to cleanly reset response stream. Aborting response stream.")]
+    public static partial void AbortingResponse(ILogger logger);
 
-    private static readonly Action<ILogger, Exception?> _unhandledCorsPreflightRequest =
-       LoggerMessage.Define(LogLevel.Information, new EventId(23, "UnhandledCorsPreflightRequest"), "Unhandled CORS preflight request received. CORS may not be configured correctly in the application.");
+    [LoggerMessage(Level = LogLevel.Information, EventId = 23, EventName = "UnhandledCorsPreflightRequest", Message = "Unhandled CORS preflight request received. CORS may not be configured correctly in the application.")]
+    public static partial void UnhandledCorsPreflightRequest(ILogger logger);
 
-    private static readonly Action<ILogger, TimeSpan, Exception?> _deadlineTimeoutTooLong =
-        LoggerMessage.Define<TimeSpan>(LogLevel.Debug, new EventId(24, "DeadlineTimeoutTooLong"), "Deadline timeout {Timeout} is above maximum allowed timeout of 99999999 seconds. Maximum timeout will be used.");
+    [LoggerMessage(Level = LogLevel.Debug, EventId = 24, EventName = "DeadlineTimeoutTooLong", Message = "Deadline timeout {Timeout} is above maximum allowed timeout of 99999999 seconds. Maximum timeout will be used.")]
+    public static partial void DeadlineTimeoutTooLong(ILogger logger, TimeSpan timeout);
 
-    private static readonly Action<ILogger, TimeSpan, Exception?> _deadlineTimerRescheduled =
-        LoggerMessage.Define<TimeSpan>(LogLevel.Trace, new EventId(25, "DeadlineTimerRescheduled"), "Deadline timer triggered but {Remaining} remaining before deadline exceeded. Deadline timer rescheduled.");
+    [LoggerMessage(Level = LogLevel.Trace, EventId = 25, EventName = "DeadlineTimerRescheduled", Message = "Deadline timer triggered but {Remaining} remaining before deadline exceeded. Deadline timer rescheduled.")]
+    public static partial void DeadlineTimerRescheduled(ILogger logger, TimeSpan remaining);
 
-    private static readonly Action<ILogger, TimeSpan, Exception?> _deadlineStarted =
-        LoggerMessage.Define<TimeSpan>(LogLevel.Trace, new EventId(26, "DeadlineStarted"), "Request deadline timeout of {Timeout} started.");
+    [LoggerMessage(Level = LogLevel.Trace, EventId = 26, EventName = "DeadlineStarted", Message = "Request deadline timeout of {Timeout} started.")]
+    public static partial void DeadlineStarted(ILogger logger, TimeSpan timeout);
 
-    private static readonly Action<ILogger, Exception?> _deadlineStopped =
-        LoggerMessage.Define(LogLevel.Trace, new EventId(27, "DeadlineStopped"), "Request deadline stopped.");
+    [LoggerMessage(Level = LogLevel.Trace, EventId = 27, EventName = "DeadlineStopped", Message = "Request deadline stopped.")]
+    internal static partial void DeadlineStopped(ILogger logger);
 
-    private static readonly Action<ILogger, string, Exception?> _serviceMethodCanceled =
-        LoggerMessage.Define<string>(LogLevel.Information, new EventId(28, "ServiceMethodCanceled"), "Service method '{ServiceMethod}' canceled.");
-
-    internal static void DeadlineStopped(ILogger logger)
-    {
-        _deadlineStopped(logger, null);
-    }
-
-    public static void DeadlineStarted(ILogger logger, TimeSpan timeout)
-    {
-        _deadlineStarted(logger, timeout, null);
-    }
-
-    public static void DeadlineExceeded(ILogger logger, TimeSpan timeout)
-    {
-        _deadlineExceeded(logger, timeout, null);
-    }
-
-    public static void InvalidTimeoutIgnored(ILogger logger, string timeout)
-    {
-        _invalidTimeoutIgnored(logger, timeout, null);
-    }
-
-    public static void ErrorExecutingServiceMethod(ILogger logger, string serviceMethod, Exception ex)
-    {
-        _errorExecutingServiceMethod(logger, serviceMethod, ex);
-    }
-
-    public static void RpcConnectionError(ILogger logger, StatusCode statusCode, string detail, Exception? debugException)
-    {
-        _rpcConnectionError(logger, statusCode, detail, debugException);
-    }
-
-    public static void EncodingNotInAcceptEncoding(ILogger logger, string grpcEncoding)
-    {
-        _encodingNotInAcceptEncoding(logger, grpcEncoding, null);
-    }
-
-    public static void DeadlineCancellationError(ILogger logger, Exception ex)
-    {
-        _deadlineCancellationError(logger, ex);
-    }
-
-    public static void UnableToDisableMaxRequestBodySize(ILogger logger)
-    {
-        _unableToDisableMaxRequestBodySize(logger, null);
-    }
-
-    public static void UnsupportedRequestContentType(ILogger logger, string? contentType)
-    {
-        _unsupportedRequestContentType(logger, contentType, null);
-    }
-
-    public static void UnsupportedRequestProtocol(ILogger logger, string? protocol)
-    {
-        _unsupportedRequestProtocol(logger, protocol, null);
-    }
-
-    public static void ReadingMessage(ILogger logger)
-    {
-        _readingMessage(logger, null);
-    }
-
-    public static void NoMessageReturned(ILogger logger)
-    {
-        _noMessageReturned(logger, null);
-    }
-
-    public static void DeserializingMessage(ILogger logger, int messageLength, Type messageType)
-    {
-        _deserializingMessage(logger, messageLength, messageType, null);
-    }
-
-    public static void ReceivedMessage(ILogger logger)
-    {
-        _receivedMessage(logger, null);
-    }
-
-    public static void ErrorReadingMessage(ILogger logger, Exception ex)
-    {
-        _errorReadingMessage(logger, ex);
-    }
-
-    public static void SendingMessage(ILogger logger)
-    {
-        _sendingMessage(logger, null);
-    }
-
-    public static void MessageSent(ILogger logger)
-    {
-        _messageSent(logger, null);
-    }
-
-    public static void ErrorSendingMessage(ILogger logger, Exception ex)
-    {
-        _errorSendingMessage(logger, ex);
-    }
-
-    public static void SerializedMessage(ILogger logger, Type messageType, int messageLength)
-    {
-        _serializedMessage(logger, messageType, messageLength, null);
-    }
-
-    public static void CompressingMessage(ILogger logger, string messageEncoding)
-    {
-        _compressingMessage(logger, messageEncoding, null);
-    }
-
-    public static void DecompressingMessage(ILogger logger, string messageEncoding)
-    {
-        _decompressingMessage(logger, messageEncoding, null);
-    }
-
-    public static void ResettingResponse(ILogger logger, int errorCode)
-    {
-        _resettingResponse(logger, errorCode, null);
-    }
-
-    public static void AbortingResponse(ILogger logger)
-    {
-        _abortingResponse(logger, null);
-    }
-
-    public static void UnhandledCorsPreflightRequest(ILogger logger)
-    {
-        _unhandledCorsPreflightRequest(logger, null);
-    }
-
-    public static void DeadlineTimeoutTooLong(ILogger logger, TimeSpan timeout)
-    {
-        _deadlineTimeoutTooLong(logger, timeout, null);
-    }
-
-    public static void DeadlineTimerRescheduled(ILogger logger, TimeSpan remaining)
-    {
-        _deadlineTimerRescheduled(logger, remaining, null);
-    }
-
-    public static void ServiceMethodCanceled(ILogger logger, string serviceMethod, Exception ex)
-    {
-        _serviceMethodCanceled(logger, serviceMethod, ex);
-    }
+    [LoggerMessage(Level = LogLevel.Information, EventId = 28, EventName = "ServiceMethodCanceled", Message = "Service method '{ServiceMethod}' canceled.")]
+    public static partial void ServiceMethodCanceled(ILogger logger, string serviceMethod, Exception ex);
 }

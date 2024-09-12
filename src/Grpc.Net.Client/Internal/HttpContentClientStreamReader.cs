@@ -275,13 +275,8 @@ internal class HttpContentClientStreamReader<TRequest, TResponse> : IAsyncStream
     }
 }
 
-internal static class HttpContentClientStreamReaderLog
+internal static partial class HttpContentClientStreamReaderLog
 {
-    private static readonly Action<ILogger, Exception> _readMessageError =
-        LoggerMessage.Define(LogLevel.Error, new EventId(1, "ReadMessageError"), "Error reading message.");
-
-    public static void ReadMessageError(ILogger logger, Exception ex)
-    {
-        _readMessageError(logger, ex);
-    }
+    [LoggerMessage(Level = LogLevel.Error, EventId = 1, EventName = "ReadMessageError", Message = "Error reading message.")]
+    public static partial void ReadMessageError(ILogger logger, Exception ex);
 }
