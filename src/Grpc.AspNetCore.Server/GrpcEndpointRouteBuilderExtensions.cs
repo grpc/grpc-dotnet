@@ -19,6 +19,7 @@
 using System.Diagnostics.CodeAnalysis;
 using Grpc.AspNetCore.Server.Internal;
 using Grpc.AspNetCore.Server.Model.Internal;
+using Grpc.Core;
 using Grpc.Shared;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.Extensions.DependencyInjection;
@@ -44,6 +45,43 @@ public static class GrpcEndpointRouteBuilderExtensions
 
         var serviceRouteBuilder = builder.ServiceProvider.GetRequiredService<ServiceRouteBuilder<TService>>();
         var endpointConventionBuilders = serviceRouteBuilder.Build(builder);
+
+        return new GrpcServiceEndpointConventionBuilder(endpointConventionBuilders);
+    }
+
+    /// <summary>
+    /// Maps incoming requests to the specified <see cref="ServerServiceDefinition"/> instance.
+    /// </summary>
+    /// <param name="builder">The <see cref="IEndpointRouteBuilder"/> to add the route to.</param>
+    /// <param name="serviceDefinition">The instance of <see cref="ServerServiceDefinition"/>.</param>
+    /// <returns>A <see cref="GrpcServiceEndpointConventionBuilder"/> for endpoints associated with the service.</returns>
+    [RequiresUnreferencedCode("Due to type erasure in ServerServiceDefinition, MapGrpcService is incompatible with trimming.")]
+    public static GrpcServiceEndpointConventionBuilder MapGrpcService(this IEndpointRouteBuilder builder, ServerServiceDefinition serviceDefinition)
+    {
+        ArgumentNullException.ThrowIfNull(builder, nameof(builder));
+        ArgumentNullException.ThrowIfNull(serviceDefinition, nameof(serviceDefinition));
+
+        var serviceRouteBuilder = builder.ServiceProvider.GetRequiredService<ServiceRouteBuilder>();
+        var endpointConventionBuilders = serviceRouteBuilder.Build(builder, serviceDefinition);
+
+        return new GrpcServiceEndpointConventionBuilder(endpointConventionBuilders);
+    }
+
+    /// <summary>
+    /// Maps incoming requests to the <see cref="ServerServiceDefinition"/> instance from the specified factory.
+    /// </summary>
+    /// <param name="builder">The <see cref="IEndpointRouteBuilder"/> to add the route to.</param>
+    /// <param name="getServiceDefinition">The factory for <see cref="ServerServiceDefinition"/> instance.</param>
+    /// <returns>A <see cref="GrpcServiceEndpointConventionBuilder"/> for endpoints associated with the service.</returns>
+    [RequiresUnreferencedCode("Due to type erasure in ServerServiceDefinition, MapGrpcService is incompatible with trimming.")]
+    public static GrpcServiceEndpointConventionBuilder MapGrpcService(this IEndpointRouteBuilder builder, Func<IServiceProvider, ServerServiceDefinition> getServiceDefinition)
+    {
+        ArgumentNullException.ThrowIfNull(builder, nameof(builder));
+        ArgumentNullException.ThrowIfNull(getServiceDefinition, nameof(getServiceDefinition));
+
+        var serviceDefinition = getServiceDefinition(builder.ServiceProvider);
+        var serviceRouteBuilder = builder.ServiceProvider.GetRequiredService<ServiceRouteBuilder>();
+        var endpointConventionBuilders = serviceRouteBuilder.Build(builder, serviceDefinition);
 
         return new GrpcServiceEndpointConventionBuilder(endpointConventionBuilders);
     }
