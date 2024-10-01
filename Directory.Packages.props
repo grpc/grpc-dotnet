@@ -5,7 +5,7 @@
     <MicrosoftAspNetCoreApp8PackageVersion>8.0.6</MicrosoftAspNetCoreApp8PackageVersion>
     <MicrosoftAspNetCoreApp7PackageVersion>7.0.5</MicrosoftAspNetCoreApp7PackageVersion>
     <MicrosoftAspNetCoreApp6PackageVersion>6.0.33</MicrosoftAspNetCoreApp6PackageVersion>
-    <GrpcDotNetPackageVersion>2.63.0</GrpcDotNetPackageVersion>
+    <GrpcDotNetPackageVersion>2.66.0</GrpcDotNetPackageVersion>
     <OpenTelemetryPackageVersion>1.6.0</OpenTelemetryPackageVersion>
     <OpenTelemetryIntergationPackageVersion>1.8.1</OpenTelemetryIntergationPackageVersion>
     <OpenTelemetryGrpcPackageVersion>1.8.0-beta.1</OpenTelemetryGrpcPackageVersion>
@@ -33,7 +33,7 @@
     <PackageVersion Include="Microsoft.Extensions.Logging.Abstractions" Version="$(MicrosoftExtensionsPackageVersion)" />
 
     <!-- gRPC -->
-    <PackageVersion Include="Grpc.Tools" Version="2.66.0" />
+    <PackageVersion Include="Grpc.Tools" Version="2.67.0-pre1" />
     <PackageVersion Include="Grpc.Core" Version="2.46.6" />
     <PackageVersion Include="Grpc.Core.Api" Version="$(GrpcDotNetPackageVersion)"/>
     <PackageVersion Include="Grpc.Net.Client" Version="$(GrpcDotNetPackageVersion)" />
