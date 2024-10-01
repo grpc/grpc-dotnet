@@ -1,4 +1,4 @@
-﻿#region Copyright notice and license
+#region Copyright notice and license
 
 // Copyright 2019 The gRPC Authors
 //
@@ -22,8 +22,6 @@ using System.Threading;
 using System.Threading.Tasks;
 using Grpc.Core;
 
-// TODO(JamesNK): Remove nullable override after Grpc.Core.Api update
-#pragma warning disable CS8764 // Nullability of return type doesn't match overridden member (possibly because of nullability attributes).
 namespace Tests.Server.UnitTests.Helpers
 {
     public class TestServerCallContext : ServerCallContext
@@ -81,4 +79,3 @@ namespace Tests.Server.UnitTests.Helpers
         }
     }
 }
-#pragma warning restore CS8764 // Nullability of return type doesn't match overridden member (possibly because of nullability attributes).

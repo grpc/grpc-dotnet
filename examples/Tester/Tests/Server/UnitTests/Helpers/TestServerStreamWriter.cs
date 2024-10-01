@@ -1,4 +1,4 @@
-﻿#region Copyright notice and license
+#region Copyright notice and license
 
 // Copyright 2019 The gRPC Authors
 //
@@ -22,8 +22,6 @@ using System.Threading.Channels;
 using System.Threading.Tasks;
 using Grpc.Core;
 
-// TODO(JamesNK): Remove nullable override after Grpc.Core.Api update
-#pragma warning disable CS8766 // Nullability of reference types in return type doesn't match implicitly implemented member (possibly because of nullability attributes).
 namespace Tests.Server.UnitTests.Helpers
 {
     public class TestServerStreamWriter<T> : IServerStreamWriter<T> where T : class
@@ -63,8 +61,12 @@ namespace Tests.Server.UnitTests.Helpers
             }
         }
 
-        public Task WriteAsync(T message)
+        public Task WriteAsync(T message, CancellationToken cancellationToken)
         {
+            if (cancellationToken.IsCancellationRequested)
+            {
+                return Task.FromCanceled(cancellationToken);
+            }
             if (_serverCallContext.CancellationToken.IsCancellationRequested)
             {
                 return Task.FromCanceled(_serverCallContext.CancellationToken);
@@ -77,6 +79,10 @@ namespace Tests.Server.UnitTests.Helpers
 
             return Task.CompletedTask;
         }
+
+        public Task WriteAsync(T message)
+        {
+            return WriteAsync(message, CancellationToken.None);
+        }
     }
 }
-#pragma warning restore CS8766 // Nullability of reference types in return type doesn't match implicitly implemented member (possibly because of nullability attributes).
