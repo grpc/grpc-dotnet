@@ -85,9 +85,9 @@ internal static class ClientDebuggerHelpers
         var fields = parentType.GetFields(BindingFlags.Static | BindingFlags.NonPublic);
         foreach (var field in fields)
         {
-            if (IsMethodField(field))
+            if (IsMethodField(field) && field.GetValue(null) is IMethod method)
             {
-                methods.Add((IMethod)field.GetValue(null));
+                methods.Add(method);
             }
         }
         return methods;

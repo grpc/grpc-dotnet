@@ -17,6 +17,7 @@
 #endregion
 
 using System;
+using System.Buffers;
 
 namespace Grpc.Core;
 
@@ -58,7 +59,7 @@ public abstract class DeserializationContext
     /// (as there is no practical reason for doing so) and <c>DeserializationContext</c> implementations are free to assume so.
     /// </summary>
     /// <returns>read only sequence containing the entire payload.</returns>
-    public virtual System.Buffers.ReadOnlySequence<byte> PayloadAsReadOnlySequence()
+    public virtual ReadOnlySequence<byte> PayloadAsReadOnlySequence()
     {
         throw new NotImplementedException();
     }

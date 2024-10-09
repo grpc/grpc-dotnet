@@ -1,10 +1,10 @@
-﻿Param
+Param
 (
     [bool]$use_tls = $false,
     [bool]$use_winhttp = $false,
     [bool]$use_http3 = $false,
     [bool]$publish_aot = $false,
-    [string]$framework = "net7.0",
+    [string]$framework = "net9.0",
     [string]$grpc_web_mode = "None",
     [int]$server_port = 50052
 )

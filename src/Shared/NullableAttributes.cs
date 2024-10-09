@@ -1,4 +1,4 @@
-﻿#region Copyright notice and license
+#region Copyright notice and license
 
 // Copyright 2019 The gRPC Authors
 //
@@ -19,7 +19,7 @@
 namespace System.Diagnostics.CodeAnalysis;
 
 // Attributes added in netstandard2.1
-#if !(NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER)
+#if NET462 || NETSTANDARD2_0
 /// <summary>Specifies that null is allowed as an input even if the corresponding type disallows it.</summary>
 [AttributeUsage(AttributeTargets.Field | AttributeTargets.Parameter | AttributeTargets.Property, Inherited = false)]
 internal sealed class AllowNullAttribute : Attribute
@@ -101,10 +101,7 @@ internal sealed class DoesNotReturnIfAttribute : Attribute
     /// <summary>Gets the condition parameter value.</summary>
     public bool ParameterValue { get; }
 }
-#endif
 
-// Attributes added in 5.0
-#if !NET5_0_OR_GREATER
 /// <summary>Specifies that the method or property will ensure that the listed field and property members have not-null values.</summary>
 [AttributeUsage(AttributeTargets.Method | AttributeTargets.Property, Inherited = false, AllowMultiple = true)]
 internal sealed class MemberNotNullAttribute : Attribute
