@@ -82,7 +82,7 @@
     <PackageVersion Include="System.Memory" Version="4.5.3" />
     <PackageVersion Include="System.Net.Http.WinHttpHandler" Version="8.0.0" />
     <PackageVersion Include="System.Security.Principal.Windows" Version="5.0.0" />
-    <PackageVersion Include="System.Threading.Channels" Version="4.6.0" />
     <PackageVersion Include="System.Text.Json" Version="6.0.10" />
+    <PackageVersion Include="System.Threading.Channels" Version="4.6.0" />
   </ItemGroup>
 </Project>
