@@ -1,4 +1,4 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <Description>Command line tool for gRPC projects</Description>
     <PackageTags>gRPC RPC CLI</PackageTags>
@@ -26,6 +26,7 @@
     <PackageReference Include="Microsoft.Build.Locator" />
     <PackageReference Include="System.CommandLine.Rendering" />
     <PackageReference Include="System.Security.Principal.Windows" />
+    <PackageReference Include="System.Text.Json" />
     <PackageReference Include="Microsoft.Win32.Registry" />
   </ItemGroup>
 
