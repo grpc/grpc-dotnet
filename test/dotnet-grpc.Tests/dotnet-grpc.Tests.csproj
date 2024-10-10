@@ -59,5 +59,8 @@
     </AssemblyAttribute>
 
   </ItemGroup>
+  <ItemGroup>
+    <Folder Include="TestAssets\EmptyProject\Proto\Subfolder\" />
+  </ItemGroup>
 
 </Project>
