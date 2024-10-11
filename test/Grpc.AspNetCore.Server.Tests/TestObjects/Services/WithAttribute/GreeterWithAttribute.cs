@@ -1,4 +1,4 @@
-﻿#region Copyright notice and license
+#region Copyright notice and license
 
 // Copyright 2019 The gRPC Authors
 //
@@ -57,7 +57,10 @@ public static partial class GreeterWithAttribute
 
     public static ServerServiceDefinition BindService(GreeterBase serviceImpl)
     {
-        throw new NotImplementedException();
+        return ServerServiceDefinition.CreateBuilder()
+            .AddMethod(__Method_SayHello, serviceImpl.SayHello)
+            .AddMethod(__Method_SayHellos, serviceImpl.SayHellos)
+            .Build();
     }
 
     public static void BindService(ServiceBinderBase serviceBinder, GreeterBase serviceImpl)
