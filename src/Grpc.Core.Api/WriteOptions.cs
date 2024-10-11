@@ -42,32 +42,21 @@ public enum WriteFlags
 /// <summary>
 /// Options for write operations.
 /// </summary>
-public class WriteOptions
+/// <remarks>
+/// Initializes a new instance of <c>WriteOptions</c> class.
+/// </remarks>
+/// <param name="flags">The write flags.</param>
+public class WriteOptions(WriteFlags flags = default(WriteFlags))
 {
     /// <summary>
     /// Default write options.
     /// </summary>
     public static readonly WriteOptions Default = new WriteOptions();
 
-    private readonly WriteFlags flags;
-
-    /// <summary>
-    /// Initializes a new instance of <c>WriteOptions</c> class.
-    /// </summary>
-    /// <param name="flags">The write flags.</param>
-    public WriteOptions(WriteFlags flags = default(WriteFlags))
-    {
-        this.flags = flags;
-    }
+    private readonly WriteFlags flags = flags;
 
     /// <summary>
     /// Gets the write flags.
     /// </summary>
-    public WriteFlags Flags
-    {
-        get
-        {
-            return this.flags;
-        }
-    }
+    public WriteFlags Flags => this.flags;
 }

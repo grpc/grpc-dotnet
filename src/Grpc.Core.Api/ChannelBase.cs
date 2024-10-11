@@ -33,16 +33,10 @@ public abstract class ChannelBase
     /// Initializes a new instance of <see cref="ChannelBase"/> class that connects to a specific host.
     /// </summary>
     /// <param name="target">Target of the channel.</param>
-    protected ChannelBase(string target)
-    {
-        this.target = GrpcPreconditions.CheckNotNull(target, nameof(target));
-    }
+    protected ChannelBase(string target) => this.target = GrpcPreconditions.CheckNotNull(target, nameof(target));
 
     /// <summary>The original target used to create the channel.</summary>
-    public string Target
-    {
-        get { return this.target; }
-    }
+    public string Target => this.target;
 
     /// <summary>
     /// Create a new <see cref="CallInvoker"/> for the channel.
@@ -62,13 +56,10 @@ public abstract class ChannelBase
     /// before shutting down the channel to ensure channel shutdown won't impact
     /// the outcome of those remote calls.
     /// </remarks>
-    public Task ShutdownAsync()
-    {
-        return ShutdownAsyncCore();
-    }
+    public Task ShutdownAsync() => ShutdownAsyncCore();
 
     /// <summary>Provides implementation of a non-virtual public member.</summary>
-    #pragma warning disable 1998
+#pragma warning disable 1998
     protected virtual async Task ShutdownAsyncCore()
     {
         // default implementation is no-op for backwards compatibility, but all implementations
