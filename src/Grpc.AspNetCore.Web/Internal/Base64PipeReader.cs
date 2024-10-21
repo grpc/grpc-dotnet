@@ -25,7 +25,7 @@ namespace Grpc.AspNetCore.Web.Internal;
 /// <summary>
 /// Reads and decodes base64 encoded bytes from the inner reader.
 /// </summary>
-internal class Base64PipeReader : PipeReader
+internal sealed class Base64PipeReader : PipeReader
 {
     private readonly PipeReader _inner;
     private ReadOnlySequence<byte> _currentDecodedBuffer;

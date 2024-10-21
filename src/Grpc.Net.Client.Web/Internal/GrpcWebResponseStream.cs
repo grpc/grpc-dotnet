@@ -29,7 +29,7 @@ namespace Grpc.Net.Client.Web.Internal;
 /// for trailers. When the trailers message is encountered then they are parsed as HTTP/1.1 trailers and
 /// added to the HttpResponseMessage.TrailingHeaders.
 /// </summary>
-internal class GrpcWebResponseStream : Stream
+internal sealed class GrpcWebResponseStream : Stream
 {
     private const int HeaderLength = 5;
 

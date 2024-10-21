@@ -17,7 +17,6 @@
 #endregion
 
 using System.CommandLine;
-using System.CommandLine.Invocation;
 using System.CommandLine.Rendering;
 using System.CommandLine.Rendering.Views;
 using Grpc.Dotnet.Cli.Internal;
@@ -27,7 +26,7 @@ using Microsoft.Build.Evaluation;
 
 namespace Grpc.Dotnet.Cli.Commands;
 
-internal class ListCommand : CommandBase
+internal sealed class ListCommand : CommandBase
 {
     public ListCommand(IConsole console, string? projectPath, HttpClient httpClient)
         : base(console, projectPath, httpClient) { }

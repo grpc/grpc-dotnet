@@ -22,7 +22,7 @@ using Microsoft.AspNetCore.Routing.Patterns;
 
 namespace Grpc.AspNetCore.Server.Model.Internal;
 
-internal class MethodModel
+internal sealed class MethodModel
 {
     public MethodModel(IMethod method, RoutePattern pattern, IList<object> metadata, RequestDelegate requestDelegate)
     {

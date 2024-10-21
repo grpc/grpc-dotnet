@@ -20,7 +20,7 @@ using System.Buffers;
 
 namespace Grpc.AspNetCore.Web.Internal;
 
-internal class MemorySegment<T> : ReadOnlySequenceSegment<T>
+internal sealed class MemorySegment<T> : ReadOnlySequenceSegment<T>
 {
     public MemorySegment(ReadOnlyMemory<T> memory)
     {

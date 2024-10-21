@@ -21,7 +21,7 @@ namespace Grpc.AspNetCore.Server.Model.Internal;
 /// <summary>
 /// A registry of all the service methods in the application.
 /// </summary>
-internal class ServiceMethodsRegistry
+internal sealed class ServiceMethodsRegistry
 {
     public List<MethodModel> Methods { get; } = new List<MethodModel>();
 }
