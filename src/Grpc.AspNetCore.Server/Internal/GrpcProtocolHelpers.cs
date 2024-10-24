@@ -18,6 +18,7 @@
 
 using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
+using System.Runtime.InteropServices;
 using System.Security.Cryptography.X509Certificates;
 using System.Text;
 using Grpc.Core;
@@ -108,7 +109,7 @@ internal static class GrpcProtocolHelpers
         switch (base64.Length % 4)
         {
             case 0:
-                // base64 has the required padding 
+                // base64 has the required padding
                 decodable = base64;
                 break;
             case 2:
@@ -208,11 +209,8 @@ internal static class GrpcProtocolHelpers
 
         static void AddProperty(Dictionary<string, List<AuthProperty>> properties, string name, string value)
         {
-            if (!properties.TryGetValue(name, out var values))
-            {
-                values = new List<AuthProperty>();
-                properties[name] = values;
-            }
+            ref var values = ref CollectionsMarshal.GetValueRefOrAddDefault(properties, name, out _);
+            values ??= [];
 
             values.Add(AuthProperty.Create(name, Encoding.UTF8.GetBytes(value)));
         }
