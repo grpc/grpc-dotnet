@@ -20,7 +20,7 @@ using Google.Protobuf;
 using Grpc.Core;
 using Grpc.Testing;
 
-class BenchmarkServiceImpl : BenchmarkService.BenchmarkServiceBase
+sealed class BenchmarkServiceImpl : BenchmarkService.BenchmarkServiceBase
 {
 #if CLIENT_CERTIFICATE_AUTHENTICATION
     [Microsoft.AspNetCore.Authorization.Authorize]

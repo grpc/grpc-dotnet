@@ -22,7 +22,7 @@ using Grpc.Core.Interceptors;
 
 namespace Grpc.Shared.Server;
 
-internal class InterceptorPipelineBuilder<TRequest, TResponse>
+internal sealed class InterceptorPipelineBuilder<TRequest, TResponse>
     where TRequest : class
     where TResponse : class
 {

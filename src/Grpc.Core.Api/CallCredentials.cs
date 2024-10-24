@@ -53,7 +53,7 @@ public abstract class CallCredentials
     /// </summary>
     public abstract void InternalPopulateConfiguration(CallCredentialsConfiguratorBase configurator, object? state);
 
-    private class CompositeCallCredentials : CallCredentials
+    private sealed class CompositeCallCredentials : CallCredentials
     {
         readonly IReadOnlyList<CallCredentials> credentials;
 
@@ -69,7 +69,7 @@ public abstract class CallCredentials
         }
     }
 
-    private class AsyncAuthInterceptorCredentials : CallCredentials
+    private sealed class AsyncAuthInterceptorCredentials : CallCredentials
     {
         readonly AsyncAuthInterceptor interceptor;
 

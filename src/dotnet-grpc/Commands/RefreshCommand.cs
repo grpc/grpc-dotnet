@@ -17,15 +17,13 @@
 #endregion
 
 using System.CommandLine;
-using System.CommandLine.Invocation;
 using Grpc.Dotnet.Cli.Internal;
 using Grpc.Dotnet.Cli.Options;
 using Grpc.Dotnet.Cli.Properties;
-using Microsoft.Build.Evaluation;
 
 namespace Grpc.Dotnet.Cli.Commands;
 
-internal class RefreshCommand : CommandBase
+internal sealed class RefreshCommand : CommandBase
 {
     public RefreshCommand(IConsole console, string? projectPath, HttpClient httpClient)
         : base(console, projectPath, httpClient) { }

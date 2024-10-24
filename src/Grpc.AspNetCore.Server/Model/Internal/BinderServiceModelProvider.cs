@@ -24,7 +24,7 @@ using Log = Grpc.AspNetCore.Server.Model.Internal.BinderServiceMethodProviderLog
 
 namespace Grpc.AspNetCore.Server.Model.Internal;
 
-internal class BinderServiceMethodProvider<[DynamicallyAccessedMembers(GrpcProtocolConstants.ServiceAccessibility)] TService> : IServiceMethodProvider<TService> where TService : class
+internal sealed class BinderServiceMethodProvider<[DynamicallyAccessedMembers(GrpcProtocolConstants.ServiceAccessibility)] TService> : IServiceMethodProvider<TService> where TService : class
 {
     private readonly ILogger<BinderServiceMethodProvider<TService>> _logger;
 

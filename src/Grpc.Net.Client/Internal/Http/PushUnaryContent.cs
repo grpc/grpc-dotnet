@@ -22,7 +22,7 @@ using Grpc.Shared;
 namespace Grpc.Net.Client.Internal;
 
 // TODO: Still need generic args?
-internal class PushUnaryContent<TRequest, TResponse> : HttpContent
+internal sealed class PushUnaryContent<TRequest, TResponse> : HttpContent
     where TRequest : class
     where TResponse : class
 {

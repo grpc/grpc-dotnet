@@ -22,7 +22,7 @@ using Microsoft.Extensions.Options;
 
 namespace Grpc.AspNetCore.Server.Internal;
 
-internal class GrpcServiceOptionsSetup : IConfigureOptions<GrpcServiceOptions>
+internal sealed class GrpcServiceOptionsSetup : IConfigureOptions<GrpcServiceOptions>
 {
     // Default to no send limit and 4mb receive limit.
     // Matches the gRPC C impl defaults
@@ -45,7 +45,7 @@ internal class GrpcServiceOptionsSetup : IConfigureOptions<GrpcServiceOptions>
     }
 }
 
-internal class GrpcServiceOptionsSetup<TService> : IConfigureOptions<GrpcServiceOptions<TService>> where TService : class
+internal sealed class GrpcServiceOptionsSetup<TService> : IConfigureOptions<GrpcServiceOptions<TService>> where TService : class
 {
     private readonly GrpcServiceOptions _options;
 

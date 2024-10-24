@@ -17,14 +17,13 @@
 #endregion
 
 using System.CommandLine;
-using System.CommandLine.Invocation;
 using Grpc.Dotnet.Cli.Internal;
 using Grpc.Dotnet.Cli.Options;
 using Grpc.Dotnet.Cli.Properties;
 
 namespace Grpc.Dotnet.Cli.Commands;
 
-internal class AddUrlCommand : CommandBase
+internal sealed class AddUrlCommand : CommandBase
 {
     public AddUrlCommand(IConsole console, string? projectPath, HttpClient httpClient)
         : base(console, projectPath, httpClient) { }

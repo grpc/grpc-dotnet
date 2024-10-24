@@ -20,7 +20,7 @@
 namespace Grpc.Dotnet.Cli.Internal;
 
 [AttributeUsage(AttributeTargets.Assembly, AllowMultiple = true)]
-internal class GrpcDependencyAttribute : Attribute
+internal sealed class GrpcDependencyAttribute : Attribute
 {
     public GrpcDependencyAttribute(string name, string version, string privateAssets, string applicableServices, string? applicableToWeb = null)
     {

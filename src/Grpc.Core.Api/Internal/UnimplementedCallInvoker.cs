@@ -17,16 +17,13 @@
 #endregion
 
 using System;
-using System.Threading.Tasks;
-using Grpc.Core;
-using Grpc.Core.Utils;
 
 namespace Grpc.Core.Internal;
 
 /// <summary>
 /// Call invoker that throws <c>NotImplementedException</c> for all requests.
 /// </summary>
-internal class UnimplementedCallInvoker : CallInvoker
+internal sealed class UnimplementedCallInvoker : CallInvoker
 {
     public UnimplementedCallInvoker()
     {

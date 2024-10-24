@@ -18,7 +18,7 @@
 
 namespace Grpc.AspNetCore.Server.Internal;
 
-internal class SystemClock : ISystemClock
+internal sealed class SystemClock : ISystemClock
 {
     public static readonly SystemClock Instance = new SystemClock();
 

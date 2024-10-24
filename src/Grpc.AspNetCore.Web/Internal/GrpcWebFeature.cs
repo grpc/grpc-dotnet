@@ -22,7 +22,7 @@ using Microsoft.AspNetCore.Http.Features;
 
 namespace Grpc.AspNetCore.Web.Internal;
 
-internal class GrpcWebFeature :
+internal sealed class GrpcWebFeature :
     IRequestBodyPipeFeature,
     IHttpResponseBodyFeature,
     IHttpResponseTrailersFeature,

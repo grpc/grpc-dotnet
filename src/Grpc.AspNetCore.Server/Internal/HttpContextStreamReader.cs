@@ -26,7 +26,7 @@ namespace Grpc.AspNetCore.Server.Internal;
 
 [DebuggerDisplay("{DebuggerToString(),nq}")]
 [DebuggerTypeProxy(typeof(HttpContextStreamReader<>.HttpContextStreamReaderDebugView))]
-internal class HttpContextStreamReader<TRequest> : IAsyncStreamReader<TRequest> where TRequest : class
+internal sealed class HttpContextStreamReader<TRequest> : IAsyncStreamReader<TRequest> where TRequest : class
 {
     private readonly HttpContextServerCallContext _serverCallContext;
     private readonly Func<DeserializationContext, TRequest> _deserializer;

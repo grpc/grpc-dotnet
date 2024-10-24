@@ -28,7 +28,7 @@ namespace Grpc.Net.Client.Balancer.Internal;
 
 /// <summary>
 /// Transport that makes it possible to monitor connectivity state while using HttpClient.
-/// 
+///
 /// Features:
 /// 1. When a connection is requested the transport creates a Socket and connects to the server.
 ///    The socket is used with the first stream created by SocketsHttpHandler.ConnectCallback.
@@ -39,7 +39,7 @@ namespace Grpc.Net.Client.Balancer.Internal;
 /// 2. Transport supports multiple addresses. When connecting it will iterate through the addresses,
 ///    attempting to connect to each one.
 /// </summary>
-internal class SocketConnectivitySubchannelTransport : ISubchannelTransport, IDisposable
+internal sealed class SocketConnectivitySubchannelTransport : ISubchannelTransport, IDisposable
 {
     private const int MaximumInitialSocketDataSize = 1024 * 16;
     internal static readonly TimeSpan SocketPingInterval = TimeSpan.FromSeconds(5);

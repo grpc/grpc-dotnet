@@ -24,7 +24,7 @@ namespace Grpc.Net.Client.Internal;
 /// <summary>
 /// Cached log scope and URI for a gRPC <see cref="IMethod"/>.
 /// </summary>
-internal class GrpcMethodInfo
+internal sealed class GrpcMethodInfo
 {
     public GrpcMethodInfo(GrpcCallScope logScope, Uri callUri, MethodConfig? methodConfig)
     {
@@ -116,13 +116,13 @@ internal class GrpcMethodInfo
     public MethodConfigInfo? MethodConfig { get; }
 }
 
-internal class MethodConfigInfo
+internal sealed class MethodConfigInfo
 {
     public RetryPolicyInfo? RetryPolicy { get; set; }
     public HedgingPolicyInfo? HedgingPolicy { get; set; }
 }
 
-internal class RetryPolicyInfo
+internal sealed class RetryPolicyInfo
 {
     public int MaxAttempts { get; init; }
     public TimeSpan InitialBackoff { get; init; }
@@ -131,7 +131,7 @@ internal class RetryPolicyInfo
     public List<StatusCode> RetryableStatusCodes { get; init; } = default!;
 }
 
-internal class HedgingPolicyInfo
+internal sealed class HedgingPolicyInfo
 {
     public int MaxAttempts { get; set; }
     public TimeSpan HedgingDelay { get; set; }

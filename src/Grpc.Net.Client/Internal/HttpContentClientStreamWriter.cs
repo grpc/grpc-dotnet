@@ -26,7 +26,7 @@ namespace Grpc.Net.Client.Internal;
 
 [DebuggerDisplay("{DebuggerToString(),nq}")]
 [DebuggerTypeProxy(typeof(HttpContentClientStreamWriter<,>.HttpContentClientStreamWriterDebugView))]
-internal class HttpContentClientStreamWriter<TRequest, TResponse> : ClientStreamWriterBase<TRequest>
+internal sealed class HttpContentClientStreamWriter<TRequest, TResponse> : ClientStreamWriterBase<TRequest>
     where TRequest : class
     where TResponse : class
 {

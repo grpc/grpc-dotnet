@@ -27,7 +27,7 @@ namespace Grpc.Net.Client.Internal.Http;
 /// The payload is then written directly to the request using specialized context
 /// and serializer method.
 /// </summary>
-internal class WinHttpUnaryContent<TRequest, TResponse> : HttpContent
+internal sealed class WinHttpUnaryContent<TRequest, TResponse> : HttpContent
     where TRequest : class
     where TResponse : class
 {

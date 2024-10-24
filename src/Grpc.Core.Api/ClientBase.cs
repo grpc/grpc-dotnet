@@ -175,12 +175,12 @@ public abstract class ClientBase
     /// <summary>
     /// Represents configuration of ClientBase. The class itself is visible to
     /// subclasses, but contents are marked as internal to make the instances opaque.
-    /// The verbose name of this class was chosen to make name clash in generated code 
+    /// The verbose name of this class was chosen to make name clash in generated code
     /// less likely.
     /// </summary>
     protected internal class ClientBaseConfiguration
     {
-        private class ClientBaseConfigurationInterceptor : Interceptor
+        private sealed class ClientBaseConfigurationInterceptor : Interceptor
         {
             readonly Func<IMethod, string?, CallOptions, ClientBaseConfigurationInfo> interceptor;
 

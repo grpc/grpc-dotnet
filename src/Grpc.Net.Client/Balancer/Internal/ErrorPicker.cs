@@ -17,13 +17,12 @@
 #endregion
 
 #if SUPPORT_LOAD_BALANCING
-using System;
 using System.Diagnostics;
 using Grpc.Core;
 
 namespace Grpc.Net.Client.Balancer.Internal;
 
-internal class ErrorPicker : SubchannelPicker
+internal sealed class ErrorPicker : SubchannelPicker
 {
     private readonly Status _status;
 

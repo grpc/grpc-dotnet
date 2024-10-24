@@ -22,7 +22,7 @@ using System.Diagnostics;
 
 namespace Grpc.Net.Client.Web.Internal;
 
-internal class Base64ResponseStream : Stream
+internal sealed class Base64ResponseStream : Stream
 {
     private readonly Stream _inner;
 

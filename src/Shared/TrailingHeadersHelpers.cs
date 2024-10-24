@@ -51,7 +51,7 @@ internal static class TrailingHeadersHelpers
 
     public static readonly string ResponseTrailersKey = "__ResponseTrailers";
 
-    private class ResponseTrailers : HttpHeaders
+    private sealed class ResponseTrailers : HttpHeaders
     {
         public static readonly ResponseTrailers Empty = new ResponseTrailers();
     }

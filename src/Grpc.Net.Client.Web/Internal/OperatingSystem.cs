@@ -25,7 +25,7 @@ internal interface IOperatingSystem
     bool IsBrowser { get; }
 }
 
-internal class OperatingSystem : IOperatingSystem
+internal sealed class OperatingSystem : IOperatingSystem
 {
     public static readonly OperatingSystem Instance = new OperatingSystem();
 

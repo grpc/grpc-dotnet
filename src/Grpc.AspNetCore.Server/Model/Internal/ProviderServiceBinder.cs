@@ -24,7 +24,7 @@ using Microsoft.AspNetCore.Routing;
 
 namespace Grpc.AspNetCore.Server.Model.Internal;
 
-internal class ProviderServiceBinder<[DynamicallyAccessedMembers(GrpcProtocolConstants.ServiceAccessibility)] TService> : ServiceBinderBase where TService : class
+internal sealed class ProviderServiceBinder<[DynamicallyAccessedMembers(GrpcProtocolConstants.ServiceAccessibility)] TService> : ServiceBinderBase where TService : class
 {
     private readonly ServiceMethodProviderContext<TService> _context;
     private readonly Type _declaringType;
