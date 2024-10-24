@@ -59,24 +59,15 @@ public class AuthInterceptorContext
     /// <summary>
     /// The fully qualified service URL for the RPC being called.
     /// </summary>
-    public string ServiceUrl
-    {
-        get { return serviceUrl; }
-    }
+    public string ServiceUrl => serviceUrl;
 
     /// <summary>
     /// The method name of the RPC being called.
     /// </summary>
-    public string MethodName
-    {
-        get { return methodName; }
-    }
+    public string MethodName => methodName;
 
     /// <summary>
     /// The cancellation token of the RPC being called.
     /// </summary>
-    public CancellationToken CancellationToken
-    {
-        get { return cancellationToken; }
-    }
+    public CancellationToken CancellationToken => cancellationToken;
 }

@@ -72,106 +72,59 @@ public interface IMethod
 /// </summary>
 /// <typeparam name="TRequest">Request message type for this method.</typeparam>
 /// <typeparam name="TResponse">Response message type for this method.</typeparam>
+/// <remarks>
+/// Initializes a new instance of the <c>Method</c> class.
+/// </remarks>
+/// <param name="type">Type of method.</param>
+/// <param name="serviceName">Name of service this method belongs to.</param>
+/// <param name="name">Unqualified name of the method.</param>
+/// <param name="requestMarshaller">Marshaller used for request messages.</param>
+/// <param name="responseMarshaller">Marshaller used for response messages.</param>
 [DebuggerDisplay("Name = {Name}, ServiceName = {ServiceName}, Type = {Type}")]
-public class Method<TRequest, TResponse> : IMethod
+public class Method<TRequest, TResponse>(MethodType type,
+    string serviceName, string name, Marshaller<TRequest> requestMarshaller,
+    Marshaller<TResponse> responseMarshaller) : IMethod
 {
-    readonly MethodType type;
-    readonly string serviceName;
-    readonly string name;
-    readonly Marshaller<TRequest> requestMarshaller;
-    readonly Marshaller<TResponse> responseMarshaller;
-    readonly string fullName;
-
-    /// <summary>
-    /// Initializes a new instance of the <c>Method</c> class.
-    /// </summary>
-    /// <param name="type">Type of method.</param>
-    /// <param name="serviceName">Name of service this method belongs to.</param>
-    /// <param name="name">Unqualified name of the method.</param>
-    /// <param name="requestMarshaller">Marshaller used for request messages.</param>
-    /// <param name="responseMarshaller">Marshaller used for response messages.</param>
-    public Method(MethodType type, string serviceName, string name, Marshaller<TRequest> requestMarshaller, Marshaller<TResponse> responseMarshaller)
-    {
-        this.type = type;
-        this.serviceName = GrpcPreconditions.CheckNotNull(serviceName, "serviceName");
-        this.name = GrpcPreconditions.CheckNotNull(name, "name");
-        this.requestMarshaller = GrpcPreconditions.CheckNotNull(requestMarshaller, "requestMarshaller");
-        this.responseMarshaller = GrpcPreconditions.CheckNotNull(responseMarshaller, "responseMarshaller");
-        this.fullName = GetFullName(serviceName, name);
-    }
+    readonly MethodType type = type;
+    readonly string serviceName = GrpcPreconditions.CheckNotNull(serviceName, "serviceName");
+    readonly string name = GrpcPreconditions.CheckNotNull(name, "name");
+    readonly Marshaller<TRequest> requestMarshaller = GrpcPreconditions.CheckNotNull(requestMarshaller, "requestMarshaller");
+    readonly Marshaller<TResponse> responseMarshaller = GrpcPreconditions.CheckNotNull(responseMarshaller, "responseMarshaller");
+    readonly string fullName = GetFullName(serviceName, name);
 
     /// <summary>
     /// Gets the type of the method.
     /// </summary>
-    public MethodType Type
-    {
-        get
-        {
-            return this.type;
-        }
-    }
-        
+    public MethodType Type => this.type;
+
     /// <summary>
     /// Gets the name of the service to which this method belongs.
     /// </summary>
-    public string ServiceName
-    {
-        get
-        {
-            return this.serviceName;
-        }
-    }
+    public string ServiceName => this.serviceName;
 
     /// <summary>
     /// Gets the unqualified name of the method.
     /// </summary>
-    public string Name
-    {
-        get
-        {
-            return this.name;
-        }
-    }
+    public string Name => this.name;
 
     /// <summary>
     /// Gets the marshaller used for request messages.
     /// </summary>
-    public Marshaller<TRequest> RequestMarshaller
-    {
-        get
-        {
-            return this.requestMarshaller;
-        }
-    }
+    public Marshaller<TRequest> RequestMarshaller => this.requestMarshaller;
 
     /// <summary>
     /// Gets the marshaller used for response messages.
     /// </summary>
-    public Marshaller<TResponse> ResponseMarshaller
-    {
-        get
-        {
-            return this.responseMarshaller;
-        }
-    }
-        
+    public Marshaller<TResponse> ResponseMarshaller => this.responseMarshaller;
+
     /// <summary>
     /// Gets the fully qualified name of the method. On the server side, methods are dispatched
     /// based on this name.
     /// </summary>
-    public string FullName
-    {
-        get
-        {
-            return this.fullName;
-        }
-    }
+    public string FullName => this.fullName;
 
     /// <summary>
     /// Gets full name of the method including the service name.
     /// </summary>
-    internal static string GetFullName(string serviceName, string methodName)
-    {
-        return "/" + serviceName + "/" + methodName;
-    }
+    internal static string GetFullName(string serviceName, string methodName) => "/" + serviceName + "/" + methodName;
 }

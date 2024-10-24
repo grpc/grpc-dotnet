@@ -44,18 +44,12 @@ public abstract class ServerCallContext
     /// </summary>
     /// <param name="responseHeaders">The response headers to send.</param>
     /// <returns>The task that finished once response headers have been written.</returns>
-    public Task WriteResponseHeadersAsync(Metadata responseHeaders)
-    {
-        return WriteResponseHeadersAsyncCore(responseHeaders);
-    }
+    public Task WriteResponseHeadersAsync(Metadata responseHeaders) => WriteResponseHeadersAsyncCore(responseHeaders);
 
     /// <summary>
     /// Creates a propagation token to be used to propagate call context to a child call.
     /// </summary>
-    public ContextPropagationToken CreatePropagationToken(ContextPropagationOptions? options = null)
-    {
-        return CreatePropagationTokenCore(options);
-    }
+    public ContextPropagationToken CreatePropagationToken(ContextPropagationOptions? options = null) => CreatePropagationTokenCore(options);
 
     /// <summary>Name of method called in this RPC.</summary>
     public string Method => MethodCore;

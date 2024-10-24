@@ -175,10 +175,7 @@ public abstract class Interceptor
     /// </returns>
     public virtual TResponse BlockingUnaryCall<TRequest, TResponse>(TRequest request, ClientInterceptorContext<TRequest, TResponse> context, BlockingUnaryCallContinuation<TRequest, TResponse> continuation)
         where TRequest : class
-        where TResponse : class
-    {
-        return continuation(request, context);
-    }
+        where TResponse : class => continuation(request, context);
 
     /// <summary>
     /// Intercepts an asynchronous invocation of a simple remote call.
@@ -203,10 +200,7 @@ public abstract class Interceptor
     /// </returns>
     public virtual AsyncUnaryCall<TResponse> AsyncUnaryCall<TRequest, TResponse>(TRequest request, ClientInterceptorContext<TRequest, TResponse> context, AsyncUnaryCallContinuation<TRequest, TResponse> continuation)
         where TRequest : class
-        where TResponse : class
-    {
-        return continuation(request, context);
-    }
+        where TResponse : class => continuation(request, context);
 
     /// <summary>
     /// Intercepts an asynchronous invocation of a streaming remote call.
@@ -231,10 +225,7 @@ public abstract class Interceptor
     /// </returns>
     public virtual AsyncServerStreamingCall<TResponse> AsyncServerStreamingCall<TRequest, TResponse>(TRequest request, ClientInterceptorContext<TRequest, TResponse> context, AsyncServerStreamingCallContinuation<TRequest, TResponse> continuation)
         where TRequest : class
-        where TResponse : class
-    {
-        return continuation(request, context);
-    }
+        where TResponse : class => continuation(request, context);
 
     /// <summary>
     /// Intercepts an asynchronous invocation of a client streaming call.
@@ -258,10 +249,7 @@ public abstract class Interceptor
     /// </returns>
     public virtual AsyncClientStreamingCall<TRequest, TResponse> AsyncClientStreamingCall<TRequest, TResponse>(ClientInterceptorContext<TRequest, TResponse> context, AsyncClientStreamingCallContinuation<TRequest, TResponse> continuation)
         where TRequest : class
-        where TResponse : class
-    {
-        return continuation(context);
-    }
+        where TResponse : class => continuation(context);
 
     /// <summary>
     /// Intercepts an asynchronous invocation of a duplex streaming call.
@@ -285,10 +273,7 @@ public abstract class Interceptor
     /// </returns>
     public virtual AsyncDuplexStreamingCall<TRequest, TResponse> AsyncDuplexStreamingCall<TRequest, TResponse>(ClientInterceptorContext<TRequest, TResponse> context, AsyncDuplexStreamingCallContinuation<TRequest, TResponse> continuation)
         where TRequest : class
-        where TResponse : class
-    {
-        return continuation(context);
-    }
+        where TResponse : class => continuation(context);
 
     /// <summary>
     /// Server-side handler for intercepting and incoming unary call.
@@ -314,10 +299,7 @@ public abstract class Interceptor
     /// </returns>
     public virtual Task<TResponse> UnaryServerHandler<TRequest, TResponse>(TRequest request, ServerCallContext context, UnaryServerMethod<TRequest, TResponse> continuation)
         where TRequest : class
-        where TResponse : class
-    {
-        return continuation(request, context);
-    }
+        where TResponse : class => continuation(request, context);
 
     /// <summary>
     /// Server-side handler for intercepting client streaming call.
@@ -345,10 +327,7 @@ public abstract class Interceptor
     /// </returns>
     public virtual Task<TResponse> ClientStreamingServerHandler<TRequest, TResponse>(IAsyncStreamReader<TRequest> requestStream, ServerCallContext context, ClientStreamingServerMethod<TRequest, TResponse> continuation)
         where TRequest : class
-        where TResponse : class
-    {
-        return continuation(requestStream, context);
-    }
+        where TResponse : class => continuation(requestStream, context);
 
     /// <summary>
     /// Server-side handler for intercepting server streaming call.
@@ -371,10 +350,7 @@ public abstract class Interceptor
     /// </param>
     public virtual Task ServerStreamingServerHandler<TRequest, TResponse>(TRequest request, IServerStreamWriter<TResponse> responseStream, ServerCallContext context, ServerStreamingServerMethod<TRequest, TResponse> continuation)
         where TRequest : class
-        where TResponse : class
-    {
-        return continuation(request, responseStream, context);
-    }
+        where TResponse : class => continuation(request, responseStream, context);
 
     /// <summary>
     /// Server-side handler for intercepting bidirectional streaming calls.
@@ -397,8 +373,5 @@ public abstract class Interceptor
     /// </param>
     public virtual Task DuplexStreamingServerHandler<TRequest, TResponse>(IAsyncStreamReader<TRequest> requestStream, IServerStreamWriter<TResponse> responseStream, ServerCallContext context, DuplexStreamingServerMethod<TRequest, TResponse> continuation)
         where TRequest : class
-        where TResponse : class
-    {
-        return continuation(requestStream, responseStream, context);
-    }
+        where TResponse : class => continuation(requestStream, responseStream, context);
 }

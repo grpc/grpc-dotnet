@@ -28,8 +28,6 @@ internal static class EncodingExtensions
     /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static unsafe string GetString(this Encoding encoding, IntPtr ptr, int len)
-    {
-        return len == 0 ? "" : encoding.GetString((byte*)ptr.ToPointer(), len);
-    }
+        => len == 0 ? "" : encoding.GetString((byte*)ptr.ToPointer(), len);
 }
 

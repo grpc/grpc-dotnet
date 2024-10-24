@@ -32,10 +32,7 @@ public static class GrpcWebApplicationBuilderExtensions
     /// </summary>
     /// <param name="builder">The <see cref="IApplicationBuilder"/> to add the middleware to.</param>
     /// <returns>A reference to this instance after the operation has completed.</returns>
-    public static IApplicationBuilder UseGrpcWeb(this IApplicationBuilder builder)
-    {
-        return builder.UseGrpcWeb(new GrpcWebOptions());
-    }
+    public static IApplicationBuilder UseGrpcWeb(this IApplicationBuilder builder) => builder.UseGrpcWeb(new GrpcWebOptions());
 
     /// <summary>
     /// Adds gRPC-Web middleware to the specified <see cref="IApplicationBuilder"/>.
