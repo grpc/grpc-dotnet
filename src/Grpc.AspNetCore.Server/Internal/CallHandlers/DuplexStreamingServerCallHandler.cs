@@ -23,7 +23,40 @@ using Microsoft.Extensions.Logging;
 
 namespace Grpc.AspNetCore.Server.Internal.CallHandlers;
 
-internal class DuplexStreamingServerCallHandler<[DynamicallyAccessedMembers(GrpcProtocolConstants.ServiceAccessibility)] TService, TRequest, TResponse> : ServerCallHandlerBase<TService, TRequest, TResponse>
+internal class DuplexStreamingServerCallHandler<TRequest, TResponse> : ServerCallHandlerBase<TRequest, TResponse>
+    where TRequest : class
+    where TResponse : class
+{
+    private readonly DuplexStreamingServerMethodInvoker<TRequest, TResponse> _invoker;
+
+    public DuplexStreamingServerCallHandler(
+        DuplexStreamingServerMethodInvoker<TRequest, TResponse> invoker,
+        ILoggerFactory loggerFactory)
+        : base(invoker, loggerFactory)
+    {
+        _invoker = invoker;
+    }
+
+    protected override async Task HandleCallAsyncCore(HttpContext httpContext, HttpContextServerCallContext serverCallContext)
+    {
+        // Disable request body data rate for client streaming
+        DisableMinRequestBodyDataRateAndMaxRequestBodySize(httpContext);
+
+        var streamReader = new HttpContextStreamReader<TRequest>(serverCallContext, MethodInvoker.Method.RequestMarshaller.ContextualDeserializer);
+        var streamWriter = new HttpContextStreamWriter<TResponse>(serverCallContext, MethodInvoker.Method.ResponseMarshaller.ContextualSerializer);
+        try
+        {
+            await _invoker.Invoke(httpContext, serverCallContext, streamReader, streamWriter);
+        }
+        finally
+        {
+            streamReader.Complete();
+            streamWriter.Complete();
+        }
+    }
+}
+
+internal class DuplexStreamingServerCallHandler<[DynamicallyAccessedMembers(GrpcProtocolConstants.ServiceAccessibility)]TService, TRequest, TResponse> : ServerCallHandlerBase<TService, TRequest, TResponse>
     where TRequest : class
     where TResponse : class
     where TService : class
