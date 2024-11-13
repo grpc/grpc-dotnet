@@ -41,5 +41,5 @@ public static class VersionInfo
     /// <summary>
     /// Current version of gRPC C#
     /// </summary>
-    public const string CurrentVersion = "2.67.0-pre1";
+    public const string CurrentVersion = "2.67.0";
 }
