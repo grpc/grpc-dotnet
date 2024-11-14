@@ -19,6 +19,7 @@ using System.Threading.Channels;
 using Grpc.Core;
 using Grpc.Core.Utils;
 using Grpc.Health.V1;
+using Microsoft.Extensions.Hosting;
 
 namespace Grpc.AspNetCore.HealthChecks;
 
@@ -32,7 +33,7 @@ namespace Grpc.AspNetCore.HealthChecks;
 /// server.AddServiceDefinition(Grpc.Health.V1.Health.BindService(serviceImpl));
 /// </code>
 /// </summary>
-public class HealthServiceImpl : Grpc.Health.V1.Health.HealthBase
+public class HealthServiceImpl(IHostApplicationLifetime applicationLifetime) : Grpc.Health.V1.Health.HealthBase
 {
     // The maximum number of statuses to buffer on the server.
     internal const int MaxStatusBufferSize = 5;
@@ -192,14 +193,21 @@ public class HealthServiceImpl : Grpc.Health.V1.Health.HealthBase
         HealthCheckResponse response = GetHealthCheckResponse(service, throwOnNotFound: false);
         await responseStream.WriteAsync(response).ConfigureAwait(false);
 
-        // Read messages. WaitToReadAsync will wait until new messages are available.
-        // Loop will exit when the call is canceled and the writer is marked as complete.
-        while (await channel.Reader.WaitToReadAsync().ConfigureAwait(false))
+        try
         {
-            if (channel.Reader.TryRead(out HealthCheckResponse? item))
+            // Read messages. WaitToReadAsync will wait until new messages are available.
+            // Loop will exit when the call is canceled and the writer is marked as complete or when the application is stopping.
+            while (await channel.Reader.WaitToReadAsync(applicationLifetime.ApplicationStopping).ConfigureAwait(false))
             {
-                await responseStream.WriteAsync(item).ConfigureAwait(false);
+                if (channel.Reader.TryRead(out HealthCheckResponse? item))
+                {
+                    await responseStream.WriteAsync(item).ConfigureAwait(false);
+                }
             }
+        }
+        catch (OperationCanceledException)
+        {
+            await responseStream.WriteAsync(new HealthCheckResponse { Status = HealthCheckResponse.Types.ServingStatus.NotServing });
         }
     }
 
