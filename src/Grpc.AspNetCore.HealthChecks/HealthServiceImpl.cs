@@ -33,6 +33,7 @@ namespace Grpc.AspNetCore.HealthChecks;
 /// server.AddServiceDefinition(Grpc.Health.V1.Health.BindService(serviceImpl));
 /// </code>
 /// </summary>
+/// <param name="applicationLifetime">The application lifetime used to stop long-running streaming RPCs.</param>
 public class HealthServiceImpl(IHostApplicationLifetime applicationLifetime) : Grpc.Health.V1.Health.HealthBase
 {
     // The maximum number of statuses to buffer on the server.
