@@ -1,6 +1,6 @@
 #region Copyright notice and license
 
-// Copyright 2019 The gRPC Authors
+// Copyright 2024 The gRPC Authors
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -17,11 +17,9 @@
 #endregion
 
 using Grpc.AspNetCore.HealthChecks;
-using Grpc.HealthCheck;
 using Grpc.Shared;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
-using Microsoft.Extensions.Options;
 
 namespace Microsoft.Extensions.DependencyInjection;
 
