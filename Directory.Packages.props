@@ -1,7 +1,7 @@
 <Project>
   <PropertyGroup>
     <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
-    <MicrosoftAspNetCoreAppPackageVersion>9.0.0-rc.2.24474.3</MicrosoftAspNetCoreAppPackageVersion>
+    <MicrosoftAspNetCoreAppPackageVersion>9.0.0</MicrosoftAspNetCoreAppPackageVersion>
     <MicrosoftAspNetCoreApp8PackageVersion>8.0.6</MicrosoftAspNetCoreApp8PackageVersion>
     <MicrosoftAspNetCoreApp7PackageVersion>7.0.5</MicrosoftAspNetCoreApp7PackageVersion>
     <MicrosoftAspNetCoreApp6PackageVersion>6.0.33</MicrosoftAspNetCoreApp6PackageVersion>
@@ -9,7 +9,7 @@
     <OpenTelemetryPackageVersion>1.6.0</OpenTelemetryPackageVersion>
     <OpenTelemetryIntergationPackageVersion>1.8.1</OpenTelemetryIntergationPackageVersion>
     <OpenTelemetryGrpcPackageVersion>1.8.0-beta.1</OpenTelemetryGrpcPackageVersion>
-    <MicrosoftExtensionsPackageVersion>9.0.0-rc.2.24473.5</MicrosoftExtensionsPackageVersion>
+    <MicrosoftExtensionsPackageVersion>9.0.0</MicrosoftExtensionsPackageVersion>
     <MicrosoftExtensionsLtsPackageVersion>6.0.0</MicrosoftExtensionsLtsPackageVersion>
   </PropertyGroup>
   <ItemGroup>
@@ -65,7 +65,7 @@
     <PackageVersion Include="Microsoft.Bcl.AsyncInterfaces" Version="6.0.0" />
     <PackageVersion Include="Microsoft.Build.Locator" Version="1.5.5" />
     <PackageVersion Include="Microsoft.Build" Version="17.3.2" />
-    <PackageVersion Include="Microsoft.CodeAnalysis.NetAnalyzers" Version="9.0.0-preview.24216.2" />
+    <PackageVersion Include="Microsoft.CodeAnalysis.NetAnalyzers" Version="9.0.0" />
     <PackageVersion Include="Microsoft.Crank.EventSources" Version="0.2.0-alpha.21255.1" />
     <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="17.10.0" />
     <PackageVersion Include="Microsoft.SourceLink.GitHub" Version="1.1.1" />
