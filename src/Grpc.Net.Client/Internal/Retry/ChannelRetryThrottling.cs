@@ -21,7 +21,7 @@ using Microsoft.Extensions.Logging;
 
 namespace Grpc.Net.Client.Internal.Retry;
 
-internal partial class ChannelRetryThrottling
+internal sealed partial class ChannelRetryThrottling
 {
     private readonly object _lock = new object();
     private readonly double _tokenRatio;

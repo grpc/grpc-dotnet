@@ -24,7 +24,7 @@ namespace Grpc.Net.Client.Internal.Retry;
 
 [DebuggerDisplay("{DebuggerToString(),nq}")]
 [DebuggerTypeProxy(typeof(RetryCallBaseClientStreamReader<,>.RetryCallBaseClientStreamReaderDebugView))]
-internal class RetryCallBaseClientStreamReader<TRequest, TResponse> : IAsyncStreamReader<TResponse>
+internal sealed class RetryCallBaseClientStreamReader<TRequest, TResponse> : IAsyncStreamReader<TResponse>
     where TRequest : class
     where TResponse : class
 {

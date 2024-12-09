@@ -16,17 +16,14 @@
 
 #endregion
 
-using System;
 using System.CommandLine;
-using System.CommandLine.Invocation;
 using Grpc.Dotnet.Cli.Internal;
 using Grpc.Dotnet.Cli.Options;
 using Grpc.Dotnet.Cli.Properties;
-using Microsoft.Build.Evaluation;
 
 namespace Grpc.Dotnet.Cli.Commands;
 
-internal class AddFileCommand : CommandBase
+internal sealed class AddFileCommand : CommandBase
 {
     public AddFileCommand(IConsole console, string? projectPath, HttpClient httpClient)
         : base(console, projectPath, httpClient) { }

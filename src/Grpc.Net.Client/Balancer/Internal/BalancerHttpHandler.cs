@@ -17,19 +17,14 @@
 #endregion
 
 #if SUPPORT_LOAD_BALANCING
-using System;
 using System.Diagnostics;
-using System.IO;
 using System.Net;
-using System.Net.Http;
-using System.Threading;
-using System.Threading.Tasks;
 using Grpc.Shared;
 using Microsoft.Extensions.Logging;
 
 namespace Grpc.Net.Client.Balancer.Internal;
 
-internal partial class BalancerHttpHandler : DelegatingHandler
+internal sealed partial class BalancerHttpHandler : DelegatingHandler
 {
     private static readonly object SetupLock = new object();
 
@@ -178,7 +173,7 @@ internal partial class BalancerHttpHandler : DelegatingHandler
         public static partial void SendingRequest(ILogger logger, Uri requestUri);
 
         [LoggerMessage(Level = LogLevel.Trace, EventId = 2, EventName = "StartingConnectCallback", Message = "Starting connect callback for {Endpoint}.")]
-        private static partial void StartingConnectCallback(ILogger logger, string endpoint); 
+        private static partial void StartingConnectCallback(ILogger logger, string endpoint);
 
         public static void StartingConnectCallback(ILogger logger, DnsEndPoint endpoint)
         {

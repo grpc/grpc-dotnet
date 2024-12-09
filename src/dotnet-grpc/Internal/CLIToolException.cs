@@ -19,7 +19,7 @@
 
 namespace Grpc.Dotnet.Cli.Internal;
 
-internal class CLIToolException : Exception
+internal sealed class CLIToolException : Exception
 {
     public CLIToolException(string message) : base(message) { }
 }

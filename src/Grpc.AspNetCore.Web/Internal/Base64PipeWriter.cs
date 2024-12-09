@@ -25,7 +25,7 @@ namespace Grpc.AspNetCore.Web.Internal;
 /// <summary>
 /// Writes bytes as base64 encoded to the inner writer.
 /// </summary>
-internal class Base64PipeWriter : PipeWriter
+internal sealed class Base64PipeWriter : PipeWriter
 {
     private readonly PipeWriter _inner;
     // We have to write original data to buffer. GetSpan/GetMemory isn't guaranteed to return the
