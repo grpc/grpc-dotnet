@@ -127,7 +127,7 @@ internal class CommandBase
         }*/
         try
         {
-            using var packageVersionStream = await _httpClient.GetStreamAsync(PackageVersionUrl);
+            await using var packageVersionStream = await _httpClient.GetStreamAsync(PackageVersionUrl);
             using var packageVersionDocument = await JsonDocument.ParseAsync(packageVersionStream);
             var packageVersionsElement = packageVersionDocument.RootElement.GetProperty("Packages");
             var packageVersionsDictionary = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
