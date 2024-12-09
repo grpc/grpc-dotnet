@@ -104,14 +104,9 @@ internal static class CallDebuggerHelpers
 }
 
 [DebuggerDisplay("{FullName,nq}")]
-internal sealed class CallDebuggerMethodDebugView
+internal sealed class CallDebuggerMethodDebugView(IMethod method)
 {
-    private readonly IMethod _method;
-
-    public CallDebuggerMethodDebugView(IMethod method)
-    {
-        _method = method;
-    }
+    private readonly IMethod _method = method;
 
     public MethodType Type => _method.Type;
     public string ServiceName => _method.ServiceName;

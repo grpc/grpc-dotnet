@@ -41,9 +41,7 @@ public static class CallInvokerExtensions
     /// in this case, the last interceptor added will be the first to take control.
     /// </remarks>
     public static CallInvoker Intercept(this CallInvoker invoker, Interceptor interceptor)
-    {
-        return new InterceptingCallInvoker(invoker, interceptor);
-    }
+        => new InterceptingCallInvoker(invoker, interceptor);
 
     /// <summary>
     /// Returns a <see cref="Grpc.Core.CallInvoker" /> instance that intercepts
@@ -90,9 +88,7 @@ public static class CallInvokerExtensions
     /// in this case, the last interceptor added will be the first to take control.
     /// </remarks>
     public static CallInvoker Intercept(this CallInvoker invoker, Func<Metadata, Metadata> interceptor)
-    {
-        return new InterceptingCallInvoker(invoker, new MetadataInterceptor(interceptor));
-    }
+        => new InterceptingCallInvoker(invoker, new MetadataInterceptor(interceptor));
 
     private class MetadataInterceptor : Interceptor
     {
@@ -115,28 +111,18 @@ public static class CallInvokerExtensions
         }
 
         public override TResponse BlockingUnaryCall<TRequest, TResponse>(TRequest request, ClientInterceptorContext<TRequest, TResponse> context, BlockingUnaryCallContinuation<TRequest, TResponse> continuation)
-        {
-            return continuation(request, GetNewContext(context));
-        }
+            => continuation(request, GetNewContext(context));
 
         public override AsyncUnaryCall<TResponse> AsyncUnaryCall<TRequest, TResponse>(TRequest request, ClientInterceptorContext<TRequest, TResponse> context, AsyncUnaryCallContinuation<TRequest, TResponse> continuation)
-        {
-            return continuation(request, GetNewContext(context));
-        }
+            => continuation(request, GetNewContext(context));
 
         public override AsyncServerStreamingCall<TResponse> AsyncServerStreamingCall<TRequest, TResponse>(TRequest request, ClientInterceptorContext<TRequest, TResponse> context, AsyncServerStreamingCallContinuation<TRequest, TResponse> continuation)
-        {
-            return continuation(request, GetNewContext(context));
-        }
+            => continuation(request, GetNewContext(context));
 
         public override AsyncClientStreamingCall<TRequest, TResponse> AsyncClientStreamingCall<TRequest, TResponse>(ClientInterceptorContext<TRequest, TResponse> context, AsyncClientStreamingCallContinuation<TRequest, TResponse> continuation)
-        {
-            return continuation(GetNewContext(context));
-        }
+            => continuation(GetNewContext(context));
 
         public override AsyncDuplexStreamingCall<TRequest, TResponse> AsyncDuplexStreamingCall<TRequest, TResponse>(ClientInterceptorContext<TRequest, TResponse> context, AsyncDuplexStreamingCallContinuation<TRequest, TResponse> continuation)
-        {
-            return continuation(GetNewContext(context));
-        }
+            => continuation(GetNewContext(context));
     }
 }

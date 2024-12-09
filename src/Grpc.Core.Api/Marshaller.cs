@@ -95,10 +95,7 @@ public class Marshaller<T>
     }
 
     // for backward compatibility, emulate the contextual deserializer using the simple one
-    private T EmulateContextualDeserializer(DeserializationContext context)
-    {
-        return this.deserializer(context.PayloadAsNewBuffer());
-    }
+    private T EmulateContextualDeserializer(DeserializationContext context) => this.deserializer(context.PayloadAsNewBuffer());
 }
 
 /// <summary>
@@ -110,28 +107,18 @@ public static class Marshallers
     /// Creates a marshaller from specified serializer and deserializer.
     /// </summary>
     public static Marshaller<T> Create<T>(Func<T, byte[]> serializer, Func<byte[], T> deserializer)
-    {
-        return new Marshaller<T>(serializer, deserializer);
-    }
+        => new Marshaller<T>(serializer, deserializer);
 
     /// <summary>
     /// Creates a marshaller from specified contextual serializer and deserializer.
     /// Note: This method is part of an experimental API that can change or be removed without any prior notice.
     /// </summary>
     public static Marshaller<T> Create<T>(Action<T, SerializationContext> serializer, Func<DeserializationContext, T> deserializer)
-    {
-        return new Marshaller<T>(serializer, deserializer);
-    }
+        => new Marshaller<T>(serializer, deserializer);
 
     /// <summary>
     /// Returns a marshaller for <c>string</c> type. This is useful for testing.
     /// </summary>
     public static Marshaller<string> StringMarshaller
-    {
-        get
-        {
-            return new Marshaller<string>(System.Text.Encoding.UTF8.GetBytes,
-                                          System.Text.Encoding.UTF8.GetString);
-        }
-    }
+        => new Marshaller<string>(System.Text.Encoding.UTF8.GetBytes,System.Text.Encoding.UTF8.GetString);
 }

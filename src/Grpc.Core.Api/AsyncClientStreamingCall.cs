@@ -84,45 +84,24 @@ public sealed class AsyncClientStreamingCall<TRequest, TResponse> : IDisposable
     /// <summary>
     /// Asynchronous call result.
     /// </summary>
-    public Task<TResponse> ResponseAsync
-    {
-        get
-        {
-            return this.responseAsync;
-        }
-    }
+    public Task<TResponse> ResponseAsync => this.responseAsync;
 
     /// <summary>
     /// Asynchronous access to response headers.
     /// </summary>
-    public Task<Metadata> ResponseHeadersAsync
-    {
-        get
-        {
-            return callState.ResponseHeadersAsync();
-        }
-    }
+    public Task<Metadata> ResponseHeadersAsync => callState.ResponseHeadersAsync();
 
     /// <summary>
     /// Async stream to send streaming requests.
     /// </summary>
-    public IClientStreamWriter<TRequest> RequestStream
-    {
-        get
-        {
-            return requestStream;
-        }
-    }
+    public IClientStreamWriter<TRequest> RequestStream => requestStream;
 
     /// <summary>
     /// Gets an awaiter used to await this <see cref="AsyncClientStreamingCall{TRequest,TResponse}"/>.
     /// </summary>
     /// <returns>An awaiter instance.</returns>
     /// <remarks>This method is intended for compiler use rather than use directly in code.</remarks>
-    public TaskAwaiter<TResponse> GetAwaiter()
-    {
-        return responseAsync.GetAwaiter();
-    }
+    public TaskAwaiter<TResponse> GetAwaiter() => responseAsync.GetAwaiter();
 
     /// <summary>
     /// Configures an awaiter used to await this <see cref="AsyncClientStreamingCall{TRequest,TResponse}"/>.
@@ -132,27 +111,19 @@ public sealed class AsyncClientStreamingCall<TRequest, TResponse> : IDisposable
     /// </param>
     /// <returns>An object used to await this task.</returns>
     public ConfiguredTaskAwaitable<TResponse> ConfigureAwait(bool continueOnCapturedContext)
-    {
-        return responseAsync.ConfigureAwait(continueOnCapturedContext);
-    }
+        => responseAsync.ConfigureAwait(continueOnCapturedContext);
 
     /// <summary>
     /// Gets the call status if the call has already finished.
     /// Throws InvalidOperationException otherwise.
     /// </summary>
-    public Status GetStatus()
-    {
-        return callState.GetStatus();
-    }
+    public Status GetStatus() => callState.GetStatus();
 
     /// <summary>
     /// Gets the call trailing metadata if the call has already finished.
     /// Throws InvalidOperationException otherwise.
     /// </summary>
-    public Metadata GetTrailers()
-    {
-        return callState.GetTrailers();
-    }
+    public Metadata GetTrailers() => callState.GetTrailers();
 
     /// <summary>
     /// Provides means to cleanup after the call.
@@ -164,21 +135,13 @@ public sealed class AsyncClientStreamingCall<TRequest, TResponse> : IDisposable
     /// Normally, there is no need for you to dispose the call unless you want to utilize the
     /// "Cancel" semantics of invoking <c>Dispose</c>.
     /// </remarks>
-    public void Dispose()
-    {
-        callState.Dispose();
-    }
+    public void Dispose() => callState.Dispose();
 
     private string DebuggerToString() => CallDebuggerHelpers.DebuggerToString(callState);
 
-    private sealed class AsyncClientStreamingCallDebugView
+    private sealed class AsyncClientStreamingCallDebugView(AsyncClientStreamingCall<TRequest, TResponse> call)
     {
-        private readonly AsyncClientStreamingCall<TRequest, TResponse> _call;
-
-        public AsyncClientStreamingCallDebugView(AsyncClientStreamingCall<TRequest, TResponse> call)
-        {
-            _call = call;
-        }
+        private readonly AsyncClientStreamingCall<TRequest, TResponse> _call = call;
 
         public bool IsComplete => CallDebuggerHelpers.GetStatus(_call.callState) != null;
         public Status? Status => CallDebuggerHelpers.GetStatus(_call.callState);

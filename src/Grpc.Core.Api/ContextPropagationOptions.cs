@@ -23,36 +23,24 @@ namespace Grpc.Core;
 /// <summary>
 /// Options for <see cref="ContextPropagationToken"/>.
 /// </summary>
-public class ContextPropagationOptions
+/// <remarks>
+/// Creates new context propagation options.
+/// </remarks>
+/// <param name="propagateDeadline">If set to <c>true</c> parent call's deadline will be propagated to the child call.</param>
+/// <param name="propagateCancellation">If set to <c>true</c> parent call's cancellation token will be propagated to the child call.</param>
+public class ContextPropagationOptions(bool propagateDeadline = true, bool propagateCancellation = true)
 {
     /// <summary>
     /// The context propagation options that will be used by default.
     /// </summary>
     public static readonly ContextPropagationOptions Default = new ContextPropagationOptions();
 
-    bool propagateDeadline;
-    bool propagateCancellation;
+    bool propagateDeadline = propagateDeadline;
+    bool propagateCancellation = propagateCancellation;
 
-    /// <summary>
-    /// Creates new context propagation options.
-    /// </summary>
-    /// <param name="propagateDeadline">If set to <c>true</c> parent call's deadline will be propagated to the child call.</param>
-    /// <param name="propagateCancellation">If set to <c>true</c> parent call's cancellation token will be propagated to the child call.</param>
-    public ContextPropagationOptions(bool propagateDeadline = true, bool propagateCancellation = true)
-    {
-        this.propagateDeadline = propagateDeadline;
-        this.propagateCancellation = propagateCancellation;
-    }
-        
     /// <summary><c>true</c> if parent call's deadline should be propagated to the child call.</summary>
-    public bool IsPropagateDeadline
-    {
-        get { return this.propagateDeadline; }
-    }
+    public bool IsPropagateDeadline => this.propagateDeadline;
 
     /// <summary><c>true</c> if parent call's cancellation token should be propagated to the child call.</summary>
-    public bool IsPropagateCancellation
-    {
-        get { return this.propagateCancellation; }
-    }
+    public bool IsPropagateCancellation => this.propagateCancellation;
 }

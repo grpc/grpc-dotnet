@@ -49,25 +49,13 @@ public class AuthContext
     /// <summary>
     /// Returns <c>true</c> if the peer is authenticated.
     /// </summary>
-    public bool IsPeerAuthenticated
-    {
-        get
-        {
-            return peerIdentityPropertyName != null;
-        }
-    }
+    public bool IsPeerAuthenticated => peerIdentityPropertyName != null;
 
     /// <summary>
     /// Gets the name of the property that indicates the peer identity. Returns <c>null</c>
     /// if the peer is not authenticated.
     /// </summary>
-    public string? PeerIdentityPropertyName
-    {
-        get
-        {
-            return peerIdentityPropertyName;
-        }
-    }
+    public string? PeerIdentityPropertyName => peerIdentityPropertyName;
 
     /// <summary>
     /// Gets properties that represent the peer identity (there can be more than one). Returns an empty collection
@@ -88,13 +76,7 @@ public class AuthContext
     /// <summary>
     /// Gets the auth properties of this context.
     /// </summary>
-    public IEnumerable<AuthProperty> Properties
-    {
-        get
-        {
-            return properties.Values.SelectMany(v => v);
-        }
-    }
+    public IEnumerable<AuthProperty> Properties => properties.Values.SelectMany(v => v);
 
     /// <summary>
     /// Returns the auth properties with given name (there can be more than one).

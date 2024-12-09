@@ -43,24 +43,12 @@ public class AuthProperty
     /// <summary>
     /// Gets the name of the property.
     /// </summary>
-    public string Name
-    {
-        get
-        {
-            return name;
-        }
-    }
+    public string Name => name;
 
     /// <summary>
     /// Gets the string value of the property.
     /// </summary>
-    public string Value
-    {
-        get
-        {
-            return lazyValue ??= EncodingUTF8.GetString(this.valueBytes);
-        }
-    }
+    public string Value => lazyValue ??= EncodingUTF8.GetString(this.valueBytes);
 
     /// <summary>
     /// Gets the binary value of the property.
@@ -91,19 +79,10 @@ public class AuthProperty
     /// <summary>
     /// Gets the binary value of the property (without making a defensive copy).
     /// </summary>
-    internal byte[] ValueBytesUnsafe
-    {
-        get
-        {
-            return valueBytes;
-        }
-    }
+    internal byte[] ValueBytesUnsafe => valueBytes;
 
     /// <summary>
     /// Creates and instance of <c>AuthProperty</c> without making a defensive copy of <c>valueBytes</c>.
     /// </summary>
-    internal static AuthProperty CreateUnsafe(string name, byte[] valueBytes)
-    {
-        return new AuthProperty(name, valueBytes);
-    }
+    internal static AuthProperty CreateUnsafe(string name, byte[] valueBytes) => new AuthProperty(name, valueBytes);
 }

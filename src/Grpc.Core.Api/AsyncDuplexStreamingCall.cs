@@ -83,53 +83,29 @@ public sealed class AsyncDuplexStreamingCall<TRequest, TResponse> : IDisposable
     /// <summary>
     /// Async stream to read streaming responses.
     /// </summary>
-    public IAsyncStreamReader<TResponse> ResponseStream
-    {
-        get
-        {
-            return responseStream;
-        }
-    }
+    public IAsyncStreamReader<TResponse> ResponseStream => responseStream;
 
     /// <summary>
     /// Async stream to send streaming requests.
     /// </summary>
-    public IClientStreamWriter<TRequest> RequestStream
-    {
-        get
-        {
-            return requestStream;
-        }
-    }
+    public IClientStreamWriter<TRequest> RequestStream => requestStream;
 
     /// <summary>
     /// Asynchronous access to response headers.
     /// </summary>
-    public Task<Metadata> ResponseHeadersAsync
-    {
-        get
-        {
-            return callState.ResponseHeadersAsync();
-        }
-    }
+    public Task<Metadata> ResponseHeadersAsync => callState.ResponseHeadersAsync();
 
     /// <summary>
     /// Gets the call status if the call has already finished.
     /// Throws InvalidOperationException otherwise.
     /// </summary>
-    public Status GetStatus()
-    {
-        return callState.GetStatus();
-    }
+    public Status GetStatus() => callState.GetStatus();
 
     /// <summary>
     /// Gets the call trailing metadata if the call has already finished.
     /// Throws InvalidOperationException otherwise.
     /// </summary>
-    public Metadata GetTrailers()
-    {
-        return callState.GetTrailers();
-    }
+    public Metadata GetTrailers() => callState.GetTrailers();
 
     /// <summary>
     /// Provides means to cleanup after the call.
@@ -141,21 +117,13 @@ public sealed class AsyncDuplexStreamingCall<TRequest, TResponse> : IDisposable
     /// Normally, there is no need for you to dispose the call unless you want to utilize the
     /// "Cancel" semantics of invoking <c>Dispose</c>.
     /// </remarks>
-    public void Dispose()
-    {
-        callState.Dispose();
-    }
+    public void Dispose() => callState.Dispose();
 
     private string DebuggerToString() => CallDebuggerHelpers.DebuggerToString(callState);
 
-    private sealed class AsyncDuplexStreamingCallDebugView
+    private sealed class AsyncDuplexStreamingCallDebugView(AsyncDuplexStreamingCall<TRequest, TResponse> call)
     {
-        private readonly AsyncDuplexStreamingCall<TRequest, TResponse> _call;
-
-        public AsyncDuplexStreamingCallDebugView(AsyncDuplexStreamingCall<TRequest, TResponse> call)
-        {
-            _call = call;
-        }
+        private readonly AsyncDuplexStreamingCall<TRequest, TResponse> _call = call;
 
         public bool IsComplete => CallDebuggerHelpers.GetStatus(_call.callState) != null;
         public Status? Status => CallDebuggerHelpers.GetStatus(_call.callState);

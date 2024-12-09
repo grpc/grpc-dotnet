@@ -134,18 +134,12 @@ public abstract class ClientBase
     /// <summary>
     /// Gets the call invoker.
     /// </summary>
-    protected CallInvoker CallInvoker
-    {
-        get { return this.callInvoker; }
-    }
+    protected CallInvoker CallInvoker => this.callInvoker;
 
     /// <summary>
     /// Gets the configuration.
     /// </summary>
-    internal ClientBaseConfiguration Configuration
-    {
-        get { return this.configuration; }
-    }
+    internal ClientBaseConfiguration Configuration => this.configuration;
 
     internal string ServiceNameDebuggerToString()
     {
@@ -158,14 +152,9 @@ public abstract class ClientBase
         return $@"Service = ""{serviceName}"", ";
     }
 
-    internal sealed class ClientBaseDebugType
+    internal sealed class ClientBaseDebugType(ClientBase client)
     {
-        readonly ClientBase client;
-
-        public ClientBaseDebugType(ClientBase client)
-        {
-            this.client = client;
-        }
+        readonly ClientBase client = client;
 
         public CallInvoker CallInvoker => client.CallInvoker;
         public string? Service => ClientDebuggerHelpers.GetServiceName(client.GetType());
@@ -180,17 +169,12 @@ public abstract class ClientBase
     /// </summary>
     protected internal class ClientBaseConfiguration
     {
-        private class ClientBaseConfigurationInterceptor : Interceptor
+        /// <summary>
+        /// Creates a new instance of ClientBaseConfigurationInterceptor given the specified header and host interceptor function.
+        /// </summary>
+        private class ClientBaseConfigurationInterceptor(Func<IMethod, string?, CallOptions, ClientBaseConfigurationInfo> interceptor) : Interceptor
         {
-            readonly Func<IMethod, string?, CallOptions, ClientBaseConfigurationInfo> interceptor;
-
-            /// <summary>
-            /// Creates a new instance of ClientBaseConfigurationInterceptor given the specified header and host interceptor function.
-            /// </summary>
-            public ClientBaseConfigurationInterceptor(Func<IMethod, string?, CallOptions, ClientBaseConfigurationInfo> interceptor)
-            {
-                this.interceptor = GrpcPreconditions.CheckNotNull(interceptor, nameof(interceptor));
-            }
+            readonly Func<IMethod, string?, CallOptions, ClientBaseConfigurationInfo> interceptor = GrpcPreconditions.CheckNotNull(interceptor, nameof(interceptor));
 
             private ClientInterceptorContext<TRequest, TResponse> GetNewContext<TRequest, TResponse>(ClientInterceptorContext<TRequest, TResponse> context)
                 where TRequest : class
@@ -201,29 +185,19 @@ public abstract class ClientBase
             }
 
             public override TResponse BlockingUnaryCall<TRequest, TResponse>(TRequest request, ClientInterceptorContext<TRequest, TResponse> context, BlockingUnaryCallContinuation<TRequest, TResponse> continuation)
-            {
-                return continuation(request, GetNewContext(context));
-            }
+                => continuation(request, GetNewContext(context));
 
             public override AsyncUnaryCall<TResponse> AsyncUnaryCall<TRequest, TResponse>(TRequest request, ClientInterceptorContext<TRequest, TResponse> context, AsyncUnaryCallContinuation<TRequest, TResponse> continuation)
-            {
-                return continuation(request, GetNewContext(context));
-            }
+                => continuation(request, GetNewContext(context));
 
             public override AsyncServerStreamingCall<TResponse> AsyncServerStreamingCall<TRequest, TResponse>(TRequest request, ClientInterceptorContext<TRequest, TResponse> context, AsyncServerStreamingCallContinuation<TRequest, TResponse> continuation)
-            {
-                return continuation(request, GetNewContext(context));
-            }
+                => continuation(request, GetNewContext(context));
 
             public override AsyncClientStreamingCall<TRequest, TResponse> AsyncClientStreamingCall<TRequest, TResponse>(ClientInterceptorContext<TRequest, TResponse> context, AsyncClientStreamingCallContinuation<TRequest, TResponse> continuation)
-            {
-                return continuation(GetNewContext(context));
-            }
+                => continuation(GetNewContext(context));
 
             public override AsyncDuplexStreamingCall<TRequest, TResponse> AsyncDuplexStreamingCall<TRequest, TResponse>(ClientInterceptorContext<TRequest, TResponse> context, AsyncDuplexStreamingCallContinuation<TRequest, TResponse> continuation)
-            {
-                return continuation(GetNewContext(context));
-            }
+                => continuation(GetNewContext(context));
         }
 
         internal struct ClientBaseConfigurationInfo
@@ -247,10 +221,8 @@ public abstract class ClientBase
             this.host = host;
         }
 
-        internal CallInvoker CreateDecoratedCallInvoker()
-        {
-            return undecoratedCallInvoker.Intercept(new ClientBaseConfigurationInterceptor((method, host, options) => new ClientBaseConfigurationInfo(this.host, options)));
-        }
+        internal CallInvoker CreateDecoratedCallInvoker() => undecoratedCallInvoker.Intercept(new ClientBaseConfigurationInterceptor((method, host, options)
+            => new ClientBaseConfigurationInfo(this.host, options)));
 
         internal ClientBaseConfiguration WithHost(string host)
         {
