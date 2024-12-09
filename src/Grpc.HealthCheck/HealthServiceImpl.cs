@@ -142,6 +142,7 @@ public class HealthServiceImpl : Grpc.Health.V1.Health.HealthBase
     public override async Task Watch(HealthCheckRequest request, IServerStreamWriter<HealthCheckResponse> responseStream, ServerCallContext context)
     {
         // The call has already been canceled. Writing to the response will fail so immediately exit.
+        // In the real world this situation is unlikely to happen as the server would have prevented a canceled call from making it this far.
         if (context.CancellationToken.IsCancellationRequested)
         {
             return;
