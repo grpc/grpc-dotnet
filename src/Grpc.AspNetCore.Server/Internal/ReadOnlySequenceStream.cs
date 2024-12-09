@@ -21,7 +21,7 @@ using System.Buffers;
 namespace Grpc.AspNetCore.Server.Internal;
 
 // Potentially remove in the future when https://github.com/dotnet/corefx/issues/31804 is implemented
-internal class ReadOnlySequenceStream : Stream
+internal sealed class ReadOnlySequenceStream : Stream
 {
     private static readonly Task<int> TaskOfZero = Task.FromResult(0);
 

@@ -20,7 +20,7 @@ using Microsoft.Extensions.DependencyInjection;
 
 namespace Grpc.AspNetCore.Server.Internal;
 
-internal class GrpcServerBuilder : IGrpcServerBuilder
+internal sealed class GrpcServerBuilder : IGrpcServerBuilder
 {
     public IServiceCollection Services { get; }
 
