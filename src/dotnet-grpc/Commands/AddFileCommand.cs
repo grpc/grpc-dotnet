@@ -1,4 +1,4 @@
-﻿#region Copyright notice and license
+#region Copyright notice and license
 
 // Copyright 2019 The gRPC Authors
 //
@@ -19,6 +19,7 @@
 using System;
 using System.CommandLine;
 using System.CommandLine.Invocation;
+using System.CommandLine.Parsing;
 using Grpc.Dotnet.Cli.Internal;
 using Grpc.Dotnet.Cli.Options;
 using Grpc.Dotnet.Cli.Properties;
@@ -41,6 +42,7 @@ internal class AddFileCommand : CommandBase
         var serviceOption = CommonOptions.ServiceOption();
         var additionalImportDirsOption = CommonOptions.AdditionalImportDirsOption();
         var accessOption = CommonOptions.AccessOption();
+        var recursiveOption = CommonOptions.RecursiveOption();
         var filesArgument = new Argument<string[]>
         {
             Name = "files",
@@ -52,6 +54,7 @@ internal class AddFileCommand : CommandBase
         command.AddOption(serviceOption);
         command.AddOption(accessOption);
         command.AddOption(additionalImportDirsOption);
+        command.AddOption(recursiveOption);
         command.AddArgument(filesArgument);
 
         command.SetHandler(
@@ -61,12 +64,13 @@ internal class AddFileCommand : CommandBase
                 var services = context.ParseResult.GetValueForOption(serviceOption);
                 var access = context.ParseResult.GetValueForOption(accessOption);
                 var additionalImportDirs = context.ParseResult.GetValueForOption(additionalImportDirsOption);
+                var searchOption = context.ParseResult.HasOption(recursiveOption) ? SearchOption.AllDirectories : SearchOption.TopDirectoryOnly;
                 var files = context.ParseResult.GetValueForArgument(filesArgument);
 
                 try
                 {
                     var command = new AddFileCommand(context.Console, project, httpClient);
-                    await command.AddFileAsync(services, access, additionalImportDirs, files);
+                    await command.AddFileAsync(services, access, additionalImportDirs, files, searchOption);
 
                     context.ExitCode = 0;
                 }
@@ -81,11 +85,11 @@ internal class AddFileCommand : CommandBase
         return command;
     }
 
-    public async Task AddFileAsync(Services services, Access access, string? additionalImportDirs, string[] files)
+    public async Task AddFileAsync(Services services, Access access, string? additionalImportDirs, string[] files, SearchOption searchOption)
     {
         var resolvedServices = ResolveServices(services);
         await EnsureNugetPackagesAsync(resolvedServices);
-        files = GlobReferences(files);
+        files = GlobReferences(files, searchOption);
 
         foreach (var file in files)
         {

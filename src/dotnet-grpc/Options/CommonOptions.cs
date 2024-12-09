@@ -1,4 +1,4 @@
-﻿#region Copyright notice and license
+#region Copyright notice and license
 
 // Copyright 2019 The gRPC Authors
 //
@@ -52,6 +52,15 @@ internal static class CommonOptions
         var o = new Option<string>(
             aliases: new[] { "-i", "--additional-import-dirs" },
             description: CoreStrings.AdditionalImportDirsOption);
+        return o;
+    }
+
+    public static Option<bool> RecursiveOption()
+    {
+        var o = new Option<bool>(
+            aliases: new[] { "-r", "--recursive" },
+            description: CoreStrings.RecursiveOptionDescription
+            );
         return o;
     }
 }

@@ -1,4 +1,4 @@
-﻿#region Copyright notice and license
+#region Copyright notice and license
 
 // Copyright 2019 The gRPC Authors
 //
@@ -174,7 +174,7 @@ internal class CommandBase
         }
 
         var normalizedFile = NormalizePath(file);
-        
+
         var normalizedAdditionalImportDirs = string.Empty;
 
         if (!string.IsNullOrWhiteSpace(additionalImportDirs))
@@ -298,7 +298,7 @@ internal class CommandBase
         return resolvedReferences;
     }
 
-    internal string[] GlobReferences(string[] references)
+    internal string[] GlobReferences(string[] references, SearchOption searchOption = SearchOption.TopDirectoryOnly)
     {
         var expandedReferences = new List<string>();
 
@@ -315,7 +315,7 @@ internal class CommandBase
                 var directoryToSearch = Path.GetPathRoot(reference)!;
                 var searchPattern = reference.Substring(directoryToSearch.Length);
 
-                var resolvedFiles = Directory.GetFiles(directoryToSearch, searchPattern);
+                var resolvedFiles = Directory.GetFiles(directoryToSearch, searchPattern, searchOption);
 
                 if (resolvedFiles.Length == 0)
                 {
@@ -328,7 +328,7 @@ internal class CommandBase
 
             if (Directory.Exists(Path.Combine(Project.DirectoryPath, Path.GetDirectoryName(reference)!)))
             {
-                var resolvedFiles = Directory.GetFiles(Project.DirectoryPath, reference);
+                var resolvedFiles = Directory.GetFiles(Project.DirectoryPath, reference, searchOption);
 
                 if (resolvedFiles.Length == 0)
                 {
