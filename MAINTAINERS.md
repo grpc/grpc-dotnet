@@ -15,9 +15,10 @@ for general contribution guidelines.
 - [BrennanConroy](https://github.com/BrennanConroy), Microsoft Corporation
 - [davidfowl](https://github.com/davidfowl), Microsoft Corporation
 - [JamesNK](https://github.com/JamesNK), Microsoft Corporation
-- [jtattermusch](https://github.com/jtattermusch), Google LLC
 - [mgravell](https://github.com/mgravell), Microsoft Corporation
 - [ReubenBond](https://github.com/ReubenBond), Microsoft Corporation
+- [stanley-cheung](https://github.com/stanley-cheung), Google LLC
 
 ## Emeritus Maintainers (in alphabetical order)
+- [jtattermusch](https://github.com/jtattermusch)
 - [JunTaoLuo](https://github.com/JunTaoLuo)

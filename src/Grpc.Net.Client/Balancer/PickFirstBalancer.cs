@@ -17,8 +17,6 @@
 #endregion
 
 #if SUPPORT_LOAD_BALANCING
-using System;
-using System.Collections.Generic;
 using Grpc.Core;
 using Grpc.Net.Client.Balancer.Internal;
 using Grpc.Net.Client.Configuration;
@@ -187,7 +185,7 @@ internal class PickFirstPicker : SubchannelPicker
     }
 }
 
-internal class RequestConnectionPicker : PickFirstPicker
+internal sealed class RequestConnectionPicker : PickFirstPicker
 {
     public RequestConnectionPicker(Subchannel subchannel) : base(subchannel)
     {

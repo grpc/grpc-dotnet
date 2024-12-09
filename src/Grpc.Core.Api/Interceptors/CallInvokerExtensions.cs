@@ -94,7 +94,7 @@ public static class CallInvokerExtensions
         return new InterceptingCallInvoker(invoker, new MetadataInterceptor(interceptor));
     }
 
-    private class MetadataInterceptor : Interceptor
+    private sealed class MetadataInterceptor : Interceptor
     {
         readonly Func<Metadata, Metadata> interceptor;
 

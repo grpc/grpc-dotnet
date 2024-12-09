@@ -20,7 +20,7 @@ using System.Net;
 
 namespace Grpc.Net.Client.Web.Internal;
 
-internal class GrpcWebRequestContent : HttpContent
+internal sealed class GrpcWebRequestContent : HttpContent
 {
     private readonly HttpContent _inner;
     private readonly GrpcWebMode _mode;
