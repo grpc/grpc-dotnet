@@ -22,6 +22,7 @@ using Grpc.Health.V1;
 using Grpc.HealthCheck;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
+using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Options;
 
 namespace Grpc.AspNetCore.HealthChecks.Internal;
@@ -32,17 +33,20 @@ internal sealed class HealthServiceIntegration : Grpc.Health.V1.Health.HealthBas
     private readonly GrpcHealthChecksOptions _grpcHealthCheckOptions;
     private readonly HealthServiceImpl _healthServiceImpl;
     private readonly HealthCheckService _healthCheckService;
+    private readonly IHostApplicationLifetime _applicationLifetime;
 
     public HealthServiceIntegration(
         HealthServiceImpl healthServiceImpl,
         IOptions<HealthCheckOptions> healthCheckOptions,
         IOptions<GrpcHealthChecksOptions> grpcHealthCheckOptions,
-        HealthCheckService healthCheckService)
+        HealthCheckService healthCheckService,
+        IHostApplicationLifetime applicationLifetime)
     {
         _healthCheckOptions = healthCheckOptions.Value;
         _grpcHealthCheckOptions = grpcHealthCheckOptions.Value;
         _healthServiceImpl = healthServiceImpl;
         _healthCheckService = healthCheckService;
+        _applicationLifetime = applicationLifetime;
     }
 
     public override Task<HealthCheckResponse> Check(HealthCheckRequest request, ServerCallContext context)
@@ -57,15 +61,84 @@ internal sealed class HealthServiceIntegration : Grpc.Health.V1.Health.HealthBas
         }
     }
 
-    public override Task Watch(HealthCheckRequest request, IServerStreamWriter<HealthCheckResponse> responseStream, ServerCallContext context)
+    public override async Task Watch(HealthCheckRequest request, IServerStreamWriter<HealthCheckResponse> responseStream, ServerCallContext context)
     {
+        ServerCallContext resolvedContext;
+        IServerStreamWriter<HealthCheckResponse> resolvedResponseStream;
+
+        if (!_grpcHealthCheckOptions.SuppressCompletionOnShutdown)
+        {
+            // Create a linked token source to cancel the request if the application is stopping.
+            // This is required because the server won't shut down gracefully if the request is still open.
+            // The context needs to be wrapped because HealthServiceImpl is in an assembly that can't reference IHostApplicationLifetime.
+            var cts = CancellationTokenSource.CreateLinkedTokenSource(context.CancellationToken, _applicationLifetime.ApplicationStopping);
+            resolvedContext = new WrappedServerCallContext(context, cts);
+        }
+        else
+        {
+            resolvedContext = context;
+        }
+
         if (!_grpcHealthCheckOptions.UseHealthChecksCache)
         {
             // Stream writer replaces first health checks results from the cache with newly calculated health check results.
-            responseStream = new WatchServerStreamWriter(this, request, responseStream, context.CancellationToken);
+            resolvedResponseStream = new WatchServerStreamWriter(this, request, responseStream, context.CancellationToken);
+        }
+        else
+        {
+            resolvedResponseStream = responseStream;
         }
 
-        return _healthServiceImpl.Watch(request, responseStream, context);
+        await _healthServiceImpl.Watch(request, resolvedResponseStream, resolvedContext);
+
+        // If the request is not canceled and the application is stopping then return NotServing before finishing.
+        if (!context.CancellationToken.IsCancellationRequested && _applicationLifetime.ApplicationStopping.IsCancellationRequested)
+        {
+            await responseStream.WriteAsync(new HealthCheckResponse { Status = HealthCheckResponse.Types.ServingStatus.NotServing });
+        }
+    }
+
+    private sealed class WrappedServerCallContext : ServerCallContext
+    {
+        private readonly ServerCallContext _serverCallContext;
+        private readonly CancellationTokenSource _cancellationTokenSource;
+
+        public WrappedServerCallContext(ServerCallContext serverCallContext, CancellationTokenSource cancellationTokenSource)
+        {
+            _serverCallContext = serverCallContext;
+            _cancellationTokenSource = cancellationTokenSource;
+        }
+
+        protected override string MethodCore => _serverCallContext.Method;
+        protected override string HostCore => _serverCallContext.Host;
+        protected override string PeerCore => _serverCallContext.Peer;
+        protected override DateTime DeadlineCore => _serverCallContext.Deadline;
+        protected override Metadata RequestHeadersCore => _serverCallContext.RequestHeaders;
+        protected override CancellationToken CancellationTokenCore => _cancellationTokenSource.Token;
+        protected override Metadata ResponseTrailersCore => _serverCallContext.ResponseTrailers;
+        protected override Status StatusCore
+        {
+            get => _serverCallContext.Status;
+            set => _serverCallContext.Status = value;
+        }
+        protected override WriteOptions? WriteOptionsCore
+        {
+            get => _serverCallContext.WriteOptions;
+            set => _serverCallContext.WriteOptions = value;
+        }
+        protected override AuthContext AuthContextCore => _serverCallContext.AuthContext;
+
+        protected override IDictionary<object, object> UserStateCore => _serverCallContext.UserState;
+
+        protected override ContextPropagationToken CreatePropagationTokenCore(ContextPropagationOptions? options)
+        {
+            return _serverCallContext.CreatePropagationToken(options);
+        }
+
+        protected override Task WriteResponseHeadersAsyncCore(Metadata responseHeaders)
+        {
+            return _serverCallContext.WriteResponseHeadersAsync(responseHeaders);
+        }
     }
 
     private async Task<HealthCheckResponse> GetHealthCheckResponseAsync(string service, bool throwOnNotFound, CancellationToken cancellationToken)

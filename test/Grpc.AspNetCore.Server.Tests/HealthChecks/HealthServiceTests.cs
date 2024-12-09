@@ -20,6 +20,7 @@ using System.Diagnostics;
 using Grpc.AspNetCore.HealthChecks;
 using Grpc.AspNetCore.HealthChecks.Internal;
 using Grpc.AspNetCore.Server.Tests.Infrastructure;
+using Grpc.AspNetCore.Server.Tests.TestObjects;
 using Grpc.Core;
 using Grpc.Health.V1;
 using Grpc.HealthCheck;
@@ -63,6 +64,8 @@ public class HealthServiceTests
             o.Delay = TimeSpan.FromSeconds(1);
             o.Period = TimeSpan.FromSeconds(1);
         });
+        var lifetime = new TestHostApplicationLifetime();
+        services.AddSingleton<IHostApplicationLifetime>(lifetime);
 
         var serviceProvider = services.BuildServiceProvider();
 
@@ -133,6 +136,8 @@ public class HealthServiceTests
             o.Delay = TimeSpan.FromSeconds(1);
             o.Period = TimeSpan.FromSeconds(1);
         });
+        var lifetime = new TestHostApplicationLifetime();
+        services.AddSingleton<IHostApplicationLifetime>(lifetime);
 
         var serviceProvider = services.BuildServiceProvider();
 
@@ -206,6 +211,8 @@ public class HealthServiceTests
             o.Delay = TimeSpan.FromSeconds(1);
             o.Period = TimeSpan.FromSeconds(1);
         });
+        var lifetime = new TestHostApplicationLifetime();
+        services.AddSingleton<IHostApplicationLifetime>(lifetime);
 
         var serviceProvider = services.BuildServiceProvider();
 
@@ -260,6 +267,210 @@ public class HealthServiceTests
         Assert.AreEqual("Service '' status updated to NotServing. 1 health report entries evaluated.", serviceMappingStatusUpdated.Message);
     }
 
+    [Test]
+    public async Task HealthService_Watch_ServerShutdownDuringCall_WatchCompleted()
+    {
+        // Arrange
+        var testSink = new TestSink();
+        var testProvider = new TestLoggerProvider(testSink);
+
+        var healthCheckResult = new HealthCheckResult(HealthStatus.Healthy);
+
+        var services = new ServiceCollection();
+        services.AddLogging(o => o.AddProvider(testProvider).SetMinimumLevel(LogLevel.Debug));
+        services.AddNUnitLogger();
+        services.AddGrpcHealthChecks().AddAsyncCheck(
+            "",
+            () => Task.FromResult(healthCheckResult), new string[] { "sample" });
+        services.Configure<HealthCheckPublisherOptions>(o =>
+        {
+            o.Delay = TimeSpan.FromSeconds(1);
+            o.Period = TimeSpan.FromSeconds(1);
+        });
+        var lifetime = new TestHostApplicationLifetime();
+        services.AddSingleton<IHostApplicationLifetime>(lifetime);
+
+        var serviceProvider = services.BuildServiceProvider();
+
+        var healthService = CreateService(serviceProvider);
+        var hostedService = serviceProvider.GetServices<IHostedService>().Single();
+
+        HealthCheckResponse? response = null;
+        var syncPoint = new SyncPoint(runContinuationsAsynchronously: true);
+        var testServerStreamWriter = new TestServerStreamWriter<HealthCheckResponse>();
+        testServerStreamWriter.OnWriteAsync = async message =>
+        {
+            response = message;
+            await syncPoint.WaitToContinue();
+        };
+
+        var cts = new CancellationTokenSource();
+        var callTask = healthService.Watch(
+            new HealthCheckRequest(),
+            testServerStreamWriter,
+            new TestServerCallContext(DateTime.MaxValue, cts.Token));
+
+        // Act
+        await hostedService.StartAsync(CancellationToken.None);
+
+        // Assert
+        try
+        {
+            await syncPoint.WaitForSyncPoint().DefaultTimeout();
+            Assert.AreEqual(HealthCheckResponse.Types.ServingStatus.Serving, response!.Status);
+            syncPoint.Continue();
+
+            syncPoint = new SyncPoint(runContinuationsAsynchronously: true);
+            lifetime.StopApplication();
+            await syncPoint.WaitForSyncPoint().DefaultTimeout();
+            Assert.AreEqual(HealthCheckResponse.Types.ServingStatus.NotServing, response!.Status);
+            syncPoint.Continue();
+
+            await callTask.DefaultTimeout();
+        }
+        finally
+        {
+            await hostedService.StopAsync(CancellationToken.None);
+        }
+    }
+
+    [Test]
+    public async Task HealthService_Watch_ServerShutdownBeforeCall_WatchCompleted()
+    {
+        // Arrange
+        var testSink = new TestSink();
+        var testProvider = new TestLoggerProvider(testSink);
+
+        var healthCheckResult = new HealthCheckResult(HealthStatus.Healthy);
+
+        var services = new ServiceCollection();
+        services.AddLogging(o => o.AddProvider(testProvider).SetMinimumLevel(LogLevel.Debug));
+        services.AddNUnitLogger();
+        services.AddGrpcHealthChecks().AddAsyncCheck(
+            "",
+            () => Task.FromResult(healthCheckResult), new string[] { "sample" });
+        services.Configure<HealthCheckPublisherOptions>(o =>
+        {
+            o.Delay = TimeSpan.FromSeconds(1);
+            o.Period = TimeSpan.FromSeconds(1);
+        });
+        var lifetime = new TestHostApplicationLifetime();
+        services.AddSingleton<IHostApplicationLifetime>(lifetime);
+
+        var serviceProvider = services.BuildServiceProvider();
+
+        var healthService = CreateService(serviceProvider);
+        var hostedService = serviceProvider.GetServices<IHostedService>().Single();
+
+        HealthCheckResponse? response = null;
+        var syncPoint = new SyncPoint(runContinuationsAsynchronously: true);
+        var testServerStreamWriter = new TestServerStreamWriter<HealthCheckResponse>();
+        testServerStreamWriter.OnWriteAsync = async message =>
+        {
+            response = message;
+            await syncPoint.WaitToContinue();
+        };
+
+        lifetime.StopApplication();
+
+        var cts = new CancellationTokenSource();
+        var callTask = healthService.Watch(
+            new HealthCheckRequest(),
+            testServerStreamWriter,
+            new TestServerCallContext(DateTime.MaxValue, cts.Token));
+
+        // Act
+        await hostedService.StartAsync(CancellationToken.None);
+
+        // Assert
+        try
+        {
+            await syncPoint.WaitForSyncPoint().DefaultTimeout();
+            Assert.AreEqual(HealthCheckResponse.Types.ServingStatus.NotServing, response!.Status);
+            syncPoint.Continue();
+
+            await callTask.DefaultTimeout();
+        }
+        finally
+        {
+            await hostedService.StopAsync(CancellationToken.None);
+        }
+    }
+
+    [Test]
+    public async Task HealthService_Watch_ServerShutdown_SuppressCompletion_WatchNotCompleted()
+    {
+        // Arrange
+        var testSink = new TestSink();
+        var testProvider = new TestLoggerProvider(testSink);
+
+        var healthCheckResult = new HealthCheckResult(HealthStatus.Healthy);
+
+        var services = new ServiceCollection();
+        services.AddLogging(o => o.AddProvider(testProvider).SetMinimumLevel(LogLevel.Debug));
+        services.AddNUnitLogger();
+        services.AddGrpcHealthChecks(o => o.SuppressCompletionOnShutdown = true).AddAsyncCheck(
+            "",
+            () => Task.FromResult(healthCheckResult), new string[] { "sample" });
+        services.Configure<HealthCheckPublisherOptions>(o =>
+        {
+            o.Delay = TimeSpan.FromSeconds(1);
+            o.Period = TimeSpan.FromSeconds(1);
+        });
+        var lifetime = new TestHostApplicationLifetime();
+        services.AddSingleton<IHostApplicationLifetime>(lifetime);
+
+        var serviceProvider = services.BuildServiceProvider();
+
+        var healthService = CreateService(serviceProvider);
+        var hostedService = serviceProvider.GetServices<IHostedService>().Single();
+
+        HealthCheckResponse? response = null;
+        var syncPoint = new SyncPoint(runContinuationsAsynchronously: true);
+        var testServerStreamWriter = new TestServerStreamWriter<HealthCheckResponse>();
+        testServerStreamWriter.OnWriteAsync = async message =>
+        {
+            response = message;
+            await syncPoint.WaitToContinue();
+        };
+
+        var cts = new CancellationTokenSource();
+        var callTask = healthService.Watch(
+            new HealthCheckRequest(),
+            testServerStreamWriter,
+            new TestServerCallContext(DateTime.MaxValue, cts.Token));
+
+        // Act
+        await hostedService.StartAsync(CancellationToken.None);
+
+        // Assert
+        try
+        {
+            await syncPoint.WaitForSyncPoint().DefaultTimeout();
+            Assert.AreEqual(HealthCheckResponse.Types.ServingStatus.Serving, response!.Status);
+            syncPoint.Continue();
+
+            syncPoint = new SyncPoint(runContinuationsAsynchronously: true);
+            lifetime.StopApplication();
+
+            // Wait a second to double check that watch doesn't complete.
+            var waitForSyncPointTask = syncPoint.WaitForSyncPoint();
+            var timeoutTask = Task.Delay(TimeSpan.FromSeconds(0.5));
+            if (await Task.WhenAny(callTask, waitForSyncPointTask, timeoutTask) != timeoutTask)
+            {
+                Assert.Fail("Expected watch to not complete.");
+            }
+
+            cts.Cancel();
+
+            await callTask.DefaultTimeout();
+        }
+        finally
+        {
+            await hostedService.StopAsync(CancellationToken.None);
+        }
+    }
+
     private class TestHealthCheckPublisher : IHealthCheckPublisher
     {
         public Func<HealthReport, Task>? OnHealthReport { get; set; }
@@ -279,7 +490,8 @@ public class HealthServiceTests
             serviceProvider.GetRequiredService<HealthServiceImpl>(),
             serviceProvider.GetRequiredService<IOptions<HealthCheckOptions>>(),
             serviceProvider.GetRequiredService<IOptions<GrpcHealthChecksOptions>>(),
-            serviceProvider.GetRequiredService<HealthCheckService>());
+            serviceProvider.GetRequiredService<HealthCheckService>(),
+            serviceProvider.GetRequiredService<IHostApplicationLifetime>());
     }
 
     [Test]
@@ -299,6 +511,9 @@ public class HealthServiceTests
             })
             .AddAsyncCheck("default", () => RunHealthCheck(healthCheckStatus, ""))
             .AddAsyncCheck("filtered", () => RunHealthCheck(healthCheckStatus, "filtered"), new string[] { "exclude" });
+
+        var lifetime = new TestHostApplicationLifetime();
+        services.AddSingleton<IHostApplicationLifetime>(lifetime);
 
         var serviceProvider = services.BuildServiceProvider();
 
@@ -384,6 +599,8 @@ public class HealthServiceTests
             o.Delay = TimeSpan.FromSeconds(1);
             o.Period = TimeSpan.FromSeconds(1);
         });
+        var lifetime = new TestHostApplicationLifetime();
+        services.AddSingleton<IHostApplicationLifetime>(lifetime);
 
         HealthReport? report = null;
         var syncPoint = new SyncPoint(runContinuationsAsynchronously: true);
@@ -458,6 +675,8 @@ public class HealthServiceTests
             o.Delay = TimeSpan.FromSeconds(1);
             o.Period = TimeSpan.FromSeconds(1);
         });
+        var lifetime = new TestHostApplicationLifetime();
+        services.AddSingleton<IHostApplicationLifetime>(lifetime);
 
         HealthReport? report = null;
         var syncPoint = new SyncPoint(runContinuationsAsynchronously: true);

@@ -141,6 +141,12 @@ public class HealthServiceImpl : Grpc.Health.V1.Health.HealthBase
     /// <returns>A task indicating completion of the handler.</returns>
     public override async Task Watch(HealthCheckRequest request, IServerStreamWriter<HealthCheckResponse> responseStream, ServerCallContext context)
     {
+        // The call has already been canceled. Writing to the response will fail so immediately exit.
+        if (context.CancellationToken.IsCancellationRequested)
+        {
+            return;
+        }
+
         string service = request.Service;
 
         // Channel is used to to marshall multiple callers updating status into a single queue.
