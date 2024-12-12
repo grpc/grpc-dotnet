@@ -17,6 +17,7 @@
 #endregion
 
 using Microsoft.Extensions.Diagnostics.HealthChecks;
+using Microsoft.Extensions.Hosting;
 
 namespace Grpc.AspNetCore.HealthChecks;
 
@@ -39,4 +40,21 @@ public sealed class GrpcHealthChecksOptions
     /// published by <see cref="IHealthCheckPublisher"/> are returned.
     /// </remarks>
     public bool UseHealthChecksCache { get; set; }
+
+    /// <summary>
+    /// Gets or sets a value indicating whether to suppress completing <c>Watch</c> health check calls when the application begins shutting down.
+    /// The default value is <c>false</c>.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// When <c>false</c>, health checks <c>Watch</c> calls are completed with a status of NotServing when the server application begins shutting down.
+    /// Shutdown is indicated by the <see cref="IHostApplicationLifetime.ApplicationStopping"/> token being raised and causes <c>Watch</c> to complete.
+    /// When <c>true</c>, health checks <c>Watch</c> calls are left running. Running calls will be eventually be forcefully aborted when the server finishes shutting down.
+    /// </para>
+    /// <para>
+    /// Completing the <c>Watch</c> call allows the server to gracefully exit. If <c>Watch</c> calls aren't shutdown then the server runs until
+    /// <see cref="HostOptions.ShutdownTimeout"/> is exceeded and the server forcefully aborts remaining active requests.
+    /// </para>
+    /// </remarks>
+    public bool SuppressCompletionOnShutdown { get; set; }
 }
