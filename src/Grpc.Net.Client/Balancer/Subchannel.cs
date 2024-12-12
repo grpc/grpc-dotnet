@@ -40,7 +40,7 @@ namespace Grpc.Net.Client.Balancer;
 public sealed class Subchannel : IDisposable
 {
     internal readonly List<BalancerAddress> _addresses;
-    internal readonly object Lock;
+    internal readonly Lock Lock;
     internal ISubchannelTransport Transport => _transport;
     internal string Id { get; }
 
@@ -96,7 +96,7 @@ public sealed class Subchannel : IDisposable
 
     internal Subchannel(ConnectionManager manager, IReadOnlyList<BalancerAddress> addresses)
     {
-        Lock = new object();
+        Lock = new Lock();
         _logger = manager.LoggerFactory.CreateLogger(GetType());
         _connectSemaphore = new SemaphoreSlim(1);
 
@@ -283,7 +283,7 @@ public sealed class Subchannel : IDisposable
 
     private void CancelInProgressConnectUnsynchronized()
     {
-        Debug.Assert(Monitor.IsEntered(Lock));
+        Debug.Assert(Lock.IsHeldByCurrentThread);
 
         if (_connectContext != null && !_connectContext.Disposed)
         {
@@ -299,7 +299,7 @@ public sealed class Subchannel : IDisposable
 
     private ConnectContext GetConnectContextUnsynchronized()
     {
-        Debug.Assert(Monitor.IsEntered(Lock));
+        Debug.Assert(Lock.IsHeldByCurrentThread);
 
         // There shouldn't be a previous connect in progress, but cancel the CTS to ensure they're no longer running.
         CancelInProgressConnectUnsynchronized();
@@ -312,7 +312,8 @@ public sealed class Subchannel : IDisposable
     {
         ConnectContext connectContext;
         Task? waitSemaporeTask = null;
-        lock (Lock)
+        Lock.Enter();
+        try
         {
             // Don't start connecting if the subchannel has been shutdown. Transport/semaphore will be disposed if shutdown.
             if (_state == ConnectivityState.Shutdown)
@@ -332,6 +333,10 @@ public sealed class Subchannel : IDisposable
                 SubchannelLog.QueuingConnect(_logger, Id);
                 waitSemaporeTask = _connectSemaphore.WaitAsync(connectContext.CancellationToken);
             }
+        }
+        finally
+        {
+            Lock.Exit();
         }
 
         if (waitSemaporeTask != null)
@@ -355,12 +360,17 @@ public sealed class Subchannel : IDisposable
 
             for (var attempt = 0; ; attempt++)
             {
-                lock (Lock)
+                Lock.Enter();
+                try
                 {
                     if (_state == ConnectivityState.Shutdown)
                     {
                         return;
                     }
+                }
+                finally
+                {
+                    Lock.Exit();
                 }
 
                 switch (await _transport.TryConnectAsync(connectContext, attempt).ConfigureAwait(false))
@@ -425,7 +435,8 @@ public sealed class Subchannel : IDisposable
         }
         finally
         {
-            lock (Lock)
+            Lock.Enter();
+            try
             {
                 // Dispose context because it might have been created with a connect timeout.
                 // Want to clean up the connect timeout timer.
@@ -437,6 +448,10 @@ public sealed class Subchannel : IDisposable
                 {
                     _connectSemaphore.Release();
                 }
+            }
+            finally
+            {
+                Lock.Exit();
             }
         }
     }

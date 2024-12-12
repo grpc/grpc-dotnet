@@ -151,11 +151,12 @@ public class UnaryTests : FunctionalTestBase
         var count = 0;
         var tcs = new TaskCompletionSource<object?>(TaskCreationOptions.RunContinuationsAsynchronously);
         var connectionIds = new List<string>();
-        var l = new object();
+        var l = new Lock();
 
         async Task<HelloReply> UnaryThrowError(HelloRequest request, ServerCallContext context)
         {
-            lock (l)
+            l.Enter();
+            try
             {
                 count++;
 
@@ -164,6 +165,10 @@ public class UnaryTests : FunctionalTestBase
                 {
                     connectionIds.Add(connectionId);
                 }
+            }
+            finally
+            {
+                l.Exit();
             }
 
             Logger.LogInformation($"Received message '{request.Name}'");

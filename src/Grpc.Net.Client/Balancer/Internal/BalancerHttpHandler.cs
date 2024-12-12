@@ -26,7 +26,7 @@ namespace Grpc.Net.Client.Balancer.Internal;
 
 internal sealed partial class BalancerHttpHandler : DelegatingHandler
 {
-    private static readonly object SetupLock = new object();
+    private static readonly Lock SetupLock = new Lock();
 
     internal const string WaitForReadyKey = "WaitForReady";
     internal const string SubchannelKey = "Subchannel";

@@ -25,7 +25,7 @@ public class DotNetProcess : IDisposable
 {
     private readonly TaskCompletionSource<object?> _exitedTcs;
     private readonly StringBuilder _output;
-    private readonly object _outputLock = new object();
+    private readonly Lock _outputLock = new Lock();
 
     protected Process Process { get; }
 

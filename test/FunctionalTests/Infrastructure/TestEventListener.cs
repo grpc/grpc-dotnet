@@ -1,4 +1,4 @@
-﻿#region Copyright notice and license
+#region Copyright notice and license
 
 // Copyright 2019 The gRPC Authors
 //
@@ -27,7 +27,7 @@ namespace Grpc.AspNetCore.FunctionalTests.Infrastructure;
 /// </summary>
 public class TestEventListener : EventListener
 {
-    private readonly object _lock = new object();
+    private readonly Lock _lock = new Lock();
     private readonly List<ListenerSubscription> _subscriptions;
     private readonly ILogger _logger;
     private readonly int _eventId;

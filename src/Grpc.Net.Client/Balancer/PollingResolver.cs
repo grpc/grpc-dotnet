@@ -44,7 +44,7 @@ public abstract partial class PollingResolver : Resolver
     private bool _disposed;
     private bool _resolveSuccessful;
 
-    private readonly object _lock = new object();
+    private readonly Lock _lock = new Lock();
     private readonly CancellationTokenSource _cts = new CancellationTokenSource();
     private readonly ILogger _logger;
     private readonly IBackoffPolicyFactory? _backoffPolicyFactory;

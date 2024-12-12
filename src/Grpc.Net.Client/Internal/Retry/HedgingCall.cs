@@ -64,7 +64,8 @@ internal sealed partial class HedgingCall<TRequest, TResponse> : RetryCallBase<T
 
         try
         {
-            lock (Lock)
+            Lock.Enter();
+            try
             {
                 if (CommitedCallTask.IsCompletedSuccessfully())
                 {
@@ -88,6 +89,10 @@ internal sealed partial class HedgingCall<TRequest, TResponse> : RetryCallBase<T
                     // buffer limits, which causes the call to immediately become commited and to clear buffers.
                     return;
                 }
+            }
+            finally
+            {
+                Lock.Exit();
             }
 
             Status? responseStatus;
@@ -138,7 +143,8 @@ internal sealed partial class HedgingCall<TRequest, TResponse> : RetryCallBase<T
                 return;
             }
 
-            lock (Lock)
+            Lock.Enter();
+            try
             {
                 var status = responseStatus.Value;
                 if (IsDeadlineExceeded())
@@ -193,6 +199,10 @@ internal sealed partial class HedgingCall<TRequest, TResponse> : RetryCallBase<T
                     }
                 }
             }
+            finally
+            {
+                Lock.Exit();
+            }
         }
         catch (Exception ex)
         {
@@ -221,7 +231,7 @@ internal sealed partial class HedgingCall<TRequest, TResponse> : RetryCallBase<T
 
     protected override void OnCommitCall(IGrpcCall<TRequest, TResponse> call)
     {
-        Debug.Assert(Monitor.IsEntered(Lock));
+        Debug.Assert(Lock.IsHeldByCurrentThread);
 
         _activeCalls.Remove(call);
 
@@ -230,7 +240,7 @@ internal sealed partial class HedgingCall<TRequest, TResponse> : RetryCallBase<T
 
     private void CleanUpUnsynchronized()
     {
-        Debug.Assert(Monitor.IsEntered(Lock));
+        Debug.Assert(Lock.IsHeldByCurrentThread);
 
         while (_activeCalls.Count > 0)
         {
@@ -293,7 +303,8 @@ internal sealed partial class HedgingCall<TRequest, TResponse> : RetryCallBase<T
                 }
                 else
                 {
-                    lock (Lock)
+                    Lock.Enter();
+                    try
                     {
                         if (IsRetryThrottlingActive())
                         {
@@ -313,6 +324,10 @@ internal sealed partial class HedgingCall<TRequest, TResponse> : RetryCallBase<T
                         {
                             break;
                         }
+                    }
+                    finally
+                    {
+                        Lock.Exit();
                     }
                 }
             }
@@ -350,7 +365,8 @@ internal sealed partial class HedgingCall<TRequest, TResponse> : RetryCallBase<T
                 _hedgingDelayCts.Cancel();
             }
 
-            lock (Lock)
+            Lock.Enter();
+            try
             {
                 // If we reaching this point then the delay was interrupted.
                 // Need to recreate the delay TCS/CTS for the next cycle.
@@ -370,6 +386,10 @@ internal sealed partial class HedgingCall<TRequest, TResponse> : RetryCallBase<T
                     // Immediately return for non-fatal status.
                     return;
                 }
+            }
+            finally
+            {
+                Lock.Exit();
             }
         }
     }
@@ -465,12 +485,17 @@ internal sealed partial class HedgingCall<TRequest, TResponse> : RetryCallBase<T
         }
         catch
         {
-            lock (Lock)
+            Lock.Enter();
+            try
             {
                 if (CommitedCallTask.IsCompletedSuccessfully())
                 {
                     throw;
                 }
+            }
+            finally
+            {
+                Lock.Exit();
             }
 
             // Flag indicates whether buffered message was successfully written.
@@ -490,9 +515,14 @@ internal sealed partial class HedgingCall<TRequest, TResponse> : RetryCallBase<T
             _writeClientMessageTcs = null;
         }
 
-        lock (Lock)
+        Lock.Enter();
+        try
         {
             BufferedCurrentMessage = false;
+        }
+        finally
+        {
+            Lock.Exit();
         }
     }
 

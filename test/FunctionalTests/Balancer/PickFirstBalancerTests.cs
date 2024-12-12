@@ -340,7 +340,7 @@ public class PickFirstBalancerTests : FunctionalTestBase
             return true;
         });
 
-        object l = new object();
+        Lock l = new Lock();
         int callsOnServer = 0;
         int callsToServer = 150;
 
@@ -349,13 +349,18 @@ public class PickFirstBalancerTests : FunctionalTestBase
         string? host = null;
         async Task<HelloReply> UnaryMethod(HelloRequest request, ServerCallContext context)
         {
-            lock (l)
+            l.Enter();
+            try
             {
                 callsOnServer++;
                 if (callsOnServer == callsToServer)
                 {
                     allOnServerTcs.SetResult(null);
                 }
+            }
+            finally
+            {
+                l.Exit();
             }
             await tcs.Task;
             host = context.Host;

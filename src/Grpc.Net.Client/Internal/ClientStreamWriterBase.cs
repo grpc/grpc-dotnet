@@ -26,13 +26,13 @@ internal abstract class ClientStreamWriterBase<TRequest> : IClientStreamWriter<T
     where TRequest : class
 {
     protected ILogger Logger { get; }
-    protected object WriteLock { get; }
+    protected Lock WriteLock { get; }
     protected Task? WriteTask { get; set; }
 
     protected ClientStreamWriterBase(ILogger logger)
     {
         Logger = logger;
-        WriteLock = new object();
+        WriteLock = new Lock();
     }
 
     public abstract WriteOptions? WriteOptions { get; set; }

@@ -1,4 +1,4 @@
-﻿#region Copyright notice and license
+#region Copyright notice and license
 
 // Copyright 2019 The gRPC Authors
 //
@@ -89,7 +89,7 @@ public class HedgingCallTests
         // Arrange
         var allCallsOnServerSyncPoint = new SyncPoint(runContinuationsAsynchronously: true);
         var waitUntilFinishedTcs = new TaskCompletionSource<object?>(TaskCreationOptions.RunContinuationsAsynchronously);
-        var callLock = new object();
+        var callLock = new Lock();
 
         var callCount = 0;
         var httpClient = ClientTestHelpers.CreateTestClient(async request =>
@@ -98,13 +98,18 @@ public class HedgingCallTests
 
             // All calls are in-progress at once.
             bool allCallsOnServer = false;
-            lock (callLock)
+            callLock.Enter();
+            try
             {
                 callCount++;
                 if (callCount == 5)
                 {
                     allCallsOnServer = true;
                 }
+            }
+            finally
+            {
+                callLock.Exit();
             }
             if (allCallsOnServer)
             {

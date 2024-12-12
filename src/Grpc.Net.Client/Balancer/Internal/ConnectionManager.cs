@@ -30,7 +30,7 @@ internal sealed class ConnectionManager : IDisposable, IChannelControlHelper
     public static readonly BalancerAttributesKey<string> HostOverrideKey = new BalancerAttributesKey<string>("HostOverride");
     private static readonly ChannelIdProvider _channelIdProvider = new ChannelIdProvider();
 
-    private readonly object _lock;
+    private readonly Lock _lock;
     internal readonly Resolver _resolver;
     private readonly ISubchannelTransportFactory _subchannelTransportFactory;
     private readonly List<Subchannel> _subchannels;
@@ -56,7 +56,7 @@ internal sealed class ConnectionManager : IDisposable, IChannelControlHelper
         ISubchannelTransportFactory subchannelTransportFactory,
         LoadBalancerFactory[] loadBalancerFactories)
     {
-        _lock = new object();
+        _lock = new Lock();
         _nextPickerTcs = new TaskCompletionSource<SubchannelPicker>(TaskCreationOptions.RunContinuationsAsynchronously);
         _resolverStartedTcs = new TaskCompletionSource<object?>(TaskCreationOptions.RunContinuationsAsynchronously);
         _channelId = _channelIdProvider.GetNextChannelId();
@@ -221,7 +221,8 @@ internal sealed class ConnectionManager : IDisposable, IChannelControlHelper
         else
         {
             Task waitForReadyTask;
-            lock (_lock)
+            _lock.Enter();
+            try
             {
                 var state = State;
                 if (state == ConnectivityState.Ready)
@@ -231,6 +232,10 @@ internal sealed class ConnectionManager : IDisposable, IChannelControlHelper
 
                 waitForReadyTask = WaitForStateChangedAsync(state, waitForState: ConnectivityState.Ready, cancellationToken);
                 _balancer?.RequestConnection();
+            }
+            finally
+            {
+                _lock.Exit();
             }
 
             await waitForReadyTask.ConfigureAwait(false);

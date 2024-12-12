@@ -1,4 +1,4 @@
-﻿#region Copyright notice and license
+#region Copyright notice and license
 
 // Copyright 2019 The gRPC Authors
 //
@@ -53,7 +53,7 @@ internal sealed class ChildHandlerLoadBalancer : LoadBalancer
     private readonly IChannelControlHelper _controller;
     private readonly ServiceConfig? _initialServiceConfig;
     private readonly ConnectionManager _connectionManager;
-    private readonly object _lock = new object();
+    private readonly Lock _lock = new Lock();
 
     internal (LoadBalancer LoadBalancer, string Name)? _current;
     internal (LoadBalancer LoadBalancer, string Name)? _pending;

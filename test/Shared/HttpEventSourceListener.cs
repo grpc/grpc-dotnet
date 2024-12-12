@@ -50,7 +50,7 @@ public abstract class EventSourceListenerBase : EventListener
 {
     private readonly StringBuilder _messageBuilder = new StringBuilder();
     private readonly ILogger? _logger;
-    private readonly object _lock = new object();
+    private readonly Lock _lock = new Lock();
     private bool _disposed;
 
     public EventSourceListenerBase(ILoggerFactory loggerFactory)

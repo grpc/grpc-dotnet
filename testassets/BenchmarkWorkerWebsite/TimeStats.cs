@@ -24,7 +24,7 @@ namespace BenchmarkWorkerWebsite;
 // Copied from https://github.com/grpc/grpc/blob/master/src/csharp/Grpc.IntegrationTesting/TimeStats.cs
 public class TimeStats
 {
-    readonly object myLock = new object();
+    readonly Lock myLock = new Lock();
     DateTime lastWallClock;
     TimeSpan lastUserTime;
     TimeSpan lastPrivilegedTime;

@@ -83,7 +83,7 @@ public class ResolverTests
     private class LockingPollingResolver : PollingResolver
     {
         private ManualResetEvent? _waitHandle;
-        private readonly object _lock = new();
+        private readonly Lock _lock = new();
 
         public LockingPollingResolver(ILoggerFactory loggerFactory, ManualResetEvent waitHandle) : base(loggerFactory)
         {

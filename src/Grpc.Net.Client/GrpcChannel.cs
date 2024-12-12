@@ -50,7 +50,7 @@ public sealed partial class GrpcChannel : ChannelBase, IDisposable
     internal const long DefaultMaxRetryBufferSize = 1024 * 1024 * 16; // 16 MB
     internal const long DefaultMaxRetryBufferPerCallSize = 1024 * 1024; // 1 MB
 
-    private readonly object _lock;
+    private readonly Lock _lock;
     private readonly ConcurrentDictionary<IMethod, GrpcMethodInfo> _methodInfoCache;
     private readonly Func<IMethod, GrpcMethodInfo> _createMethodInfoFunc;
     private readonly Dictionary<MethodKey, MethodConfig>? _serviceConfigMethods;
@@ -108,7 +108,7 @@ public sealed partial class GrpcChannel : ChannelBase, IDisposable
 
     internal GrpcChannel(Uri address, GrpcChannelOptions channelOptions) : base(address.Authority)
     {
-        _lock = new object();
+        _lock = new Lock();
         _methodInfoCache = new ConcurrentDictionary<IMethod, GrpcMethodInfo>();
 
         // Dispose the HTTP client/handler if...

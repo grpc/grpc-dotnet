@@ -36,7 +36,7 @@ internal sealed class HttpContentClientStreamReader<TRequest, TResponse> : IAsyn
 
     private readonly GrpcCall<TRequest, TResponse> _call;
     private readonly ILogger _logger;
-    private readonly object _moveNextLock;
+    private readonly Lock _moveNextLock;
 
     public TaskCompletionSource<(HttpResponseMessage, Status?)> HttpResponseTcs { get; }
 
@@ -49,7 +49,7 @@ internal sealed class HttpContentClientStreamReader<TRequest, TResponse> : IAsyn
     {
         _call = call;
         _logger = call.Channel.LoggerFactory.CreateLogger(LoggerName);
-        _moveNextLock = new object();
+        _moveNextLock = new Lock();
 
         HttpResponseTcs = new TaskCompletionSource<(HttpResponseMessage, Status?)>(TaskCreationOptions.RunContinuationsAsynchronously);
     }

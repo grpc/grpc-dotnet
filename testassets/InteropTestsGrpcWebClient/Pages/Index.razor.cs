@@ -1,4 +1,4 @@
-﻿#region Copyright notice and license
+#region Copyright notice and license
 
 // Copyright 2019 The gRPC Authors
 //
@@ -23,7 +23,7 @@ namespace InteropTestsGrpcWebClient.Pages;
 
 public partial class Index
 {
-    private readonly object _lock = new object();
+    private readonly Lock _lock = new Lock();
     private InteropTestInvoker? _interopTestInvoker;
 
     public List<Message> Messages { get; } = new List<Message>();
