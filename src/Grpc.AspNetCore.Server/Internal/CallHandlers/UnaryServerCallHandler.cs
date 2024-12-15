@@ -24,7 +24,7 @@ using Microsoft.Extensions.Logging;
 
 namespace Grpc.AspNetCore.Server.Internal.CallHandlers;
 
-internal class UnaryServerCallHandler<TRequest, TResponse> : ServerCallHandlerBase<TRequest, TResponse>
+internal sealed class UnaryServerCallHandler<TRequest, TResponse> : ServerCallHandlerBase<TRequest, TResponse>
     where TRequest : class
     where TResponse : class
 {
@@ -63,7 +63,7 @@ internal class UnaryServerCallHandler<TRequest, TResponse> : ServerCallHandlerBa
     }
 }
 
-internal class UnaryServerCallHandler<[DynamicallyAccessedMembers(GrpcProtocolConstants.ServiceAccessibility)]TService, TRequest, TResponse> : ServerCallHandlerBase<TService, TRequest, TResponse>
+internal sealed class UnaryServerCallHandler<[DynamicallyAccessedMembers(GrpcProtocolConstants.ServiceAccessibility)] TService, TRequest, TResponse> : ServerCallHandlerBase<TService, TRequest, TResponse>
     where TRequest : class
     where TResponse : class
     where TService : class
