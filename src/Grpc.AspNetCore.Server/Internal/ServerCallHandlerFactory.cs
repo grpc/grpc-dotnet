@@ -159,7 +159,7 @@ internal partial class ServerCallHandlerFactory : IServerCallHandlerFactory
 /// <summary>
 /// Creates server call handlers. Provides a place to get services that call handlers will use.
 /// </summary>
-internal partial class ServerCallHandlerFactory<[DynamicallyAccessedMembers(GrpcProtocolConstants.ServiceAccessibility)] TService> : IServerCallHandlerFactory where TService : class
+internal sealed partial class ServerCallHandlerFactory<[DynamicallyAccessedMembers(GrpcProtocolConstants.ServiceAccessibility)] TService> : IServerCallHandlerFactory where TService : class
 {
     private readonly ILoggerFactory _loggerFactory;
     private readonly IGrpcServiceActivator<TService> _serviceActivator;

@@ -21,7 +21,7 @@ using System.Buffers.Text;
 
 namespace Grpc.Net.Client.Web.Internal;
 
-internal class Base64RequestStream : Stream
+internal sealed class Base64RequestStream : Stream
 {
     private readonly Stream _inner;
     private byte[]? _buffer;

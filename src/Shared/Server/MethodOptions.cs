@@ -158,10 +158,7 @@ internal sealed class MethodOptions
         {
             foreach (var compressionProvider in compressionProviders)
             {
-                if (!resolvedProviders.ContainsKey(compressionProvider.EncodingName))
-                {
-                    resolvedProviders.Add(compressionProvider.EncodingName, compressionProvider);
-                }
+                resolvedProviders.TryAdd(compressionProvider.EncodingName, compressionProvider);
             }
         }
     }

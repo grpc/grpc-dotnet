@@ -21,7 +21,7 @@ using Grpc.Core;
 
 namespace Grpc.Net.Client.Internal;
 
-internal class GrpcCallScope : IReadOnlyList<KeyValuePair<string, object>>
+internal sealed class GrpcCallScope : IReadOnlyList<KeyValuePair<string, object>>
 {
     private const string GrpcMethodTypeKey = "GrpcMethodType";
     private const string GrpcUriKey = "GrpcUri";

@@ -1,4 +1,4 @@
-﻿#region Copyright notice and license
+#region Copyright notice and license
 
 // Copyright 2019 The gRPC Authors
 //
@@ -16,12 +16,22 @@
 
 #endregion
 
-namespace Grpc.AspNetCore.Server.Model.Internal;
+using Microsoft.AspNetCore.Builder;
+using Microsoft.AspNetCore.Routing;
+using Microsoft.Extensions.Hosting;
 
-/// <summary>
-/// A registry of all the service methods in the application.
-/// </summary>
-internal sealed class ServiceMethodsRegistry
+namespace Grpc.AspNetCore.Server.Tests.TestObjects;
+
+public class TestHostApplicationLifetime : IHostApplicationLifetime
 {
-    public List<MethodModel> Methods { get; } = new List<MethodModel>();
+    private readonly CancellationTokenSource _cts = new();
+
+    public CancellationToken ApplicationStarted => _cts.Token;
+    public CancellationToken ApplicationStopped => _cts.Token;
+    public CancellationToken ApplicationStopping => _cts.Token;
+
+    public void StopApplication()
+    {
+        _cts.Cancel();
+    }
 }

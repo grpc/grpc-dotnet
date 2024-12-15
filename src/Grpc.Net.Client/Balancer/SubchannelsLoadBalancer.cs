@@ -122,6 +122,7 @@ public abstract class SubchannelsLoadBalancer : LoadBalancer
 
         var allUpdatedSubchannels = new List<AddressSubchannel>();
         var newSubchannels = new List<Subchannel>();
+        var hasModifiedSubchannels = false;
         var currentSubchannels = _addressSubchannels.ToList();
 
         // The state's addresses is the new authoritative list of addresses.
@@ -150,6 +151,8 @@ public abstract class SubchannelsLoadBalancer : LoadBalancer
                         address,
                         newOrCurrentSubchannel.LastKnownState);
                     newOrCurrentSubchannel.Subchannel.UpdateAddresses(new[] { address });
+
+                    hasModifiedSubchannels = true;
                 }
 
                 SubchannelLog.SubchannelPreserved(_logger, newOrCurrentSubchannel.Subchannel.Id, address);
@@ -171,7 +174,7 @@ public abstract class SubchannelsLoadBalancer : LoadBalancer
         // This can all be removed.
         var removedSubConnections = currentSubchannels;
 
-        if (removedSubConnections.Count == 0 && newSubchannels.Count == 0)
+        if (removedSubConnections.Count == 0 && newSubchannels.Count == 0 && !hasModifiedSubchannels)
         {
             SubchannelsLoadBalancerLog.ConnectionsUnchanged(_logger);
             return;

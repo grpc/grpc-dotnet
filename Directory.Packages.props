@@ -1,7 +1,7 @@
 <Project>
   <PropertyGroup>
     <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
-    <MicrosoftAspNetCoreAppPackageVersion>9.0.0-preview.5.24306.11</MicrosoftAspNetCoreAppPackageVersion>
+    <MicrosoftAspNetCoreAppPackageVersion>9.0.0</MicrosoftAspNetCoreAppPackageVersion>
     <MicrosoftAspNetCoreApp8PackageVersion>8.0.6</MicrosoftAspNetCoreApp8PackageVersion>
     <MicrosoftAspNetCoreApp7PackageVersion>7.0.5</MicrosoftAspNetCoreApp7PackageVersion>
     <MicrosoftAspNetCoreApp6PackageVersion>6.0.33</MicrosoftAspNetCoreApp6PackageVersion>
@@ -9,7 +9,7 @@
     <OpenTelemetryPackageVersion>1.6.0</OpenTelemetryPackageVersion>
     <OpenTelemetryIntergationPackageVersion>1.8.1</OpenTelemetryIntergationPackageVersion>
     <OpenTelemetryGrpcPackageVersion>1.8.0-beta.1</OpenTelemetryGrpcPackageVersion>
-    <MicrosoftExtensionsPackageVersion>9.0.0-preview.5.24306.7</MicrosoftExtensionsPackageVersion>
+    <MicrosoftExtensionsPackageVersion>9.0.0</MicrosoftExtensionsPackageVersion>
     <MicrosoftExtensionsLtsPackageVersion>6.0.0</MicrosoftExtensionsLtsPackageVersion>
   </PropertyGroup>
   <ItemGroup>
@@ -33,7 +33,7 @@
     <PackageVersion Include="Microsoft.Extensions.Logging.Abstractions" Version="$(MicrosoftExtensionsPackageVersion)" />
 
     <!-- gRPC -->
-    <PackageVersion Include="Grpc.Tools" Version="2.67.0-pre1" />
+    <PackageVersion Include="Grpc.Tools" Version="2.67.0" />
     <PackageVersion Include="Grpc.Core" Version="2.46.6" />
     <PackageVersion Include="Grpc.Core.Api" Version="$(GrpcDotNetPackageVersion)"/>
     <PackageVersion Include="Grpc.Net.Client" Version="$(GrpcDotNetPackageVersion)" />
@@ -65,7 +65,7 @@
     <PackageVersion Include="Microsoft.Bcl.AsyncInterfaces" Version="6.0.0" />
     <PackageVersion Include="Microsoft.Build.Locator" Version="1.5.5" />
     <PackageVersion Include="Microsoft.Build" Version="17.3.2" />
-    <PackageVersion Include="Microsoft.CodeAnalysis.NetAnalyzers" Version="9.0.0-preview.24216.2" />
+    <PackageVersion Include="Microsoft.CodeAnalysis.NetAnalyzers" Version="9.0.0" />
     <PackageVersion Include="Microsoft.Crank.EventSources" Version="0.2.0-alpha.21255.1" />
     <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="17.10.0" />
     <PackageVersion Include="Microsoft.SourceLink.GitHub" Version="1.1.1" />
@@ -82,6 +82,7 @@
     <PackageVersion Include="System.Memory" Version="4.5.3" />
     <PackageVersion Include="System.Net.Http.WinHttpHandler" Version="8.0.0" />
     <PackageVersion Include="System.Security.Principal.Windows" Version="5.0.0" />
+    <PackageVersion Include="System.Text.Json" Version="6.0.10" />
     <PackageVersion Include="System.Threading.Channels" Version="4.6.0" />
   </ItemGroup>
 </Project>

@@ -21,7 +21,7 @@ using System.Diagnostics.CodeAnalysis;
 
 namespace Grpc.Net.Client.Balancer.Internal;
 
-internal class BalancerAddressEqualityComparer : IEqualityComparer<BalancerAddress>
+internal sealed class BalancerAddressEqualityComparer : IEqualityComparer<BalancerAddress>
 {
     internal static readonly BalancerAddressEqualityComparer Instance = new BalancerAddressEqualityComparer();
 

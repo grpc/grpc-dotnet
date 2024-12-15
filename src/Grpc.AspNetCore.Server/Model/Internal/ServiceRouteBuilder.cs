@@ -84,7 +84,7 @@ internal class ServiceRouteBuilder
     }
 }
 
-internal class ServiceRouteBuilder<[DynamicallyAccessedMembers(GrpcProtocolConstants.ServiceAccessibility)] TService> where TService : class
+internal sealed class ServiceRouteBuilder<[DynamicallyAccessedMembers(GrpcProtocolConstants.ServiceAccessibility)] TService> where TService : class
 {
     private readonly IEnumerable<IServiceMethodProvider<TService>> _serviceMethodProviders;
     private readonly ServerCallHandlerFactory<TService> _serverCallHandlerFactory;

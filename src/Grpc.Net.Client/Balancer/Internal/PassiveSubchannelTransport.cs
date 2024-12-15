@@ -17,12 +17,8 @@
 #endregion
 
 #if SUPPORT_LOAD_BALANCING
-using System;
 using System.Diagnostics;
-using System.IO;
 using System.Net;
-using System.Threading;
-using System.Threading.Tasks;
 using Grpc.Core;
 
 namespace Grpc.Net.Client.Balancer.Internal;
@@ -32,7 +28,7 @@ namespace Grpc.Net.Client.Balancer.Internal;
 /// This transport will only be used when there is one address.
 /// It isn't able to correctly determine connectivity state.
 /// </summary>
-internal class PassiveSubchannelTransport : ISubchannelTransport, IDisposable
+internal sealed class PassiveSubchannelTransport : ISubchannelTransport, IDisposable
 {
     private readonly Subchannel _subchannel;
     private DnsEndPoint? _currentEndPoint;

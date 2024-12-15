@@ -27,7 +27,7 @@ namespace Grpc.Net.Client.Internal;
 
 [DebuggerDisplay("{DebuggerToString(),nq}")]
 [DebuggerTypeProxy(typeof(HttpContentClientStreamReader<,>.HttpContentClientStreamReaderDebugView))]
-internal class HttpContentClientStreamReader<TRequest, TResponse> : IAsyncStreamReader<TResponse>
+internal sealed class HttpContentClientStreamReader<TRequest, TResponse> : IAsyncStreamReader<TResponse>
     where TRequest : class
     where TResponse : class
 {

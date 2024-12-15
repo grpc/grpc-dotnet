@@ -20,7 +20,7 @@ using System.Net;
 
 namespace Grpc.Net.Client.Internal.Http;
 
-internal class PushStreamContent<TRequest, TResponse> : HttpContent
+internal sealed class PushStreamContent<TRequest, TResponse> : HttpContent
     where TRequest : class
     where TResponse : class
 {
