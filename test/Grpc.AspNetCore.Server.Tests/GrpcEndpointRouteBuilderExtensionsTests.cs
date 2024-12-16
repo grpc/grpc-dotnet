@@ -103,6 +103,40 @@ public class GrpcEndpointRouteBuilderExtensionsTests
         BindServiceCore<GreeterWithAttributeServiceSubSubClass>();
     }
 
+    [Test]
+    public void MapGrpcService_ServerServiceDefinition_CreateEndPoints()
+    {
+        // Arrange
+        var services = ServicesHelpers.CreateServices();
+
+        var routeBuilder = CreateTestEndpointRouteBuilder(services.BuildServiceProvider(validateScopes: true));
+
+        // Act
+        var service = GreeterWithAttribute.BindService(new GreeterWithAttributeService());
+        routeBuilder.MapGrpcService(service);
+
+        // Assert
+        AssertForBindServiceCore(routeBuilder);
+    }
+
+    [Test]
+    public void MapGrpcService_GetServerServiceDefinition_CreateEndPoints()
+    {
+        // Arrange
+        var services = ServicesHelpers.CreateServices();
+
+        var routeBuilder = CreateTestEndpointRouteBuilder(services.BuildServiceProvider(validateScopes: true));
+
+        // Act
+        static ServerServiceDefinition serverServiceDefinition(IServiceProvider provider)
+            => GreeterWithAttribute.BindService(new GreeterWithAttributeService());
+
+        routeBuilder.MapGrpcService(serverServiceDefinition);
+
+        // Assert
+        AssertForBindServiceCore(routeBuilder);
+    }
+
     private void BindServiceCore<TService>() where TService : class
     {
         // Arrange
@@ -114,6 +148,11 @@ public class GrpcEndpointRouteBuilderExtensionsTests
         routeBuilder.MapGrpcService<TService>();
 
         // Assert
+        AssertForBindServiceCore(routeBuilder);
+    }
+
+    private void AssertForBindServiceCore(IEndpointRouteBuilder routeBuilder)
+    {
         var endpoints = routeBuilder.DataSources
             .SelectMany(ds => ds.Endpoints)
             .Where(e => e.Metadata.GetMetadata<GrpcMethodMetadata>() != null)

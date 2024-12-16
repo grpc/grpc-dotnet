@@ -24,6 +24,39 @@ using Grpc.Core;
 namespace Grpc.Shared.Server;
 
 /// <summary>
+/// Server method invoker base type for <see cref="Grpc.Core.ServerServiceDefinition"/>.
+/// </summary>
+/// <typeparam name="TRequest">Request message type for this method.</typeparam>
+/// <typeparam name="TResponse">Response message type for this method.</typeparam>
+internal abstract class ServerMethodInvokerBase<TRequest, TResponse>
+    where TRequest : class
+    where TResponse : class
+{
+    /// <summary>
+    /// Gets the description of the gRPC method.
+    /// </summary>
+    public Method<TRequest, TResponse> Method { get; }
+
+    /// <summary>
+    /// Gets the options used to execute the method.
+    /// </summary>
+    public MethodOptions Options { get; }
+
+    /// <summary>
+    /// Creates a new instance of <see cref="ServerMethodInvokerBase{TRequest, TResponse}"/>.
+    /// </summary>
+    /// <param name="method">The description of the gRPC method.</param>
+    /// <param name="options">The options used to execute the method.</param>
+    private protected ServerMethodInvokerBase(
+        Method<TRequest, TResponse> method,
+        MethodOptions options)
+    {
+        Method = method;
+        Options = options;
+    }
+}
+
+/// <summary>
 /// Server method invoker base type.
 /// </summary>
 /// <typeparam name="TService">Service type for this method.</typeparam>
