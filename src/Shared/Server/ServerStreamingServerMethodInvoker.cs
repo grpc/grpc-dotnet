@@ -26,6 +26,52 @@ using Microsoft.AspNetCore.Http;
 namespace Grpc.Shared.Server;
 
 /// <summary>
+/// Server streaming server method invoker for <see cref="Grpc.Core.ServerServiceDefinition"/>.
+/// </summary>
+/// <typeparam name="TRequest">Request message type for this method.</typeparam>
+/// <typeparam name="TResponse">Response message type for this method.</typeparam>
+internal sealed class ServerStreamingServerMethodInvoker<TRequest, TResponse> : ServerMethodInvokerBase<TRequest, TResponse>
+    where TRequest : class
+    where TResponse : class
+{
+    private readonly ServerStreamingServerMethod<TRequest, TResponse> _invoker;
+
+    /// <summary>
+    /// Creates a new instance of <see cref="ServerStreamingServerMethodInvoker{TRequest, TResponse}"/>.
+    /// </summary>
+    /// <param name="invoker">The server streaming method to invoke.</param>
+    /// <param name="method">The description of the gRPC method.</param>
+    /// <param name="options">The options used to execute the method.</param>
+    public ServerStreamingServerMethodInvoker(
+        ServerStreamingServerMethod<TRequest, TResponse> invoker,
+        Method<TRequest, TResponse> method,
+        MethodOptions options)
+        : base(method, options)
+    {
+        _invoker = invoker;
+
+        if (Options.HasInterceptors)
+        {
+            var interceptorPipeline = new InterceptorPipelineBuilder<TRequest, TResponse>(Options.Interceptors);
+            _invoker = interceptorPipeline.ServerStreamingPipeline(_invoker);
+        }
+    }
+
+    /// <summary>
+    /// Invoke the server streaming method with the specified <see cref="HttpContext"/>.
+    /// </summary>
+    /// <param name="_">The <see cref="HttpContext"/> for the current request.</param>
+    /// <param name="serverCallContext">The <see cref="ServerCallContext"/>.</param>
+    /// <param name="request">The <typeparamref name="TRequest"/> message.</param>
+    /// <param name="streamWriter">The <typeparamref name="TResponse"/> stream writer.</param>
+    /// <returns>A <see cref="Task"/> that represents the asynchronous method.</returns>
+    public async Task Invoke(HttpContext _, ServerCallContext serverCallContext, TRequest request, IServerStreamWriter<TResponse> streamWriter)
+    {
+        await _invoker(request, streamWriter, serverCallContext);
+    }
+}
+
+/// <summary>
 /// Server streaming server method invoker.
 /// </summary>
 /// <typeparam name="TService">Service type for this method.</typeparam>
