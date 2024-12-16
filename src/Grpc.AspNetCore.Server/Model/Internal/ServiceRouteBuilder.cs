@@ -23,9 +23,66 @@ using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.Extensions.Logging;
-using Log = Grpc.AspNetCore.Server.Model.Internal.ServiceRouteBuilderLog;
+using Helper = Grpc.AspNetCore.Server.Model.Internal.ServiceRouteBuilderHelper;
 
 namespace Grpc.AspNetCore.Server.Model.Internal;
+
+internal class ServiceRouteBuilder
+{
+    private readonly ServerCallHandlerFactory _serverCallHandlerFactory;
+    private readonly ServiceMethodsRegistry _serviceMethodsRegistry;
+    private readonly ILoggerFactory _loggerFactory;
+    private readonly ILogger _logger;
+
+    public ServiceRouteBuilder(
+        ServerCallHandlerFactory callHandlerFactory,
+        ServiceMethodsRegistry serviceMethodsRegistry,
+        ILoggerFactory loggerFactory)
+    {
+        _serverCallHandlerFactory = callHandlerFactory;
+        _serviceMethodsRegistry = serviceMethodsRegistry;
+        _loggerFactory = loggerFactory;
+        _logger = loggerFactory.CreateLogger<ServiceRouteBuilder>();
+    }
+
+    [RequiresUnreferencedCode("Due to type erasure in ServerServiceDefinition, Build is incompatible with trimming.")]
+    internal List<IEndpointConventionBuilder> Build(IEndpointRouteBuilder endpointRouteBuilder, ServerServiceDefinition serverServiceDefinition)
+    {
+        ServiceRouteBuilderLog.DiscoveringServiceMethods(_logger, typeof(ServerServiceDefinition));
+
+        var serviceBinder = new EndpointServiceBinder(_serverCallHandlerFactory, endpointRouteBuilder, _loggerFactory);
+
+        serverServiceDefinition.BindService(serviceBinder);
+        var endpointConventionBuilders = serviceBinder.EndpointConventionBuilders;
+
+        if(serviceBinder.MethodModels.Count > 0)
+        {
+            foreach(var method in serviceBinder.MethodModels)
+            {
+                var serviceMethodAttribute = method.Metadata
+                    .Select(data => data as BindServiceMethodAttribute)
+                    .SingleOrDefault(data => data is not null);
+                var serviceType = serviceMethodAttribute?.BindType ?? typeof(ServerServiceDefinition);
+                Helper.AddImplementedEndpoint(_logger, serviceType, endpointConventionBuilders, endpointRouteBuilder, method);
+            }
+        }
+        else
+        {
+            ServiceRouteBuilderLog.NoServiceMethodsDiscovered(_logger, typeof(ServerServiceDefinition));
+        }
+
+        Helper.CreateUnimplementedEndpoints(
+            endpointRouteBuilder,
+            _serviceMethodsRegistry,
+            _serverCallHandlerFactory,
+            serviceBinder.MethodModels,
+            endpointConventionBuilders);
+
+        _serviceMethodsRegistry.Methods.AddRange(serviceBinder.MethodModels);
+
+        return endpointConventionBuilders;
+    }
+}
 
 internal sealed class ServiceRouteBuilder<[DynamicallyAccessedMembers(GrpcProtocolConstants.ServiceAccessibility)] TService> where TService : class
 {
@@ -48,7 +105,7 @@ internal sealed class ServiceRouteBuilder<[DynamicallyAccessedMembers(GrpcProtoc
 
     internal List<IEndpointConventionBuilder> Build(IEndpointRouteBuilder endpointRouteBuilder)
     {
-        Log.DiscoveringServiceMethods(_logger, typeof(TService));
+        ServiceRouteBuilderLog.DiscoveringServiceMethods(_logger, typeof(TService));
 
         var serviceMethodProviderContext = new ServiceMethodProviderContext<TService>(_serverCallHandlerFactory);
         foreach (var serviceMethodProvider in _serviceMethodProviders)
@@ -61,39 +118,15 @@ internal sealed class ServiceRouteBuilder<[DynamicallyAccessedMembers(GrpcProtoc
         {
             foreach (var method in serviceMethodProviderContext.Methods)
             {
-                var endpointBuilder = endpointRouteBuilder.Map(method.Pattern, method.RequestDelegate);
-
-                endpointBuilder.Add(ep =>
-                {
-                    ep.DisplayName = $"gRPC - {method.Pattern.RawText}";
-
-                    ep.Metadata.Add(new GrpcMethodMetadata(typeof(TService), method.Method));
-                    foreach (var item in method.Metadata)
-                    {
-                        ep.Metadata.Add(item);
-                    }
-                });
-
-                endpointConventionBuilders.Add(endpointBuilder);
-
-                // Report the last HttpMethodMetadata added. It's the metadata used by routing.
-                var httpMethod = method.Metadata.OfType<HttpMethodMetadata>().LastOrDefault();
-
-                Log.AddedServiceMethod(
-                    _logger,
-                    method.Method.Name,
-                    method.Method.ServiceName,
-                    method.Method.Type,
-                    httpMethod?.HttpMethods ?? Array.Empty<string>(),
-                    method.Pattern.RawText ?? string.Empty);
+                Helper.AddImplementedEndpoint(_logger, typeof(TService), endpointConventionBuilders, endpointRouteBuilder, method);
             }
         }
         else
         {
-            Log.NoServiceMethodsDiscovered(_logger, typeof(TService));
+            ServiceRouteBuilderLog.NoServiceMethodsDiscovered(_logger, typeof(TService));
         }
 
-        CreateUnimplementedEndpoints(
+        Helper.CreateUnimplementedEndpoints(
             endpointRouteBuilder,
             _serviceMethodsRegistry,
             _serverCallHandlerFactory,
@@ -104,11 +137,48 @@ internal sealed class ServiceRouteBuilder<[DynamicallyAccessedMembers(GrpcProtoc
 
         return endpointConventionBuilders;
     }
+}
+
+internal static class ServiceRouteBuilderHelper
+{
+    internal static void AddImplementedEndpoint(
+        ILogger logger,
+        [DynamicallyAccessedMembers(GrpcProtocolConstants.ServiceAccessibility)] Type serviceType,
+        List<IEndpointConventionBuilder> endpointConventionBuilders,
+        IEndpointRouteBuilder endpointRouteBuilder,
+        MethodModel method)
+    {
+        var endpointBuilder = endpointRouteBuilder.Map(method.Pattern, method.RequestDelegate);
+
+        endpointBuilder.Add(ep =>
+        {
+            ep.DisplayName = $"gRPC - {method.Pattern.RawText}";
+
+            ep.Metadata.Add(new GrpcMethodMetadata(serviceType, method.Method));
+            foreach (var item in method.Metadata)
+            {
+                ep.Metadata.Add(item);
+            }
+        });
+
+        endpointConventionBuilders.Add(endpointBuilder);
+
+        // Report the last HttpMethodMetadata added. It's the metadata used by routing.
+        var httpMethod = method.Metadata.OfType<HttpMethodMetadata>().LastOrDefault();
+
+        ServiceRouteBuilderLog.LogAddedServiceMethod(
+            logger,
+            method.Method.Name,
+            method.Method.ServiceName,
+            method.Method.Type,
+            httpMethod?.HttpMethods ?? Array.Empty<string>(),
+            method.Pattern.RawText ?? string.Empty);
+    }
 
     internal static void CreateUnimplementedEndpoints(
         IEndpointRouteBuilder endpointRouteBuilder,
         ServiceMethodsRegistry serviceMethodsRegistry,
-        ServerCallHandlerFactory<TService> serverCallHandlerFactory,
+        IServerCallHandlerFactory serverCallHandlerFactory,
         List<MethodModel> serviceMethods,
         List<IEndpointConventionBuilder> endpointConventionBuilders)
     {
@@ -161,7 +231,7 @@ internal static partial class ServiceRouteBuilderLog
     [LoggerMessage(Level = LogLevel.Trace, EventId = 1, EventName = "AddedServiceMethod", Message = "Added gRPC method '{MethodName}' to service '{ServiceName}'. Method type: {MethodType}, HTTP method: {HttpMethod}, route pattern: '{RoutePattern}'.")]
     private static partial void AddedServiceMethod(ILogger logger, string methodName, string serviceName, MethodType methodType, string HttpMethod, string routePattern);
 
-    public static void AddedServiceMethod(ILogger logger, string methodName, string serviceName, MethodType methodType, IReadOnlyList<string> httpMethods, string routePattern)
+    public static void LogAddedServiceMethod(ILogger logger, string methodName, string serviceName, MethodType methodType, IReadOnlyList<string> httpMethods, string routePattern)
     {
         if (logger.IsEnabled(LogLevel.Trace))
         {
