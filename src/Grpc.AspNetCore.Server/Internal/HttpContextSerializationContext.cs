@@ -129,7 +129,7 @@ internal sealed class HttpContextSerializationContext : SerializationContext
         var headerData = pipeWriter.GetSpan(HeaderSize);
 
         // Compression flag
-        headerData[0] = compress ? (byte)1 : (byte)0;
+        headerData[0] = compress && length > 0 ? (byte)1 : (byte)0;
 
         // Message length
         BinaryPrimitives.WriteUInt32BigEndian(headerData.Slice(1), (uint)length);
@@ -220,13 +220,13 @@ internal sealed class HttpContextSerializationContext : SerializationContext
     private void WriteMessage(ReadOnlySpan<byte> data)
     {
         EnsureMessageSizeAllowed(data.Length);
-
-        if (_compressionProvider != null)
+        bool compress = _compressionProvider != null && data.Length > 0;
+        if (compress)
         {
             data = CompressMessage(data);
         }
 
-        WriteHeader(ResponseBufferWriter, data.Length, compress: _compressionProvider != null);
+        WriteHeader(ResponseBufferWriter, data.Length, compress: compress);
         ResponseBufferWriter.Write(data);
     }
 
