@@ -22,7 +22,7 @@ internal sealed class ThreadSafeLookup<TKey, TValue> where TKey : notnull
 {
     // Avoid allocating ConcurrentDictionary until the threshold is reached.
     // Looking up a key in an array is as fast as a dictionary for small collections and uses much less memory.
-    private const int Threshold = 10;
+    internal const int Threshold = 10;
 
     private KeyValuePair<TKey, TValue>[] _array = Array.Empty<KeyValuePair<TKey, TValue>>();
     private ConcurrentDictionary<TKey, TValue>? _dictionary;
@@ -70,6 +70,8 @@ internal sealed class ThreadSafeLookup<TKey, TValue> where TKey : notnull
         }
         else
         {
+            // Add new value by creating a new array with old plus new value.
+            // This allows for lookups without locks and is more memory efficient than a dictionary.
             var newArray = new KeyValuePair<TKey, TValue>[snapshot.Length + 1];
             Array.Copy(snapshot, newArray, snapshot.Length);
             newArray[newArray.Length - 1] = new KeyValuePair<TKey, TValue>(key, newValue);
