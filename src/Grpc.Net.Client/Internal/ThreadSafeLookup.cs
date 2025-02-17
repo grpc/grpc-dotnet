@@ -45,7 +45,7 @@ internal sealed class ThreadSafeLookup<TKey, TValue> where TKey : notnull
 
         var newValue = valueFactory(key);
 
-        if (snapshot.Length + 1 > Threshold)
+        if (snapshot.Length > Threshold - 1)
         {
             // Lock here to ensure that only one thread will create the initial dictionary.
             lock (this)
