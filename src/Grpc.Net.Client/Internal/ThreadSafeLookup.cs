@@ -45,11 +45,7 @@ internal sealed class ThreadSafeLookup<TKey, TValue> where TKey : notnull
 
         var newValue = valueFactory(key);
 
-<<<<<<< Updated upstream
-        if (snapshot.Length > Threshold - 1)
-=======
         lock (this)
->>>>>>> Stashed changes
         {
             if (_dictionary != null)
             {
