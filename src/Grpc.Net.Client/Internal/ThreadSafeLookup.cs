@@ -59,7 +59,7 @@ internal sealed class ThreadSafeLookup<TKey, TValue> where TKey : notnull
                     return value;
                 }
 
-                if (_array.Length + 1 > Threshold)
+                if (_array.Length > Threshold - 1)
                 {
                     // Array length exceeds threshold so switch to dictionary.
                     var newDict = new ConcurrentDictionary<TKey, TValue>();
