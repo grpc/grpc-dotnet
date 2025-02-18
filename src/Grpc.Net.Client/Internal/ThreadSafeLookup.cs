@@ -27,6 +27,10 @@ internal sealed class ThreadSafeLookup<TKey, TValue> where TKey : notnull
     private KeyValuePair<TKey, TValue>[] _array = Array.Empty<KeyValuePair<TKey, TValue>>();
     private ConcurrentDictionary<TKey, TValue>? _dictionary;
 
+    /// <summary>
+    /// Gets the value for the key if it exists. If the key does not exist then the value is created using the valueFactory.
+    /// The value is created outside of a lock and there is no guarentee which value will be stored or returned.
+    /// </summary>
     public TValue GetOrAdd(TKey key, Func<TKey, TValue> valueFactory)
     {
         if (_dictionary != null)
@@ -34,30 +38,36 @@ internal sealed class ThreadSafeLookup<TKey, TValue> where TKey : notnull
             return _dictionary.GetOrAdd(key, valueFactory);
         }
 
-        var snapshot = _array;
-        foreach (var kvp in snapshot)
+        if (TryGetValue(_array, key, out var value))
         {
-            if (EqualityComparer<TKey>.Default.Equals(kvp.Key, key))
-            {
-                return kvp.Value;
-            }
+            return value;
         }
 
         var newValue = valueFactory(key);
 
+<<<<<<< Updated upstream
         if (snapshot.Length > Threshold - 1)
+=======
+        lock (this)
+>>>>>>> Stashed changes
         {
-            // Lock here to ensure that only one thread will create the initial dictionary.
-            lock (this)
+            if (_dictionary != null)
             {
-                if (_dictionary != null)
+                _dictionary.TryAdd(key, newValue);
+            }
+            else
+            {
+                // Double check inside lock if the key was added to the array by another thread.
+                if (TryGetValue(_array, key, out value))
                 {
-                    _dictionary.TryAdd(key, newValue);
+                    return value;
                 }
-                else
+
+                if (_array.Length + 1 > Threshold)
                 {
+                    // Array length exceeds threshold so switch to dictionary.
                     var newDict = new ConcurrentDictionary<TKey, TValue>();
-                    foreach (var kvp in snapshot)
+                    foreach (var kvp in _array)
                     {
                         newDict.TryAdd(kvp.Key, kvp.Value);
                     }
@@ -66,19 +76,33 @@ internal sealed class ThreadSafeLookup<TKey, TValue> where TKey : notnull
                     _dictionary = newDict;
                     _array = Array.Empty<KeyValuePair<TKey, TValue>>();
                 }
-            }
-        }
-        else
-        {
-            // Add new value by creating a new array with old plus new value.
-            // This allows for lookups without locks and is more memory efficient than a dictionary.
-            var newArray = new KeyValuePair<TKey, TValue>[snapshot.Length + 1];
-            Array.Copy(snapshot, newArray, snapshot.Length);
-            newArray[newArray.Length - 1] = new KeyValuePair<TKey, TValue>(key, newValue);
+                else
+                {
+                    // Add new value by creating a new array with old plus new value.
+                    var newArray = new KeyValuePair<TKey, TValue>[_array.Length + 1];
+                    Array.Copy(_array, newArray, _array.Length);
+                    newArray[newArray.Length - 1] = new KeyValuePair<TKey, TValue>(key, newValue);
 
-            _array = newArray;
+                    _array = newArray;
+                }
+            }
         }
 
         return newValue;
+    }
+
+    private static bool TryGetValue(KeyValuePair<TKey, TValue>[] array, TKey key, out TValue value)
+    {
+        foreach (var kvp in array)
+        {
+            if (EqualityComparer<TKey>.Default.Equals(kvp.Key, key))
+            {
+                value = kvp.Value;
+                return true;
+            }
+        }
+
+        value = default!;
+        return false;
     }
 }
