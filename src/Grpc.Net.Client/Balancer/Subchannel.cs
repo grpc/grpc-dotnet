@@ -237,6 +237,7 @@ public sealed class Subchannel : IDisposable
     /// </summary>
     public void RequestConnection()
     {
+        var connectionRequested = false;
         lock (Lock)
         {
             switch (_state)
@@ -245,7 +246,8 @@ public sealed class Subchannel : IDisposable
                     SubchannelLog.ConnectionRequested(_logger, Id);
 
                     // Only start connecting underlying transport if in an idle state.
-                    UpdateConnectivityState(ConnectivityState.Connecting, "Connection requested.");
+                    // Update connectivity state outside of subchannel lock to avoid deadlock.
+                    connectionRequested = true;
                     break;
                 case ConnectivityState.Connecting:
                 case ConnectivityState.Ready:
@@ -262,6 +264,11 @@ public sealed class Subchannel : IDisposable
                 default:
                     throw new ArgumentOutOfRangeException("state", _state, "Unexpected state.");
             }
+        }
+
+        if (connectionRequested)
+        {
+            UpdateConnectivityState(ConnectivityState.Connecting, "Connection requested.");
         }
 
         // Don't capture the current ExecutionContext and its AsyncLocals onto the connect
@@ -448,6 +455,8 @@ public sealed class Subchannel : IDisposable
 
     internal bool UpdateConnectivityState(ConnectivityState state, Status status)
     {
+        Debug.Assert(!Monitor.IsEntered(Lock), "Ensure the subchannel lock isn't held here. Updating channel state with the subchannel lock can cause a deadlock.");
+
         lock (Lock)
         {
             // Don't update subchannel state if the state is the same or the subchannel has been shutdown.
@@ -462,7 +471,7 @@ public sealed class Subchannel : IDisposable
             }
             _state = state;
         }
-        
+
         // Notify channel outside of lock to avoid deadlocks.
         _manager.OnSubchannelStateChange(this, state, status);
         return true;
