@@ -17,6 +17,7 @@
 #endregion
 
 #if SUPPORT_LOAD_BALANCING
+using System.Diagnostics;
 using System.Net;
 using System.Threading.Channels;
 using Greet;
@@ -29,6 +30,7 @@ using Grpc.Net.Client.Tests.Infrastructure.Balancer;
 using Grpc.Tests.Shared;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Logging.Testing;
 using NUnit.Framework;
 using ChannelState = Grpc.Net.Client.Balancer.ChannelState;
@@ -533,6 +535,89 @@ public class ClientChannelTests
         // Assert
         // Should not timeout (deadlock)
         await pickTask.DefaultTimeout();
+    }
+
+    [Test]
+    public async Task PickAsync_UpdateAddressesWhileRequestingConnection_DoesNotDeadlock()
+    {
+        var services = new ServiceCollection();
+        services.AddNUnitLogger();
+
+        var testSink = new TestSink();
+        var testProvider = new TestLoggerProvider(testSink);
+
+        services.AddLogging(b =>
+        {
+            b.AddProvider(testProvider);
+        });
+
+        await using var serviceProvider = services.BuildServiceProvider();
+        var loggerFactory = serviceProvider.GetRequiredService<ILoggerFactory>();
+
+        var resolver = new TestResolver(loggerFactory);
+        resolver.UpdateAddresses(new List<BalancerAddress>
+        {
+            new BalancerAddress("localhost", 80)
+        });
+
+        var channelOptions = new GrpcChannelOptions();
+
+        var transportFactory = new TestSubchannelTransportFactory();
+        var clientChannel = CreateConnectionManager(loggerFactory, resolver, transportFactory, new[] { new PickFirstBalancerFactory() });
+        // Configure balancer similar to how GrpcChannel constructor does it
+        clientChannel.ConfigureBalancer(c => new ChildHandlerLoadBalancer(
+            c,
+            channelOptions.ServiceConfig,
+            clientChannel));
+
+        await clientChannel.ConnectAsync(waitForReady: true, cancellationToken: CancellationToken.None);
+
+        transportFactory.Transports.ForEach(t => t.Disconnect());
+
+        var requestConnectionSyncPoint = new SyncPoint(runContinuationsAsynchronously: true);
+        testSink.MessageLogged += (w) =>
+        {
+            if (w.EventId.Name == "ConnectionRequested")
+            {
+                requestConnectionSyncPoint.WaitToContinue().Wait();
+            }
+        };
+
+        // Task should pause when requesting connection because of the logger sink.
+        var pickTask = Task.Run(() => clientChannel.PickAsync(
+            new PickContext { Request = new HttpRequestMessage() },
+            waitForReady: true,
+            CancellationToken.None).AsTask());
+
+        // Wait until we're paused on requesting a connection.
+        await requestConnectionSyncPoint.WaitForSyncPoint().DefaultTimeout();
+
+        // Update addresses while requesting a connection.
+        var updateAddressesTcs = new TaskCompletionSource<object?>(TaskCreationOptions.RunContinuationsAsynchronously);
+        var updateAddressesTask = Task.Run(() =>
+        {
+            updateAddressesTcs.TrySetResult(null);
+            resolver.UpdateAddresses(new List<BalancerAddress>
+            {
+                new BalancerAddress("localhost", 81)
+            });
+        });
+
+        // There isn't a clean way to wait for UpdateAddresses to be waiting for the subchannel lock.
+        // Use a long delay to ensure we're waiting for the lock and are in the right state.
+        await updateAddressesTcs.Task.DefaultTimeout();
+        await Task.Delay(500);
+        requestConnectionSyncPoint.Continue();
+
+        // Ensure the pick completes without deadlock.
+        try
+        {
+            await pickTask.DefaultTimeout();
+        }
+        catch (TimeoutException ex)
+        {
+            throw new InvalidOperationException("Likely deadlock when picking subchannel.", ex);
+        }
     }
 
     [Test]
