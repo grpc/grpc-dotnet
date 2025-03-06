@@ -32,6 +32,7 @@ namespace Grpc.Tests.Shared;
 
 internal class TestResolver : PollingResolver
 {
+    private readonly object _lock;
     private readonly Func<Task>? _onRefreshAsync;
     private readonly TaskCompletionSource<object?> _hasResolvedTcs;
     private readonly ILogger _logger;
@@ -45,6 +46,7 @@ internal class TestResolver : PollingResolver
 
     public TestResolver(ILoggerFactory? loggerFactory = null, Func<Task>? onRefreshAsync = null) : base(loggerFactory ?? NullLoggerFactory.Instance)
     {
+        _lock = new object();
         _onRefreshAsync = onRefreshAsync;
         _hasResolvedTcs = new TaskCompletionSource<object?>(TaskCreationOptions.RunContinuationsAsynchronously);
         _logger = (ILogger?)loggerFactory?.CreateLogger<TestResolver>() ?? NullLogger.Instance;
@@ -64,8 +66,11 @@ internal class TestResolver : PollingResolver
 
     public void UpdateResult(ResolverResult result)
     {
-        _result = result;
-        Listener?.Invoke(result);
+        lock (_lock)
+        {
+            _result = result;
+            Listener?.Invoke(result);
+        }
     }
 
     protected override async Task ResolveAsync(CancellationToken cancellationToken)
@@ -75,7 +80,10 @@ internal class TestResolver : PollingResolver
             await _onRefreshAsync();
         }
 
-        Listener(_result ?? ResolverResult.ForResult(Array.Empty<BalancerAddress>(), serviceConfig: null, serviceConfigStatus: null));
+        lock (_lock)
+        {
+            Listener(_result ?? ResolverResult.ForResult(Array.Empty<BalancerAddress>(), serviceConfig: null, serviceConfigStatus: null));
+        }
         _hasResolvedTcs.TrySetResult(null);
     }
 }
