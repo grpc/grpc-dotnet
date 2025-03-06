@@ -1,4 +1,4 @@
-﻿#region Copyright notice and license
+#region Copyright notice and license
 
 // Copyright 2019 The gRPC Authors
 //
@@ -29,6 +29,7 @@ using Grpc.Net.Client.Tests.Infrastructure;
 using Grpc.Net.Client.Tests.Infrastructure.Balancer;
 using Grpc.Tests.Shared;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 using NUnit.Framework;
 
 namespace Grpc.Net.Client.Tests.Balancer;
@@ -52,11 +53,13 @@ public class ConnectivityStateTests
         });
 
         var services = new ServiceCollection();
+        services.AddNUnitLogger();
         services.AddSingleton<TestResolver>();
         services.AddSingleton<ResolverFactory, TestResolverFactory>();
         services.AddSingleton<ISubchannelTransportFactory>(new TestSubchannelTransportFactory());
         var serviceProvider = services.BuildServiceProvider();
 
+        var logger = serviceProvider.GetRequiredService<ILogger<ConnectivityStateTests>>();
         var invoker = HttpClientCallInvokerFactory.Create(testMessageHandler, "test:///localhost", configure: o =>
         {
             o.Credentials = ChannelCredentials.Insecure;
@@ -72,6 +75,8 @@ public class ConnectivityStateTests
         Assert.IsNull(authority);
 
         var resolver = serviceProvider.GetRequiredService<TestResolver>();
+
+        logger.LogInformation("UpdateAddresses");
         resolver.UpdateAddresses(new List<BalancerAddress>
         {
             new BalancerAddress("localhost", 81)
