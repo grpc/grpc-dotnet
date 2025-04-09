@@ -47,6 +47,7 @@
     <PackageVersion Include="Grpc.HealthCheck" Version="$(GrpcDotNetPackageVersion)" />
     <PackageVersion Include="Grpc.AspNetCore.HealthChecks" Version="$(GrpcDotNetPackageVersion)" />
     <PackageVersion Include="Grpc.Auth" Version="$(GrpcDotNetPackageVersion)" />
+    <PackageVersion Include="Grpc.StatusProto" Version="$(GrpcDotNetPackageVersion)" />
 
     <!-- OpenTelemetry -->
     <PackageVersion Include="OpenTelemetry" Version="$(OpenTelemetryPackageVersion)" />
