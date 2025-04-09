@@ -621,6 +621,128 @@ public class ClientChannelTests
     }
 
     [Test]
+    public async Task PickAsync_MultipleRequestsRequestConnect_SingleConnectAttempt()
+    {
+        var services = new ServiceCollection();
+        services.AddNUnitLogger();
+
+        var testSink = new TestSink();
+        var testProvider = new TestLoggerProvider(testSink);
+
+        services.AddLogging(b =>
+        {
+            b.AddProvider(testProvider);
+        });
+
+        await using var serviceProvider = services.BuildServiceProvider();
+        var loggerFactory = serviceProvider.GetRequiredService<ILoggerFactory>();
+        var logger = loggerFactory.CreateLogger(nameof(PickAsync_MultipleRequestsRequestConnect_SingleConnectAttempt));
+
+        var requestConnectionChannel = Channel.CreateUnbounded<SyncPoint>();
+        var requestConnectionSyncPoint1 = new SyncPoint(runContinuationsAsynchronously: true);
+        var requestConnectionSyncPoint2 = new SyncPoint(runContinuationsAsynchronously: true);
+        requestConnectionChannel.Writer.TryWrite(requestConnectionSyncPoint1);
+        requestConnectionChannel.Writer.TryWrite(requestConnectionSyncPoint2);
+
+        var connectingSyncPoint = new SyncPoint(runContinuationsAsynchronously: true);
+
+        var resolver = new TestResolver(loggerFactory);
+        resolver.UpdateAddresses(new List<BalancerAddress>
+        {
+            new BalancerAddress("localhost", 80)
+        });
+
+        var channelOptions = new GrpcChannelOptions();
+        var acting = false;
+        var transportFactory = TestSubchannelTransportFactory.Create(async (subChannel, attempt, cancellationToken) =>
+        {
+            cancellationToken.Register(() =>
+            {
+                logger.LogError("Connect cancellation token canceled.");
+            });
+
+            if (!acting)
+            {
+                return new TryConnectResult(ConnectivityState.Ready);
+            }
+
+            await connectingSyncPoint.WaitToContinue().WaitAsync(cancellationToken);
+
+            Assert.IsFalse(cancellationToken.IsCancellationRequested, "Cancellation token should not be canceled.");
+
+            return new TryConnectResult(ConnectivityState.Ready);
+        });
+        var clientChannel = CreateConnectionManager(loggerFactory, resolver, transportFactory, new[] { new PickFirstBalancerFactory() });
+        // Configure balancer similar to how GrpcChannel constructor does it
+        clientChannel.ConfigureBalancer(c => new ChildHandlerLoadBalancer(
+            c,
+            channelOptions.ServiceConfig,
+            clientChannel));
+
+        await clientChannel.ConnectAsync(waitForReady: true, cancellationToken: CancellationToken.None);
+
+        transportFactory.Transports.ForEach(t => t.Disconnect());
+
+        testSink.MessageLogged += (w) =>
+        {
+            if (w.EventId.Name == "StartingConnectionRequest")
+            {
+                if (!requestConnectionChannel.Reader.TryRead(out var syncPoint))
+                {
+                    throw new InvalidOperationException("Channel should have sync point.");
+                }
+                syncPoint.WaitToContinue().Wait();
+            }
+        };
+
+        acting = true;
+
+        logger.LogInformation("Start first pick.");
+        var pickTask1 = Task.Run(() => clientChannel.PickAsync(
+            new PickContext { Request = new HttpRequestMessage() },
+            waitForReady: true,
+            CancellationToken.None).AsTask());
+
+        logger.LogInformation("Wait for first pick to request connection.");
+        await requestConnectionSyncPoint1.WaitForSyncPoint().DefaultTimeout();
+
+        logger.LogInformation("Start second pick.");
+        var pickTask2 = Task.Run(() => clientChannel.PickAsync(
+            new PickContext { Request = new HttpRequestMessage() },
+            waitForReady: true,
+            CancellationToken.None).AsTask());
+
+        logger.LogInformation("Wait for second pick to request connection.");
+        await requestConnectionSyncPoint2.WaitForSyncPoint().DefaultTimeout();
+
+        logger.LogInformation("Allow first pick to start connecting.");
+        requestConnectionSyncPoint1.Continue();
+        await connectingSyncPoint.WaitForSyncPoint();
+
+        var connectionRequestedInNonIdleStateTcs = new TaskCompletionSource<object?>(TaskCreationOptions.RunContinuationsAsynchronously);
+        testSink.MessageLogged += (w) =>
+        {
+            if (w.EventId.Name == "ConnectionRequestedInNonIdleState")
+            {
+                connectionRequestedInNonIdleStateTcs.TrySetResult(null);
+            }
+        };
+
+        logger.LogInformation("Allow second pick to wait for connecting to complete.");
+        requestConnectionSyncPoint2.Continue();
+
+        logger.LogInformation("Wait for second pick to report that there is already a connection requested.");
+        await connectionRequestedInNonIdleStateTcs.Task.DefaultTimeout();
+
+        logger.LogInformation("Allow first pick connecting to complete.");
+        connectingSyncPoint.Continue();
+
+        logger.LogInformation("Wait for both picks to complete successfully.");
+        await pickTask1.DefaultTimeout();
+        await pickTask2.DefaultTimeout();
+    }
+
+    [Test]
     public async Task PickAsync_ExecutionContext_DoesNotCaptureAsyncLocalsInConnect()
     {
         // Arrange
