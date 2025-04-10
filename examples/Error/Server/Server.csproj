@@ -7,14 +7,8 @@
   <ItemGroup>
     <Protobuf Include="..\Proto\greet.proto" GrpcServices="Server" Link="Protos\greet.proto" />
 
-    <PackageReference Include="Google.Protobuf" VersionOverride="3.25.0" />
-    <PackageReference Include="Grpc.Tools" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <!-- Project references required until Grpc.StatusProto is on nuget.org -->
-    <ProjectReference Include="..\..\..\src\Grpc.AspNetCore.Server\Grpc.AspNetCore.Server.csproj" />
-    <ProjectReference Include="..\..\..\src\Grpc.StatusProto\Grpc.StatusProto.csproj" />
+    <PackageReference Include="Grpc.StatusProto" />
+    <PackageReference Include="Grpc.AspNetCore" />
   </ItemGroup>
 
 </Project>
