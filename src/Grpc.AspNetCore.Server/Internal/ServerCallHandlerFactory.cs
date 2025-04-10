@@ -28,10 +28,138 @@ using Log = Grpc.AspNetCore.Server.Internal.ServerCallHandlerFactoryLog;
 
 namespace Grpc.AspNetCore.Server.Internal;
 
+internal interface IServerCallHandlerFactory
+{
+    bool IgnoreUnknownServices { get; }
+    bool IgnoreUnknownMethods { get; }
+    RequestDelegate CreateUnimplementedMethod();
+    RequestDelegate CreateUnimplementedService();
+}
+
+/// <summary>
+/// Creates server call handlers for <see cref="Grpc.Core.ServerServiceDefinition"/>. Provides a place to get services that call handlers will use.
+/// </summary>
+internal partial class ServerCallHandlerFactory : IServerCallHandlerFactory
+{
+    private readonly ILoggerFactory _loggerFactory;
+    private readonly GrpcServiceOptions _globalOptions;
+
+    public ServerCallHandlerFactory(
+        ILoggerFactory loggerFactory,
+        IOptions<GrpcServiceOptions> globalOptions)
+    {
+        _loggerFactory = loggerFactory;
+        _globalOptions = globalOptions.Value;
+    }
+
+    // Internal for testing
+    internal MethodOptions CreateMethodOptions()
+    {
+        return MethodOptions.Create(new[] { _globalOptions });
+    }
+
+    public UnaryServerCallHandler<TRequest, TResponse> CreateUnary<TRequest, TResponse>(Method<TRequest, TResponse> method, UnaryServerMethod<TRequest, TResponse> invoker)
+        where TRequest : class
+        where TResponse : class
+    {
+        var options = CreateMethodOptions();
+        var methodInvoker = new UnaryServerMethodInvoker<TRequest, TResponse>(invoker, method, options);
+
+        return new UnaryServerCallHandler<TRequest, TResponse>(methodInvoker, _loggerFactory);
+    }
+
+    public ClientStreamingServerCallHandler<TRequest, TResponse> CreateClientStreaming<TRequest, TResponse>(Method<TRequest, TResponse> method, ClientStreamingServerMethod<TRequest, TResponse> invoker)
+        where TRequest : class
+        where TResponse : class
+    {
+        var options = CreateMethodOptions();
+        var methodInvoker = new ClientStreamingServerMethodInvoker<TRequest, TResponse>(invoker, method, options);
+
+        return new ClientStreamingServerCallHandler<TRequest, TResponse>(methodInvoker, _loggerFactory);
+    }
+
+    public DuplexStreamingServerCallHandler<TRequest, TResponse> CreateDuplexStreaming<TRequest, TResponse>(Method<TRequest, TResponse> method, DuplexStreamingServerMethod<TRequest, TResponse> invoker)
+        where TRequest : class
+        where TResponse : class
+    {
+        var options = CreateMethodOptions();
+        var methodInvoker = new DuplexStreamingServerMethodInvoker<TRequest, TResponse>(invoker, method, options);
+
+        return new DuplexStreamingServerCallHandler<TRequest, TResponse>(methodInvoker, _loggerFactory);
+    }
+
+    public ServerStreamingServerCallHandler<TRequest, TResponse> CreateServerStreaming<TRequest, TResponse>(Method<TRequest, TResponse> method, ServerStreamingServerMethod<TRequest, TResponse> invoker)
+        where TRequest : class
+        where TResponse : class
+    {
+        var options = CreateMethodOptions();
+        var methodInvoker = new ServerStreamingServerMethodInvoker<TRequest, TResponse>(invoker, method, options);
+
+        return new ServerStreamingServerCallHandler<TRequest, TResponse>(methodInvoker, _loggerFactory);
+    }
+
+    public RequestDelegate CreateUnimplementedMethod()
+    {
+        var logger = _loggerFactory.CreateLogger<ServerCallHandlerFactory>();
+
+        return httpContext =>
+        {
+            // CORS preflight request should be handled by CORS middleware.
+            // If it isn't then return 404 from endpoint request delegate.
+            if (GrpcProtocolHelpers.IsCorsPreflightRequest(httpContext))
+            {
+                httpContext.Response.StatusCode = StatusCodes.Status404NotFound;
+                return Task.CompletedTask;
+            }
+
+            GrpcProtocolHelpers.AddProtocolHeaders(httpContext.Response);
+
+            var unimplementedMethod = httpContext.Request.RouteValues["unimplementedMethod"]?.ToString() ?? "<unknown>";
+            Log.MethodUnimplemented(logger, unimplementedMethod);
+            if (GrpcEventSource.Log.IsEnabled())
+            {
+                GrpcEventSource.Log.CallUnimplemented(httpContext.Request.Path.Value!);
+            }
+            GrpcProtocolHelpers.SetStatus(GrpcProtocolHelpers.GetTrailersDestination(httpContext.Response), new Status(StatusCode.Unimplemented, "Method is unimplemented."));
+            return Task.CompletedTask;
+        };
+    }
+
+    public bool IgnoreUnknownServices => _globalOptions.IgnoreUnknownServices ?? false;
+    public bool IgnoreUnknownMethods => false;
+
+    public RequestDelegate CreateUnimplementedService()
+    {
+        var logger = _loggerFactory.CreateLogger<ServerCallHandlerFactory>();
+
+        return httpContext =>
+        {
+            // CORS preflight request should be handled by CORS middleware.
+            // If it isn't then return 404 from endpoint request delegate.
+            if (GrpcProtocolHelpers.IsCorsPreflightRequest(httpContext))
+            {
+                httpContext.Response.StatusCode = StatusCodes.Status404NotFound;
+                return Task.CompletedTask;
+            }
+
+            GrpcProtocolHelpers.AddProtocolHeaders(httpContext.Response);
+
+            var unimplementedService = httpContext.Request.RouteValues["unimplementedService"]?.ToString() ?? "<unknown>";
+            Log.ServiceUnimplemented(logger, unimplementedService);
+            if (GrpcEventSource.Log.IsEnabled())
+            {
+                GrpcEventSource.Log.CallUnimplemented(httpContext.Request.Path.Value!);
+            }
+            GrpcProtocolHelpers.SetStatus(GrpcProtocolHelpers.GetTrailersDestination(httpContext.Response), new Status(StatusCode.Unimplemented, "Service is unimplemented."));
+            return Task.CompletedTask;
+        };
+    }
+}
+
 /// <summary>
 /// Creates server call handlers. Provides a place to get services that call handlers will use.
 /// </summary>
-internal sealed partial class ServerCallHandlerFactory<[DynamicallyAccessedMembers(GrpcProtocolConstants.ServiceAccessibility)] TService> where TService : class
+internal sealed partial class ServerCallHandlerFactory<[DynamicallyAccessedMembers(GrpcProtocolConstants.ServiceAccessibility)] TService> : IServerCallHandlerFactory where TService : class
 {
     private readonly ILoggerFactory _loggerFactory;
     private readonly IGrpcServiceActivator<TService> _serviceActivator;
