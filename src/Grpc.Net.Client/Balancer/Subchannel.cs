@@ -266,10 +266,10 @@ public sealed class Subchannel : IDisposable
             }
         }
 
-        if (connectionRequested)
-        {
-            UpdateConnectivityState(ConnectivityState.Connecting, "Connection requested.");
-        }
+        Debug.Assert(connectionRequested, "Ensure that only expected state made it to this point.");
+
+        SubchannelLog.StartingConnectionRequest(_logger, Id);
+        UpdateConnectivityState(ConnectivityState.Connecting, "Connection requested.");
 
         // Don't capture the current ExecutionContext and its AsyncLocals onto the connect
         var restoreFlow = false;
@@ -324,6 +324,15 @@ public sealed class Subchannel : IDisposable
             // Don't start connecting if the subchannel has been shutdown. Transport/semaphore will be disposed if shutdown.
             if (_state == ConnectivityState.Shutdown)
             {
+                return;
+            }
+
+            // There is already a connect in-progress on this transport.
+            // Don't cancel and start again as that causes queued requests waiting on the connect to fail.
+            if (_connectContext != null && !_connectContext.Disposed)
+            {
+                SubchannelLog.ConnectionRequestedInNonIdleState(_logger, Id, _state);
+                _delayInterruptTcs?.TrySetResult(null);
                 return;
             }
 
@@ -633,7 +642,11 @@ internal static partial class SubchannelLog
             AddressesUpdated(logger, subchannelId, addressesText);
         }
     }
+
     [LoggerMessage(Level = LogLevel.Debug, EventId = 20, EventName = "QueuingConnect", Message = "Subchannel id '{SubchannelId}' queuing connect because a connect is already in progress.")]
     public static partial void QueuingConnect(ILogger logger, string subchannelId);
+
+    [LoggerMessage(Level = LogLevel.Trace, EventId = 21, EventName = "StartingConnectionRequest", Message = "Subchannel id '{SubchannelId}' starting connection request.")]
+    public static partial void StartingConnectionRequest(ILogger logger, string subchannelId);
 }
 #endif
