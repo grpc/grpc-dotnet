@@ -29,7 +29,8 @@ The preceding code:
 * **GrpcWebMode**: An enumeration type that specifies whether the gRPC HTTP request `Content-Type` is `application/grpc-web` or `application/grpc-web-text`.
     * `GrpcWebMode.GrpcWeb` configures content to be sent without encoding. Default value.
     * `GrpcWebMode.GrpcWebText` configures content to be base64 encoded. Required for server streaming calls in browsers.
-* **HttpVersion**: HTTP protocol `Version` used to set [`HttpRequestMessage.Version`](https://docs.microsoft.com/dotnet/api/system.net.http.httprequestmessage.version#system-net-http-httprequestmessage-version) on the underlying gRPC HTTP request. gRPC-Web doesn't require a specific version and doesn't override the default unless specified.
+
+`GrpcChannelOptions.HttpVersion` and `GrpcChannelOptions.HttpVersionPolicy` can be used to configure the HTTP protocol version.
 
 ### gRPC-Web and streaming
 
