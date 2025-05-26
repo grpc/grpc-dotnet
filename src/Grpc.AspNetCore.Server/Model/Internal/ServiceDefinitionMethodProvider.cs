@@ -20,6 +20,7 @@ using System.Diagnostics.CodeAnalysis;
 using Grpc.AspNetCore.Server.Internal;
 using Grpc.Core;
 using Grpc.Shared;
+using Microsoft.AspNetCore.Routing;
 using Microsoft.Extensions.Logging;
 
 namespace Grpc.AspNetCore.Server.Model.Internal;
@@ -54,25 +55,37 @@ internal sealed class ServiceDefinitionMethodProvider<[DynamicallyAccessedMember
         public override void AddMethod<TRequest, TResponse>(Method<TRequest, TResponse> method, UnaryServerMethod<TRequest, TResponse>? handler)
         {
             ArgumentNullThrowHelper.ThrowIfNull(handler, nameof(handler));
-            _context.AddUnaryMethod(method, new List<object>(), (service, request, context) => handler(request, context));
+            _context.AddUnaryMethod(method, CreateMetadata(), (service, request, context) => handler(request, context));
         }
 
         public override void AddMethod<TRequest, TResponse>(Method<TRequest, TResponse> method, DuplexStreamingServerMethod<TRequest, TResponse>? handler)
         {
             ArgumentNullThrowHelper.ThrowIfNull(handler, nameof(handler));
-            _context.AddDuplexStreamingMethod(method, new List<object>(), (service, request, response, context) => handler(request, response, context));
+            _context.AddDuplexStreamingMethod(method, CreateMetadata(), (service, request, response, context) => handler(request, response, context));
         }
 
         public override void AddMethod<TRequest, TResponse>(Method<TRequest, TResponse> method, ServerStreamingServerMethod<TRequest, TResponse>? handler)
         {
             ArgumentNullThrowHelper.ThrowIfNull(handler, nameof(handler));
-            _context.AddServerStreamingMethod(method, new List<object>(), (service, request, response, context) => handler(request, response, context));
+            _context.AddServerStreamingMethod(method, CreateMetadata(), (service, request, response, context) => handler(request, response, context));
         }
 
         public override void AddMethod<TRequest, TResponse>(Method<TRequest, TResponse> method, ClientStreamingServerMethod<TRequest, TResponse>? handler)
         {
             ArgumentNullThrowHelper.ThrowIfNull(handler, nameof(handler));
-            _context.AddClientStreamingMethod(method, new List<object>(), (service, request, context) => handler(request, context));
+            _context.AddClientStreamingMethod(method, CreateMetadata(), (service, request, context) => handler(request, context));
+        }
+
+        private static List<object> CreateMetadata()
+        {
+            // Accepting CORS preflight means gRPC will allow requests with OPTIONS + preflight headers.
+            // If CORS middleware hasn't been configured then the request will reach gRPC handler.
+            // gRPC will return 405 response and log that CORS has not been configured.
+            var metadata = new List<object>
+            {
+                new HttpMethodMetadata(new[] { "POST" }, acceptCorsPreflight: true)
+            };
+            return metadata;
         }
     }
 }

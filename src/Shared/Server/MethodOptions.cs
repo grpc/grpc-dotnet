@@ -121,6 +121,7 @@ internal sealed class MethodOptions
         bool? enableDetailedErrors = null;
         string? responseCompressionAlgorithm = null;
         CompressionLevel? responseCompressionLevel = null;
+        bool? suppressCreatingService = null;
 
         foreach (var options in serviceOptions.Reverse())
         {
@@ -139,6 +140,7 @@ internal sealed class MethodOptions
             enableDetailedErrors ??= options.EnableDetailedErrors;
             responseCompressionAlgorithm ??= options.ResponseCompressionAlgorithm;
             responseCompressionLevel ??= options.ResponseCompressionLevel;
+            suppressCreatingService ??= options.SuppressCreatingService;
         }
 
         var interceptors = new InterceptorCollection();
@@ -153,7 +155,7 @@ internal sealed class MethodOptions
             enableDetailedErrors: enableDetailedErrors,
             responseCompressionAlgorithm: responseCompressionAlgorithm,
             responseCompressionLevel: responseCompressionLevel,
-            suppressCreatingService: true
+            suppressCreatingService: suppressCreatingService ?? false
         );
     }
 

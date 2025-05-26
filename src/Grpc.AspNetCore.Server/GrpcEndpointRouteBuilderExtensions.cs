@@ -17,6 +17,7 @@
 #endregion
 
 using System.Diagnostics.CodeAnalysis;
+using Grpc.AspNetCore.Server;
 using Grpc.AspNetCore.Server.Internal;
 using Grpc.AspNetCore.Server.Model.Internal;
 using Grpc.Core;
@@ -31,10 +32,6 @@ namespace Microsoft.AspNetCore.Builder;
 /// </summary>
 public static class GrpcEndpointRouteBuilderExtensions
 {
-    private sealed class ServerServiceDefinitionDummyService
-    {
-    }
-
     /// <summary>
     /// Maps incoming requests to the specified <typeparamref name="TService"/> type.
     /// </summary>
@@ -65,10 +62,7 @@ public static class GrpcEndpointRouteBuilderExtensions
         ArgumentNullException.ThrowIfNull(builder, nameof(builder));
         ArgumentNullException.ThrowIfNull(serviceDefinition, nameof(serviceDefinition));
 
-        var serviceMethodsRegistry = builder.ServiceProvider.GetRequiredService<ServiceMethodsRegistry>();
-        serviceMethodsRegistry.ServiceDefinitions.Add(serviceDefinition);
-
-        var serviceRouteBuilder = builder.ServiceProvider.GetRequiredService<ServiceRouteBuilder<ServerServiceDefinitionDummyService>>();
+        var serviceRouteBuilder = builder.ServiceProvider.GetRequiredService<ServiceRouteBuilder<ServerServiceDefinitionMarker>>();
         var endpointConventionBuilders = serviceRouteBuilder.Build(builder, serviceDefinition);
 
         return new GrpcServiceEndpointConventionBuilder(endpointConventionBuilders);
@@ -88,10 +82,7 @@ public static class GrpcEndpointRouteBuilderExtensions
 
         var serviceDefinition = getServiceDefinition(builder.ServiceProvider);
 
-        var serviceMethodsRegistry = builder.ServiceProvider.GetRequiredService<ServiceMethodsRegistry>();
-        serviceMethodsRegistry.ServiceDefinitions.Add(serviceDefinition);
-
-        var serviceRouteBuilder = builder.ServiceProvider.GetRequiredService<ServiceRouteBuilder<ServerServiceDefinitionDummyService>>();
+        var serviceRouteBuilder = builder.ServiceProvider.GetRequiredService<ServiceRouteBuilder<ServerServiceDefinitionMarker>>();
         var endpointConventionBuilders = serviceRouteBuilder.Build(builder, serviceDefinition);
 
         return new GrpcServiceEndpointConventionBuilder(endpointConventionBuilders);

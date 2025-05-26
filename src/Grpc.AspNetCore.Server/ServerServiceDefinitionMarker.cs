@@ -16,12 +16,8 @@
 
 #endregion
 
-namespace Grpc.AspNetCore.Server.Model.Internal;
+namespace Grpc.AspNetCore.Server;
 
-/// <summary>
-/// A registry of all the service methods in the application.
-/// </summary>
-internal sealed class ServiceMethodsRegistry
+internal sealed class ServerServiceDefinitionMarker
 {
-    public List<MethodModel> Methods { get; } = new List<MethodModel>();
 }
