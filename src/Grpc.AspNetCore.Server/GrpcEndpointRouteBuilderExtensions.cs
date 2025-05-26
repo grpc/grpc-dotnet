@@ -31,6 +31,10 @@ namespace Microsoft.AspNetCore.Builder;
 /// </summary>
 public static class GrpcEndpointRouteBuilderExtensions
 {
+    private sealed class ServerServiceDefinitionDummyService
+    {
+    }
+
     /// <summary>
     /// Maps incoming requests to the specified <typeparamref name="TService"/> type.
     /// </summary>
@@ -44,7 +48,7 @@ public static class GrpcEndpointRouteBuilderExtensions
         ValidateServicesRegistered(builder.ServiceProvider);
 
         var serviceRouteBuilder = builder.ServiceProvider.GetRequiredService<ServiceRouteBuilder<TService>>();
-        var endpointConventionBuilders = serviceRouteBuilder.Build(builder);
+        var endpointConventionBuilders = serviceRouteBuilder.Build(builder, argument: null);
 
         return new GrpcServiceEndpointConventionBuilder(endpointConventionBuilders);
     }
@@ -61,7 +65,10 @@ public static class GrpcEndpointRouteBuilderExtensions
         ArgumentNullException.ThrowIfNull(builder, nameof(builder));
         ArgumentNullException.ThrowIfNull(serviceDefinition, nameof(serviceDefinition));
 
-        var serviceRouteBuilder = builder.ServiceProvider.GetRequiredService<ServiceRouteBuilder>();
+        var serviceMethodsRegistry = builder.ServiceProvider.GetRequiredService<ServiceMethodsRegistry>();
+        serviceMethodsRegistry.ServiceDefinitions.Add(serviceDefinition);
+
+        var serviceRouteBuilder = builder.ServiceProvider.GetRequiredService<ServiceRouteBuilder<ServerServiceDefinitionDummyService>>();
         var endpointConventionBuilders = serviceRouteBuilder.Build(builder, serviceDefinition);
 
         return new GrpcServiceEndpointConventionBuilder(endpointConventionBuilders);
@@ -80,7 +87,11 @@ public static class GrpcEndpointRouteBuilderExtensions
         ArgumentNullException.ThrowIfNull(getServiceDefinition, nameof(getServiceDefinition));
 
         var serviceDefinition = getServiceDefinition(builder.ServiceProvider);
-        var serviceRouteBuilder = builder.ServiceProvider.GetRequiredService<ServiceRouteBuilder>();
+
+        var serviceMethodsRegistry = builder.ServiceProvider.GetRequiredService<ServiceMethodsRegistry>();
+        serviceMethodsRegistry.ServiceDefinitions.Add(serviceDefinition);
+
+        var serviceRouteBuilder = builder.ServiceProvider.GetRequiredService<ServiceRouteBuilder<ServerServiceDefinitionDummyService>>();
         var endpointConventionBuilders = serviceRouteBuilder.Build(builder, serviceDefinition);
 
         return new GrpcServiceEndpointConventionBuilder(endpointConventionBuilders);

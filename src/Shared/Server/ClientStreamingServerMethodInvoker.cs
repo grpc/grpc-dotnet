@@ -26,52 +26,6 @@ using Microsoft.AspNetCore.Http;
 namespace Grpc.Shared.Server;
 
 /// <summary>
-/// Client streaming server method invoker for <see cref="Grpc.Core.ServerServiceDefinition"/>.
-/// </summary>
-/// <typeparam name="TRequest">Request message type for this method.</typeparam>
-/// <typeparam name="TResponse">Response message type for this method.</typeparam>
-internal sealed class ClientStreamingServerMethodInvoker<TRequest, TResponse> : ServerMethodInvokerBase<TRequest, TResponse>
-    where TRequest : class
-    where TResponse : class
-{
-    private readonly ClientStreamingServerMethod<TRequest, TResponse> _invoker;
-
-    /// <summary>
-    /// Creates a new instance of <see cref="ClientStreamingServerMethodInvoker{TRequest, TResponse}"/>.
-    /// </summary>
-    /// <param name="invoker">The client streaming method to invoke.</param>
-    /// <param name="method">The description of the gRPC method.</param>
-    /// <param name="options">The options used to execute the method.</param>
-    public ClientStreamingServerMethodInvoker(
-        ClientStreamingServerMethod<TRequest, TResponse> invoker,
-        Method<TRequest, TResponse> method,
-        MethodOptions options)
-        : base(method, options)
-    {
-        _invoker = invoker;
-
-        if (Options.HasInterceptors)
-        {
-            var interceptorPipeline = new InterceptorPipelineBuilder<TRequest, TResponse>(Options.Interceptors);
-            _invoker = interceptorPipeline.ClientStreamingPipeline(_invoker);
-        }
-    }
-
-    /// <summary>
-    /// Invoke the client streaming method with the specified <see cref="HttpContext"/>.
-    /// </summary>
-    /// <param name="_">The <see cref="HttpContext"/> for the current request.</param>
-    /// <param name="serverCallContext">The <see cref="ServerCallContext"/>.</param>
-    /// <param name="requestStream">The <typeparamref name="TRequest"/> reader.</param>
-    /// <returns>A <see cref="Task{TResponse}"/> that represents the asynchronous method. The <see cref="Task{TResponse}.Result"/>
-    /// property returns the <typeparamref name="TResponse"/> message.</returns>
-    public async Task<TResponse> Invoke(HttpContext _, ServerCallContext serverCallContext, IAsyncStreamReader<TRequest> requestStream)
-    {
-        return await _invoker(requestStream, serverCallContext);
-    }
-}
-
-/// <summary>
 /// Client streaming server method invoker.
 /// </summary>
 /// <typeparam name="TService">Service type for this method.</typeparam>
@@ -113,7 +67,7 @@ internal sealed class ClientStreamingServerMethodInvoker<[DynamicallyAccessedMem
         GrpcActivatorHandle<TService> serviceHandle = default;
         try
         {
-            serviceHandle = ServiceActivator.Create(resolvedContext.GetHttpContext().RequestServices);
+            serviceHandle = CreateServiceHandle(resolvedContext);
             return await _invoker(
                 serviceHandle.Instance,
                 requestStream,
@@ -143,7 +97,7 @@ internal sealed class ClientStreamingServerMethodInvoker<[DynamicallyAccessedMem
             GrpcActivatorHandle<TService> serviceHandle = default;
             try
             {
-                serviceHandle = ServiceActivator.Create(httpContext.RequestServices);
+                serviceHandle = CreateServiceHandle(httpContext);
                 return await _invoker(
                     serviceHandle.Instance,
                     requestStream,

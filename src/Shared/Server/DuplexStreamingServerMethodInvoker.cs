@@ -26,52 +26,6 @@ using Microsoft.AspNetCore.Http;
 namespace Grpc.Shared.Server;
 
 /// <summary>
-/// Duplex streaming server method invoker for <see cref="Grpc.Core.ServerServiceDefinition"/>.
-/// </summary>
-/// <typeparam name="TRequest">Request message type for this method.</typeparam>
-/// <typeparam name="TResponse">Response message type for this method.</typeparam>
-internal sealed class DuplexStreamingServerMethodInvoker<TRequest, TResponse> : ServerMethodInvokerBase<TRequest, TResponse>
-    where TRequest : class
-    where TResponse : class
-{
-    private readonly DuplexStreamingServerMethod<TRequest, TResponse> _invoker;
-
-    /// <summary>
-    /// Creates a new instance of <see cref="DuplexStreamingServerMethodInvoker{TRequest, TResponse}"/>.
-    /// </summary>
-    /// <param name="invoker">The duplex streaming method to invoke.</param>
-    /// <param name="method">The description of the gRPC method.</param>
-    /// <param name="options">The options used to execute the method.</param>
-    public DuplexStreamingServerMethodInvoker(
-        DuplexStreamingServerMethod<TRequest, TResponse> invoker,
-        Method<TRequest, TResponse> method,
-        MethodOptions options)
-        : base(method, options)
-    {
-        _invoker = invoker;
-
-        if (Options.HasInterceptors)
-        {
-            var interceptorPipeline = new InterceptorPipelineBuilder<TRequest, TResponse>(Options.Interceptors);
-            _invoker = interceptorPipeline.DuplexStreamingPipeline(_invoker);
-        }
-    }
-
-    /// <summary>
-    /// Invoke the duplex streaming method with the specified <see cref="HttpContext"/>.
-    /// </summary>
-    /// <param name="_">The <see cref="HttpContext"/> for the current request.</param>
-    /// <param name="serverCallContext">The <see cref="ServerCallContext"/>.</param>
-    /// <param name="requestStream">The <typeparamref name="TRequest"/> reader.</param>
-    /// <param name="responseStream">The <typeparamref name="TResponse"/> writer.</param>
-    /// <returns>A <see cref="Task{TResponse}"/> that represents the asynchronous method.</returns>
-    public async Task Invoke(HttpContext _, ServerCallContext serverCallContext, IAsyncStreamReader<TRequest> requestStream, IServerStreamWriter<TResponse> responseStream)
-    {
-        await _invoker(requestStream, responseStream, serverCallContext);
-    }
-}
-
-/// <summary>
 /// Duplex streaming server method invoker.
 /// </summary>
 /// <typeparam name="TService">Service type for this method.</typeparam>
@@ -113,7 +67,7 @@ internal sealed class DuplexStreamingServerMethodInvoker<[DynamicallyAccessedMem
         GrpcActivatorHandle<TService> serviceHandle = default;
         try
         {
-            serviceHandle = ServiceActivator.Create(resolvedContext.GetHttpContext().RequestServices);
+            serviceHandle = CreateServiceHandle(resolvedContext);
             await _invoker(
                 serviceHandle.Instance,
                 requestStream,
@@ -144,7 +98,7 @@ internal sealed class DuplexStreamingServerMethodInvoker<[DynamicallyAccessedMem
             GrpcActivatorHandle<TService> serviceHandle = default;
             try
             {
-                serviceHandle = ServiceActivator.Create(httpContext.RequestServices);
+                serviceHandle = CreateServiceHandle(httpContext);
                 await _invoker(
                     serviceHandle.Instance,
                     requestStream,

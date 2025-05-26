@@ -23,37 +23,6 @@ using Microsoft.Extensions.Logging;
 
 namespace Grpc.AspNetCore.Server.Internal.CallHandlers;
 
-internal sealed class ServerStreamingServerCallHandler<TRequest, TResponse> : ServerCallHandlerBase<TRequest, TResponse>
-    where TRequest : class
-    where TResponse : class
-{
-    private readonly ServerStreamingServerMethodInvoker<TRequest, TResponse> _invoker;
-
-    public ServerStreamingServerCallHandler(
-        ServerStreamingServerMethodInvoker<TRequest, TResponse> invoker,
-        ILoggerFactory loggerFactory)
-        : base(invoker, loggerFactory)
-    {
-        _invoker = invoker;
-    }
-
-    protected override async Task HandleCallAsyncCore(HttpContext httpContext, HttpContextServerCallContext serverCallContext)
-    {
-        // Decode request
-        var request = await httpContext.Request.BodyReader.ReadSingleMessageAsync<TRequest>(serverCallContext, MethodInvoker.Method.RequestMarshaller.ContextualDeserializer);
-
-        var streamWriter = new HttpContextStreamWriter<TResponse>(serverCallContext, MethodInvoker.Method.ResponseMarshaller.ContextualSerializer);
-        try
-        {
-            await _invoker.Invoke(httpContext, serverCallContext, request, streamWriter);
-        }
-        finally
-        {
-            streamWriter.Complete();
-        }
-    }
-}
-
 internal sealed class ServerStreamingServerCallHandler<[DynamicallyAccessedMembers(GrpcProtocolConstants.ServiceAccessibility)] TService, TRequest, TResponse> : ServerCallHandlerBase<TService, TRequest, TResponse>
     where TRequest : class
     where TResponse : class

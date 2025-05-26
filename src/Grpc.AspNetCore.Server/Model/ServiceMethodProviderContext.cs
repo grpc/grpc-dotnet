@@ -33,13 +33,19 @@ public class ServiceMethodProviderContext<[DynamicallyAccessedMembers(GrpcProtoc
 {
     private readonly ServerCallHandlerFactory<TService> _serverCallHandlerFactory;
 
-    internal ServiceMethodProviderContext(ServerCallHandlerFactory<TService> serverCallHandlerFactory)
+    internal ServiceMethodProviderContext(ServerCallHandlerFactory<TService> serverCallHandlerFactory, object? argument)
     {
         Methods = new List<MethodModel>();
         _serverCallHandlerFactory = serverCallHandlerFactory;
+        Argument = argument;
     }
 
     internal List<MethodModel> Methods { get; }
+
+    /// <summary>
+    /// Gets the argument passed to the <see cref="IServiceMethodProvider{TService}"/> constructor.
+    /// </summary>
+    public object? Argument { get; }
 
     /// <summary>
     /// Adds a unary method to a service.

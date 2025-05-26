@@ -1,4 +1,4 @@
-﻿#region Copyright notice and license
+#region Copyright notice and license
 
 // Copyright 2019 The gRPC Authors
 //
@@ -70,6 +70,8 @@ internal sealed class MethodOptions
     // Fast check for whether the service has any interceptors
     internal bool HasInterceptors { get; }
 
+    internal bool SuppressCreatingService { get; }
+
     private MethodOptions(
         Dictionary<string, ICompressionProvider> compressionProviders,
         InterceptorCollection interceptors,
@@ -77,7 +79,8 @@ internal sealed class MethodOptions
         int? maxReceiveMessageSize,
         bool? enableDetailedErrors,
         string? responseCompressionAlgorithm,
-        CompressionLevel? responseCompressionLevel)
+        CompressionLevel? responseCompressionLevel,
+        bool suppressCreatingService)
     {
         CompressionProviders = compressionProviders;
         Interceptors = interceptors;
@@ -87,6 +90,7 @@ internal sealed class MethodOptions
         EnableDetailedErrors = enableDetailedErrors;
         ResponseCompressionAlgorithm = responseCompressionAlgorithm;
         ResponseCompressionLevel = responseCompressionLevel;
+        SuppressCreatingService = suppressCreatingService;
 
         if (ResponseCompressionAlgorithm != null)
         {
@@ -148,7 +152,8 @@ internal sealed class MethodOptions
             maxReceiveMessageSize: maxReceiveMessageSize,
             enableDetailedErrors: enableDetailedErrors,
             responseCompressionAlgorithm: responseCompressionAlgorithm,
-            responseCompressionLevel: responseCompressionLevel
+            responseCompressionLevel: responseCompressionLevel,
+            suppressCreatingService: true
         );
     }
 

@@ -1,4 +1,4 @@
-﻿#region Copyright notice and license
+#region Copyright notice and license
 
 // Copyright 2019 The gRPC Authors
 //
@@ -16,6 +16,8 @@
 
 #endregion
 
+using Grpc.Core;
+
 namespace Grpc.AspNetCore.Server.Model.Internal;
 
 /// <summary>
@@ -24,4 +26,6 @@ namespace Grpc.AspNetCore.Server.Model.Internal;
 internal sealed class ServiceMethodsRegistry
 {
     public List<MethodModel> Methods { get; } = new List<MethodModel>();
+
+    public List<ServerServiceDefinition> ServiceDefinitions { get; } = new List<ServerServiceDefinition>();
 }
