@@ -30,7 +30,7 @@ using Microsoft.Net.Http.Headers;
 
 namespace Grpc.AspNetCore.Server.Internal.CallHandlers;
 
-internal abstract class ServerCallHandlerBase<[DynamicallyAccessedMembers(GrpcProtocolConstants.ServiceAccessibility)]TService, TRequest, TResponse>
+internal abstract class ServerCallHandlerBase<[DynamicallyAccessedMembers(GrpcProtocolConstants.ServiceAccessibility)] TService, TRequest, TResponse>
     where TService : class
     where TRequest : class
     where TResponse : class
