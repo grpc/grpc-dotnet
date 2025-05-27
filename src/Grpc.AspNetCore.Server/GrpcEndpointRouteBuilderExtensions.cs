@@ -56,7 +56,6 @@ public static class GrpcEndpointRouteBuilderExtensions
     /// <param name="builder">The <see cref="IEndpointRouteBuilder"/> to add the route to.</param>
     /// <param name="serviceDefinition">The instance of <see cref="ServerServiceDefinition"/>.</param>
     /// <returns>A <see cref="GrpcServiceEndpointConventionBuilder"/> for endpoints associated with the service.</returns>
-    [RequiresUnreferencedCode("Due to type erasure in ServerServiceDefinition, MapGrpcService is incompatible with trimming.")]
     public static GrpcServiceEndpointConventionBuilder MapGrpcService(this IEndpointRouteBuilder builder, ServerServiceDefinition serviceDefinition)
     {
         ArgumentNullException.ThrowIfNull(builder, nameof(builder));
@@ -74,7 +73,6 @@ public static class GrpcEndpointRouteBuilderExtensions
     /// <param name="builder">The <see cref="IEndpointRouteBuilder"/> to add the route to.</param>
     /// <param name="getServiceDefinition">The factory for <see cref="ServerServiceDefinition"/> instance.</param>
     /// <returns>A <see cref="GrpcServiceEndpointConventionBuilder"/> for endpoints associated with the service.</returns>
-    [RequiresUnreferencedCode("Due to type erasure in ServerServiceDefinition, MapGrpcService is incompatible with trimming.")]
     public static GrpcServiceEndpointConventionBuilder MapGrpcService(this IEndpointRouteBuilder builder, Func<IServiceProvider, ServerServiceDefinition> getServiceDefinition)
     {
         ArgumentNullException.ThrowIfNull(builder, nameof(builder));

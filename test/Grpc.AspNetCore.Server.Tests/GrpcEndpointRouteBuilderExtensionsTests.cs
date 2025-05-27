@@ -16,6 +16,7 @@
 
 #endregion
 
+using System.Diagnostics;
 using Greet;
 using Grpc.AspNetCore.Server.Tests.TestObjects;
 using Grpc.AspNetCore.Server.Tests.TestObjects.Services.WithAttribute;
@@ -27,7 +28,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Testing;
 using Moq;
-using NUnit.Framework;
+using Race;
 
 namespace Grpc.AspNetCore.Server.Tests;
 
@@ -271,6 +272,92 @@ public class GrpcEndpointRouteBuilderExtensionsTests
         var routeEndpoint4 = (RouteEndpoint)endpoints[3];
         Assert.AreEqual("greet.Greeter/{unimplementedMethod:grpcunimplemented}", routeEndpoint4.RoutePattern.RawText);
         Assert.NotNull(routeEndpoint4.Metadata.GetMetadata<CustomMetadata>());
+    }
+
+    [Test]
+    public void MapGrpcService_ServiceDefinition_ConventionBuilder_AddsMetadata()
+    {
+        // Arrange
+        var services = ServicesHelpers.CreateServices();
+
+        var routeBuilder = CreateTestEndpointRouteBuilder(services.BuildServiceProvider(validateScopes: true));
+
+        // Act
+        routeBuilder.MapGrpcService(GreeterWithAttribute.BindService(new GreeterWithAttributeService())).Add(builder =>
+        {
+            builder.Metadata.Add(new CustomMetadata());
+        });
+
+        // Assert
+        var endpoints = routeBuilder.DataSources
+            .SelectMany(ds => ds.Endpoints)
+            .ToList();
+        Assert.AreEqual(4, endpoints.Count);
+
+        var routeEndpoint1 = (RouteEndpoint)endpoints[0];
+        Assert.AreEqual("/greet.Greeter/SayHello", routeEndpoint1.RoutePattern.RawText);
+        Assert.NotNull(routeEndpoint1.Metadata.GetMetadata<CustomMetadata>());
+
+        var routeEndpoint2 = (RouteEndpoint)endpoints[1];
+        Assert.AreEqual("/greet.Greeter/SayHellos", routeEndpoint2.RoutePattern.RawText);
+        Assert.NotNull(routeEndpoint2.Metadata.GetMetadata<CustomMetadata>());
+
+        var routeEndpoint3 = (RouteEndpoint)endpoints[2];
+        Assert.AreEqual("{unimplementedService}/{unimplementedMethod:grpcunimplemented}", routeEndpoint3.RoutePattern.RawText);
+        Assert.NotNull(routeEndpoint3.Metadata.GetMetadata<CustomMetadata>());
+
+        var routeEndpoint4 = (RouteEndpoint)endpoints[3];
+        Assert.AreEqual("greet.Greeter/{unimplementedMethod:grpcunimplemented}", routeEndpoint4.RoutePattern.RawText);
+        Assert.NotNull(routeEndpoint4.Metadata.GetMetadata<CustomMetadata>());
+    }
+
+    [Test]
+    public void MapGrpcService_MultipleMappings_ConventionBuilder_AddsMetadata()
+    {
+        // Arrange
+        var services = ServicesHelpers.CreateServices();
+
+        var routeBuilder = CreateTestEndpointRouteBuilder(services.BuildServiceProvider(validateScopes: true));
+
+        // Act
+        routeBuilder.MapGrpcService(GreeterWithAttribute.BindService(new GreeterWithAttributeService())).Add(builder =>
+        {
+            builder.Metadata.Add(new CustomMetadata());
+        });
+        routeBuilder.MapGrpcService(Racer.BindService(new RaceServiceImpl())).Add(builder =>
+        {
+            builder.Metadata.Add(new CustomAttribute("value"));
+        });
+
+        // Assert
+        var endpoints = routeBuilder.DataSources
+            .SelectMany(ds => ds.Endpoints)
+            .ToList();
+        Assert.AreEqual(6, endpoints.Count);
+
+        var routeEndpoint1 = (RouteEndpoint)endpoints[0];
+        Assert.AreEqual("/greet.Greeter/SayHello", routeEndpoint1.RoutePattern.RawText);
+        Assert.NotNull(routeEndpoint1.Metadata.GetMetadata<CustomMetadata>());
+
+        var routeEndpoint2 = (RouteEndpoint)endpoints[1];
+        Assert.AreEqual("/greet.Greeter/SayHellos", routeEndpoint2.RoutePattern.RawText);
+        Assert.NotNull(routeEndpoint2.Metadata.GetMetadata<CustomMetadata>());
+
+        var routeEndpoint3 = (RouteEndpoint)endpoints[2];
+        Assert.AreEqual("{unimplementedService}/{unimplementedMethod:grpcunimplemented}", routeEndpoint3.RoutePattern.RawText);
+        Assert.NotNull(routeEndpoint3.Metadata.GetMetadata<CustomMetadata>());
+
+        var routeEndpoint4 = (RouteEndpoint)endpoints[3];
+        Assert.AreEqual("greet.Greeter/{unimplementedMethod:grpcunimplemented}", routeEndpoint4.RoutePattern.RawText);
+        Assert.NotNull(routeEndpoint4.Metadata.GetMetadata<CustomMetadata>());
+
+        var routeEndpoint5 = (RouteEndpoint)endpoints[4];
+        Assert.AreEqual("/race.Racer/ReadySetGo", routeEndpoint5.RoutePattern.RawText);
+        Assert.NotNull(routeEndpoint5.Metadata.GetMetadata<CustomAttribute>());
+
+        var routeEndpoint6 = (RouteEndpoint)endpoints[5];
+        Assert.AreEqual("race.Racer/{unimplementedMethod:grpcunimplemented}", routeEndpoint6.RoutePattern.RawText);
+        Assert.NotNull(routeEndpoint6.Metadata.GetMetadata<CustomAttribute>());
     }
 
     [Test]
