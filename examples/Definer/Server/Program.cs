@@ -17,20 +17,19 @@
 #endregion
 
 using Grpc.Core;
-using Server;
 using Microsoft.AspNetCore.Builder;
+using Microsoft.Extensions.DependencyInjection;
+using Server;
 
 var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddGrpc();
 
 var app = builder.Build();
-app.MapGrpcService(getGreeterService);
-
-app.Run();
-
-static ServerServiceDefinition getGreeterService(IServiceProvider serviceProvider)
+app.MapGrpcService(services =>
 {
-    var loggerFactory = serviceProvider.GetRequiredService<ILoggerFactory>();
+    var loggerFactory = services.GetRequiredService<ILoggerFactory>();
     var service = new GreeterService(loggerFactory);
     return Greet.Greeter.BindService(service);
-}
+});
+
+app.Run();

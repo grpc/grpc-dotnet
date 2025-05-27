@@ -330,7 +330,7 @@ The error example shows how to use a richer error model with `Grpc.StatusProto`.
 * [`google.rpc.Status`](https://cloud.google.com/apis/design/errors#error_model)
 
 
-## [GreeterByServiceDefinition](./GreeterByServiceDefinition)
+## [Definer](./Definer)
 
 This sample is similar with [Greeter](#greeter), but its service instance for server is mapped by using `ServerServiceDefinition`.
 
