@@ -102,7 +102,6 @@ public class Startup
         // When the site is run from the test project these types will be injected
         // This will add a default types if the site is run standalone
         services.TryAddSingleton<DynamicEndpointDataSource>();
-        services.TryAddEnumerable(ServiceDescriptor.Singleton<IServiceMethodProvider<DynamicService>, DynamicServiceModelProvider>());
 
         // Add a Singleton service
         services.AddSingleton<SingletonCounterService>();
