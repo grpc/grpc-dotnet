@@ -1,0 +1,90 @@
+<Solution>
+  <Folder Name="/perf/">
+    <Project Path="perf/Grpc.AspNetCore.Microbenchmarks/Grpc.AspNetCore.Microbenchmarks.csproj" />
+  </Folder>
+  <Folder Name="/perf/benchmarkapps/">
+    <Project Path="perf/benchmarkapps/GrpcAspNetCoreServer/GrpcAspNetCoreServer.csproj" />
+    <Project Path="perf/benchmarkapps/GrpcClient/GrpcClient.csproj" />
+    <Project Path="perf/benchmarkapps/GrpcCoreServer/GrpcCoreServer.csproj" />
+    <Project Path="perf/benchmarkapps/QpsWorker/QpsWorker.csproj" />
+  </Folder>
+  <Folder Name="/perf/benchmarkapps/Shared/">
+    <File Path="perf/benchmarkapps/Shared/BenchmarkConfigurationHelpers.cs" />
+    <File Path="perf/benchmarkapps/Shared/BenchmarkServiceImpl.cs" />
+    <File Path="perf/benchmarkapps/Shared/benchmark_service.proto" />
+    <File Path="perf/benchmarkapps/Shared/messages.proto" />
+  </Folder>
+  <Folder Name="/perf/benchmarkapps/Shared/Certs/">
+    <File Path="perf/benchmarkapps/Shared/Certs/testCert.pfx" />
+  </Folder>
+  <Folder Name="/src/">
+    <Project Path="src/dotnet-grpc/dotnet-grpc.csproj" />
+    <Project Path="src/Grpc.AspNetCore.HealthChecks/Grpc.AspNetCore.HealthChecks.csproj" />
+    <Project Path="src/Grpc.AspNetCore.Server.ClientFactory/Grpc.AspNetCore.Server.ClientFactory.csproj" />
+    <Project Path="src/Grpc.AspNetCore.Server.Reflection/Grpc.AspNetCore.Server.Reflection.csproj" />
+    <Project Path="src/Grpc.AspNetCore.Server/Grpc.AspNetCore.Server.csproj" />
+    <Project Path="src/Grpc.AspNetCore.Web/Grpc.AspNetCore.Web.csproj" />
+    <Project Path="src/Grpc.AspNetCore/Grpc.AspNetCore.csproj" />
+    <Project Path="src/Grpc.Auth/Grpc.Auth.csproj" />
+    <Project Path="src/Grpc.Core.Api/Grpc.Core.Api.csproj" />
+    <Project Path="src/Grpc.HealthCheck/Grpc.HealthCheck.csproj" />
+    <Project Path="src/Grpc.Net.Client.Web/Grpc.Net.Client.Web.csproj" />
+    <Project Path="src/Grpc.Net.Client/Grpc.Net.Client.csproj" />
+    <Project Path="src/Grpc.Net.ClientFactory/Grpc.Net.ClientFactory.csproj" />
+    <Project Path="src/Grpc.Net.Common/Grpc.Net.Common.csproj" />
+    <Project Path="src/Grpc.Reflection/Grpc.Reflection.csproj" />
+    <Project Path="src/Grpc.StatusProto/Grpc.StatusProto.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="test/dotnet-grpc.Tests/dotnet-grpc.Tests.csproj" />
+    <Project Path="test/FunctionalTests/Grpc.AspNetCore.FunctionalTests.csproj" />
+    <Project Path="test/Grpc.AspNetCore.Server.ClientFactory.Tests/Grpc.AspNetCore.Server.ClientFactory.Tests.csproj" />
+    <Project Path="test/Grpc.AspNetCore.Server.Tests/Grpc.AspNetCore.Server.Tests.csproj" />
+    <Project Path="test/Grpc.Core.Api.Tests/Grpc.Core.Api.Tests.csproj" />
+    <Project Path="test/Grpc.HealthCheck.Tests/Grpc.HealthCheck.Tests.csproj" />
+    <Project Path="test/Grpc.Net.Client.Tests/Grpc.Net.Client.Tests.csproj" />
+    <Project Path="test/Grpc.Net.Client.Web.Tests/Grpc.Net.Client.Web.Tests.csproj" />
+    <Project Path="test/Grpc.Net.ClientFactory.Tests/Grpc.Net.ClientFactory.Tests.csproj" />
+    <Project Path="test/Grpc.Reflection.Tests/Grpc.Reflection.Tests.csproj" />
+    <Project Path="test/Grpc.StatusProto.Tests/Grpc.StatusProto.Tests.csproj" />
+  </Folder>
+  <Folder Name="/tests/testassets/">
+    <Project Path="testassets/BenchmarkWorkerWebsite/BenchmarkWorkerWebsite.csproj" />
+    <Project Path="testassets/FunctionalTestsWebsite/FunctionalTestsWebsite.csproj" />
+    <Project Path="testassets/InteropTestsClient/InteropTestsClient.csproj" />
+    <Project Path="testassets/InteropTestsGrpcWebClient/InteropTestsGrpcWebClient.csproj" />
+    <Project Path="testassets/InteropTestsGrpcWebWebsite/InteropTestsGrpcWebWebsite.csproj" />
+    <Project Path="testassets/InteropTestsNativeServer/InteropTestsNativeServer.csproj" />
+    <Project Path="testassets/InteropTestsWebsite/InteropTestsWebsite.csproj" />
+    <Project Path="testassets/LinkerTestsClient/LinkerTestsClient.csproj" />
+    <Project Path="testassets/LinkerTestsWebsite/LinkerTestsWebsite.csproj" />
+  </Folder>
+  <Folder Name="/tests/testassets/Certs/" />
+  <Folder Name="/tests/testassets/Certs/InteropTests/">
+    <File Path="testassets/Certs/InteropTests/ca.pem" />
+    <File Path="testassets/Certs/InteropTests/README.md" />
+    <File Path="testassets/Certs/InteropTests/server1.key" />
+    <File Path="testassets/Certs/InteropTests/server1.pem" />
+    <File Path="testassets/Certs/InteropTests/server1.pfx" />
+  </Folder>
+  <Folder Name="/tests/testassets/Proto/">
+    <File Path="examples/Proto/race.proto" />
+    <File Path="testassets/Proto/any.proto" />
+    <File Path="testassets/Proto/authorize.proto" />
+    <File Path="testassets/Proto/chat.proto" />
+    <File Path="testassets/Proto/compression.proto" />
+    <File Path="testassets/Proto/count.proto" />
+    <File Path="testassets/Proto/greet.proto" />
+    <File Path="testassets/Proto/lifetime.proto" />
+    <File Path="testassets/Proto/nested.proto" />
+    <File Path="testassets/Proto/singleton.proto" />
+    <File Path="testassets/Proto/streaming.proto" />
+    <File Path="testassets/Proto/unimplemented.proto" />
+  </Folder>
+  <Folder Name="/tests/testassets/Proto/grpc/" />
+  <Folder Name="/tests/testassets/Proto/grpc/testing/">
+    <File Path="testassets/Proto/grpc/testing/empty.proto" />
+    <File Path="testassets/Proto/grpc/testing/messages.proto" />
+    <File Path="testassets/Proto/grpc/testing/test.proto" />
+  </Folder>
+</Solution>
