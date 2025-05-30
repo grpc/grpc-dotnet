@@ -38,7 +38,7 @@ public class ServerServiceDefinition
     /// <summary>
     /// Forwards all the previously stored <c>AddMethod</c> calls to the service binder.
     /// </summary>
-    internal void BindService(ServiceBinderBase serviceBinder)
+    public void BindService(ServiceBinderBase serviceBinder)
     {
         foreach (var addMethodAction in addMethodActions)
         {

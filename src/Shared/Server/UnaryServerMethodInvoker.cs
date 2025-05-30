@@ -68,7 +68,7 @@ internal sealed class UnaryServerMethodInvoker<[DynamicallyAccessedMembers(GrpcP
         GrpcActivatorHandle<TService> serviceHandle = default;
         try
         {
-            serviceHandle = ServiceActivator.Create(resolvedContext.GetHttpContext().RequestServices);
+            serviceHandle = CreateServiceHandle(resolvedContext);
             return await _invoker(serviceHandle.Instance, resolvedRequest, resolvedContext);
         }
         finally
@@ -96,7 +96,7 @@ internal sealed class UnaryServerMethodInvoker<[DynamicallyAccessedMembers(GrpcP
             Task<TResponse>? invokerTask = null;
             try
             {
-                serviceHandle = ServiceActivator.Create(httpContext.RequestServices);
+                serviceHandle = CreateServiceHandle(httpContext);
                 invokerTask = _invoker(
                     serviceHandle.Instance,
                     request,

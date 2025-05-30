@@ -1,4 +1,4 @@
-﻿#region Copyright notice and license
+#region Copyright notice and license
 
 // Copyright 2019 The gRPC Authors
 //
@@ -46,7 +46,7 @@ public class BinderServiceMethodProviderTests
             new TestGrpcServiceActivator<GreeterServiceWithDuplicateNames>());
 
         var provider = new BinderServiceMethodProvider<GreeterServiceWithDuplicateNames>(NullLoggerFactory.Instance);
-        var context = new ServiceMethodProviderContext<GreeterServiceWithDuplicateNames>(serverCallHandlerFactory);
+        var context = new ServiceMethodProviderContext<GreeterServiceWithDuplicateNames>(serverCallHandlerFactory, argument: null);
 
         var httpContext = HttpContextHelpers.CreateContext();
         httpContext.RequestServices = services.BuildServiceProvider();

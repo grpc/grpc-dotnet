@@ -18,13 +18,6 @@
 
 namespace Grpc.AspNetCore.Server.Tests.TestObjects;
 
-[AttributeUsage(AttributeTargets.Class | AttributeTargets.Method)]
-public class CustomAttribute : Attribute
+public class RaceServiceImpl : Race.Racer.RacerBase
 {
-    public CustomAttribute(string value)
-    {
-        Value = value;
-    }
-
-    public string Value { get; }
 }
