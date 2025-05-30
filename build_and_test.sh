@@ -22,7 +22,7 @@ echo "Building solution"
 dotnet build -c Release
 
 echo "Building examples"
-example_solutions=( $( ls examples/**/*.sln ) )
+example_solutions=( $( ls examples/**/*.slnx ) )
 for example_solution in "${example_solutions[@]}"
 do
     dotnet build $example_solution -c Release
