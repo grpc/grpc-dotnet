@@ -38,7 +38,7 @@ using ChannelState = Grpc.Net.Client.Balancer.ChannelState;
 namespace Grpc.Net.Client.Tests.Balancer;
 
 [TestFixture]
-public class ClientChannelTests
+public class ConnectionManagerTests
 {
     internal class TestBackoffPolicyFactory : IBackoffPolicyFactory
     {
