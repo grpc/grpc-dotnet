@@ -20,6 +20,7 @@ using System.IO.Pipelines;
 using FunctionalTestsWebsite.Infrastructure;
 using Google.Protobuf.WellKnownTypes;
 using Grpc.AspNetCore.FunctionalTests.Infrastructure;
+using Grpc.AspNetCore.Server;
 using Grpc.Core;
 using Grpc.Core.Interceptors;
 using Grpc.Tests.Shared;
@@ -39,7 +40,7 @@ public class InterceptorOrderTests : FunctionalTestBase
                 options.Interceptors.Add<OrderedInterceptor>(0);
                 options.Interceptors.Add<OrderedInterceptor>(1);
             })
-            .AddServiceOptions<DynamicService>(options =>
+            .AddServiceOptions<ServerServiceDefinitionMarker>(options =>
             {
                 options.Interceptors.Add<OrderedInterceptor>(2);
                 options.Interceptors.Add<OrderedInterceptor>(3);

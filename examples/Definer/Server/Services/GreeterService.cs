@@ -16,15 +16,26 @@
 
 #endregion
 
-namespace Grpc.AspNetCore.Server.Tests.TestObjects;
+using System.Threading.Tasks;
+using Greet;
+using Grpc.Core;
+using Microsoft.Extensions.Logging;
 
-[AttributeUsage(AttributeTargets.Class | AttributeTargets.Method)]
-public class CustomAttribute : Attribute
+namespace Server
 {
-    public CustomAttribute(string value)
+    public class GreeterService : Greeter.GreeterBase
     {
-        Value = value;
-    }
+        private readonly ILogger _logger;
 
-    public string Value { get; }
+        public GreeterService(ILoggerFactory loggerFactory)
+        {
+            _logger = loggerFactory.CreateLogger<GreeterService>();
+        }
+
+        public override Task<HelloReply> SayHello(HelloRequest request, ServerCallContext context)
+        {
+            _logger.LogInformation($"Sending hello to {request.Name}");
+            return Task.FromResult(new HelloReply { Message = "Hello " + request.Name });
+        }
+    }
 }

@@ -1,0 +1,13 @@
+<Solution>
+  <Folder Name="/ref/">
+    <Project Path="../../src/Grpc.AspNetCore.Server.ClientFactory/Grpc.AspNetCore.Server.ClientFactory.csproj" />
+    <Project Path="../../src/Grpc.AspNetCore.Server/Grpc.AspNetCore.Server.csproj" />
+    <Project Path="../../src/Grpc.AspNetCore/Grpc.AspNetCore.csproj" />
+    <Project Path="../../src/Grpc.Core.Api/Grpc.Core.Api.csproj" />
+    <Project Path="../../src/Grpc.Net.Client/Grpc.Net.Client.csproj" />
+    <Project Path="../../src/Grpc.Net.ClientFactory/Grpc.Net.ClientFactory.csproj" />
+    <Project Path="../../src/Grpc.Net.Common/Grpc.Net.Common.csproj" />
+  </Folder>
+  <Project Path="Client/Client.csproj" />
+  <Project Path="Server/Server.csproj" />
+</Solution>

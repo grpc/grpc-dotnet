@@ -45,11 +45,7 @@ public class DynamicGrpcServiceRegistry
         where TResponse : class, IMessage, new()
     {
         var method = CreateMethod<TRequest, TResponse>(MethodType.Unary, methodName ?? Guid.NewGuid().ToString());
-
-        AddServiceCore(c =>
-        {
-            c.AddUnaryMethod(method, CreateMetadata(), new UnaryServerMethod<DynamicService, TRequest, TResponse>((service, request, context) => callHandler(request, context)));
-        });
+        AddServiceCore(builder => builder.AddMethod(method, callHandler));
 
         return method;
     }
@@ -59,11 +55,7 @@ public class DynamicGrpcServiceRegistry
         where TResponse : class, IMessage, new()
     {
         var method = CreateMethod<TRequest, TResponse>(MethodType.ServerStreaming, methodName ?? Guid.NewGuid().ToString());
-
-        AddServiceCore(c =>
-        {
-            c.AddServerStreamingMethod(method, CreateMetadata(), new ServerStreamingServerMethod<DynamicService, TRequest, TResponse>((service, request, stream, context) => callHandler(request, stream, context)));
-        });
+        AddServiceCore(builder => builder.AddMethod(method, callHandler));
 
         return method;
     }
@@ -73,11 +65,7 @@ public class DynamicGrpcServiceRegistry
         where TResponse : class, IMessage, new()
     {
         var method = CreateMethod<TRequest, TResponse>(MethodType.ClientStreaming, methodName ?? Guid.NewGuid().ToString());
-
-        AddServiceCore(c =>
-        {
-            c.AddClientStreamingMethod(method, CreateMetadata(), new ClientStreamingServerMethod<DynamicService, TRequest, TResponse>((service, stream, context) => callHandler(stream, context)));
-        });
+        AddServiceCore(builder => builder.AddMethod(method, callHandler));
 
         return method;
     }
@@ -87,34 +75,20 @@ public class DynamicGrpcServiceRegistry
         where TResponse : class, IMessage, new()
     {
         var method = CreateMethod<TRequest, TResponse>(MethodType.DuplexStreaming, methodName ?? Guid.NewGuid().ToString());
-
-        AddServiceCore(c =>
-        {
-            c.AddDuplexStreamingMethod(method, CreateMetadata(), new DuplexStreamingServerMethod<DynamicService, TRequest, TResponse>((service, input, output, context) => callHandler(input, output, context)));
-        });
+        AddServiceCore(builder => builder.AddMethod(method, callHandler));
 
         return method;
     }
 
-    private static List<object> CreateMetadata()
+    private void AddServiceCore(Action<ServerServiceDefinition.Builder> addMethod)
     {
-        var metadata = new List<object>
-        {
-            new HttpMethodMetadata(new[] { "POST" }, acceptCorsPreflight: true)
-        };
-        return metadata;
-    }
-
-    private void AddServiceCore(Action<ServiceMethodProviderContext<DynamicService>> action)
-    {
-        // Set action for adding dynamic method
-        var serviceMethodProviders = _serviceProvider.GetServices<IServiceMethodProvider<DynamicService>>().ToList();
-        var dynamicServiceModelProvider = serviceMethodProviders.OfType<DynamicServiceModelProvider>().Single();
-        dynamicServiceModelProvider.CreateMethod = action;
+        var definitionBuilder = ServerServiceDefinition.CreateBuilder();
+        addMethod(definitionBuilder);
+        var serverServiceDefinition = definitionBuilder.Build();
 
         // Add to dynamic endpoint route builder
         var routeBuilder = new DynamicEndpointRouteBuilder(_serviceProvider);
-        routeBuilder.MapGrpcService<DynamicService>();
+        routeBuilder.MapGrpcService(serverServiceDefinition);
 
         var endpoints = routeBuilder.DataSources.SelectMany(ds => ds.Endpoints).ToList();
         _endpointDataSource.AddEndpoints(endpoints);

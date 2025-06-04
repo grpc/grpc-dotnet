@@ -328,3 +328,13 @@ The error example shows how to use a richer error model with `Grpc.StatusProto`.
 * Error handling
 * Validation
 * [`google.rpc.Status`](https://cloud.google.com/apis/design/errors#error_model)
+
+
+## [Definer](./Definer)
+
+This sample is similar with [Greeter](#greeter), but its service instance for server is mapped by using `ServerServiceDefinition`.
+
+##### Scenarios:
+
+* Mapping server service by using `ServerServiceDefinition`
+* Unary call

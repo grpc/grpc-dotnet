@@ -16,15 +16,20 @@
 
 #endregion
 
-namespace Grpc.AspNetCore.Server.Tests.TestObjects;
+using Grpc.Core;
+using Microsoft.AspNetCore.Builder;
+using Microsoft.Extensions.DependencyInjection;
+using Server;
 
-[AttributeUsage(AttributeTargets.Class | AttributeTargets.Method)]
-public class CustomAttribute : Attribute
+var builder = WebApplication.CreateBuilder(args);
+builder.Services.AddGrpc();
+
+var app = builder.Build();
+app.MapGrpcService(services =>
 {
-    public CustomAttribute(string value)
-    {
-        Value = value;
-    }
+    var loggerFactory = services.GetRequiredService<ILoggerFactory>();
+    var service = new GreeterService(loggerFactory);
+    return Greet.Greeter.BindService(service);
+});
 
-    public string Value { get; }
-}
+app.Run();
