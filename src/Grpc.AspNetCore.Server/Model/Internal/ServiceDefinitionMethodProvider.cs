@@ -21,19 +21,11 @@ using Grpc.AspNetCore.Server.Internal;
 using Grpc.Core;
 using Grpc.Shared;
 using Microsoft.AspNetCore.Routing;
-using Microsoft.Extensions.Logging;
 
 namespace Grpc.AspNetCore.Server.Model.Internal;
 
 internal sealed class ServiceDefinitionMethodProvider<[DynamicallyAccessedMembers(GrpcProtocolConstants.ServiceAccessibility)] TService> : IServiceMethodProvider<TService> where TService : class
 {
-    private readonly ILogger<ServiceDefinitionMethodProvider<TService>> _logger;
-
-    public ServiceDefinitionMethodProvider(ILoggerFactory loggerFactory)
-    {
-        _logger = loggerFactory.CreateLogger<ServiceDefinitionMethodProvider<TService>>();
-    }
-
     public void OnServiceMethodDiscovery(ServiceMethodProviderContext<TService> context)
     {
         if (context.Argument is ServerServiceDefinition serviceDefinition)
@@ -45,6 +37,8 @@ internal sealed class ServiceDefinitionMethodProvider<[DynamicallyAccessedMember
 
     internal sealed class ProviderServiceBinder : ServiceBinderBase
     {
+        private static readonly List<object> _metadata = CreateMetadata();
+
         private readonly ServiceMethodProviderContext<TService> _context;
 
         public ProviderServiceBinder(ServiceMethodProviderContext<TService> context)
@@ -55,25 +49,25 @@ internal sealed class ServiceDefinitionMethodProvider<[DynamicallyAccessedMember
         public override void AddMethod<TRequest, TResponse>(Method<TRequest, TResponse> method, UnaryServerMethod<TRequest, TResponse>? handler)
         {
             ArgumentNullThrowHelper.ThrowIfNull(handler, nameof(handler));
-            _context.AddUnaryMethod(method, CreateMetadata(), (service, request, context) => handler(request, context));
+            _context.AddUnaryMethod(method, _metadata, (service, request, context) => handler(request, context));
         }
 
         public override void AddMethod<TRequest, TResponse>(Method<TRequest, TResponse> method, DuplexStreamingServerMethod<TRequest, TResponse>? handler)
         {
             ArgumentNullThrowHelper.ThrowIfNull(handler, nameof(handler));
-            _context.AddDuplexStreamingMethod(method, CreateMetadata(), (service, request, response, context) => handler(request, response, context));
+            _context.AddDuplexStreamingMethod(method, _metadata, (service, request, response, context) => handler(request, response, context));
         }
 
         public override void AddMethod<TRequest, TResponse>(Method<TRequest, TResponse> method, ServerStreamingServerMethod<TRequest, TResponse>? handler)
         {
             ArgumentNullThrowHelper.ThrowIfNull(handler, nameof(handler));
-            _context.AddServerStreamingMethod(method, CreateMetadata(), (service, request, response, context) => handler(request, response, context));
+            _context.AddServerStreamingMethod(method, _metadata, (service, request, response, context) => handler(request, response, context));
         }
 
         public override void AddMethod<TRequest, TResponse>(Method<TRequest, TResponse> method, ClientStreamingServerMethod<TRequest, TResponse>? handler)
         {
             ArgumentNullThrowHelper.ThrowIfNull(handler, nameof(handler));
-            _context.AddClientStreamingMethod(method, CreateMetadata(), (service, request, context) => handler(request, context));
+            _context.AddClientStreamingMethod(method, _metadata, (service, request, context) => handler(request, context));
         }
 
         private static List<object> CreateMetadata()
@@ -83,7 +77,7 @@ internal sealed class ServiceDefinitionMethodProvider<[DynamicallyAccessedMember
             // gRPC will return 405 response and log that CORS has not been configured.
             var metadata = new List<object>
             {
-                new HttpMethodMetadata(new[] { "POST" }, acceptCorsPreflight: true)
+                new HttpMethodMetadata(["POST"], acceptCorsPreflight: true)
             };
             return metadata;
         }

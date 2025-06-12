@@ -606,7 +606,7 @@ public class ConnectionManagerTests
         // There isn't a clean way to wait for UpdateAddresses to be waiting for the subchannel lock.
         // Use a long delay to ensure we're waiting for the lock and are in the right state.
         await updateAddressesTcs.Task.DefaultTimeout();
-        await Task.Delay(500);
+        await Task.Delay(1000);
         requestConnectionSyncPoint.Continue();
 
         // Ensure the pick completes without deadlock.
