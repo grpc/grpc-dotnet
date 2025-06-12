@@ -17,6 +17,7 @@
 #endregion
 
 using Grpc.AspNetCore.Server.Internal;
+using Grpc.Shared.Server;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 using NUnit.Framework;
@@ -45,7 +46,7 @@ public class GrpcServicesExtensionsTests
 
         // Assert
         Assert.AreEqual(true, options.EnableDetailedErrors);
-        Assert.AreEqual(GrpcServiceOptionsSetup.DefaultReceiveMaxMessageSize, options.MaxReceiveMessageSize);
+        Assert.AreEqual(MethodOptions.DefaultReceiveMaxMessageSize, options.MaxReceiveMessageSize);
         Assert.AreEqual(1, options.MaxSendMessageSize);
 
         Assert.AreEqual(2, options.CompressionProviders.Count);
