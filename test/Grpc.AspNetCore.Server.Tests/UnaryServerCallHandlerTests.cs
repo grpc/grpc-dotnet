@@ -1,4 +1,4 @@
-﻿#region Copyright notice and license
+#region Copyright notice and license
 
 // Copyright 2019 The gRPC Authors
 //
@@ -20,6 +20,7 @@ using Grpc.AspNetCore.Server.Tests.TestObjects;
 using Grpc.Core;
 using Grpc.Shared.Server;
 using Grpc.Tests.Shared;
+using Microsoft.Extensions.DependencyInjection;
 using NUnit.Framework;
 
 namespace Grpc.AspNetCore.Server.Tests;
@@ -39,7 +40,8 @@ public class UnaryServerCallHandlerTests
             (service, reader, context) => throw ex,
             new Method<TestMessage, TestMessage>(MethodType.Unary, "test", "test", _marshaller, _marshaller),
             HttpContextServerCallContextHelper.CreateMethodOptions(),
-            serviceActivator);
+            serviceActivator,
+            new InterceptorActivators(new ServiceCollection().BuildServiceProvider()));
         var httpContext = HttpContextHelpers.CreateContext();
 
         // Act
@@ -62,7 +64,8 @@ public class UnaryServerCallHandlerTests
             (service, reader, context) => throw thrownException,
             new Method<TestMessage, TestMessage>(MethodType.Unary, "test", "test", _marshaller, _marshaller),
             HttpContextServerCallContextHelper.CreateMethodOptions(),
-            serviceActivator);
+            serviceActivator,
+            new InterceptorActivators(new ServiceCollection().BuildServiceProvider()));
         var httpContext = HttpContextHelpers.CreateContext();
 
         // Act
@@ -94,7 +97,8 @@ public class UnaryServerCallHandlerTests
             (service, reader, context) => Task.FromResult(new TestMessage()),
             new Method<TestMessage, TestMessage>(MethodType.Unary, "test", "test", _marshaller, _marshaller),
             HttpContextServerCallContextHelper.CreateMethodOptions(),
-            serviceActivator);
+            serviceActivator,
+            new InterceptorActivators(new ServiceCollection().BuildServiceProvider()));
         var httpContext = HttpContextHelpers.CreateContext();
 
         // Act
@@ -119,7 +123,8 @@ public class UnaryServerCallHandlerTests
             (service, reader, context) => methodTcs.Task,
             new Method<TestMessage, TestMessage>(MethodType.Unary, "test", "test", _marshaller, _marshaller),
             HttpContextServerCallContextHelper.CreateMethodOptions(),
-            serviceActivator);
+            serviceActivator,
+            new InterceptorActivators(new ServiceCollection().BuildServiceProvider()));
         var httpContext = HttpContextHelpers.CreateContext();
 
         // Act

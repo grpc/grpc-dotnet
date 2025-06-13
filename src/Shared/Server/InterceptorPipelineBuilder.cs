@@ -1,4 +1,4 @@
-﻿#region Copyright notice and license
+#region Copyright notice and license
 
 // Copyright 2019 The gRPC Authors
 //
@@ -27,22 +27,24 @@ internal sealed class InterceptorPipelineBuilder<TRequest, TResponse>
     where TResponse : class
 {
     private readonly IReadOnlyList<InterceptorRegistration> _interceptors;
+    private readonly InterceptorActivators _interceptorActivators;
 
-    public InterceptorPipelineBuilder(IReadOnlyList<InterceptorRegistration> interceptors)
+    public InterceptorPipelineBuilder(IReadOnlyList<InterceptorRegistration> interceptors, InterceptorActivators interceptorActivators)
     {
         _interceptors = interceptors;
+        _interceptorActivators = interceptorActivators;
     }
 
     public ClientStreamingServerMethod<TRequest, TResponse> ClientStreamingPipeline(ClientStreamingServerMethod<TRequest, TResponse> innerInvoker)
     {
         return BuildPipeline(innerInvoker, BuildInvoker);
 
-        static ClientStreamingServerMethod<TRequest, TResponse> BuildInvoker(InterceptorRegistration interceptorRegistration, ClientStreamingServerMethod<TRequest, TResponse> next)
+        static ClientStreamingServerMethod<TRequest, TResponse> BuildInvoker(InterceptorRegistration interceptorRegistration, InterceptorActivators interceptorActivators, ClientStreamingServerMethod<TRequest, TResponse> next)
         {
             return async (requestStream, context) =>
             {
                 var serviceProvider = context.GetHttpContext().RequestServices;
-                var interceptorActivator = interceptorRegistration.GetActivator(serviceProvider);
+                var interceptorActivator = interceptorActivators.GetInterceptorActivator(interceptorRegistration.Type);
                 var interceptorHandle = CreateInterceptor(interceptorRegistration, interceptorActivator, serviceProvider);
 
                 try
@@ -61,12 +63,12 @@ internal sealed class InterceptorPipelineBuilder<TRequest, TResponse>
     {
         return BuildPipeline(innerInvoker, BuildInvoker);
 
-        static DuplexStreamingServerMethod<TRequest, TResponse> BuildInvoker(InterceptorRegistration interceptorRegistration, DuplexStreamingServerMethod<TRequest, TResponse> next)
+        static DuplexStreamingServerMethod<TRequest, TResponse> BuildInvoker(InterceptorRegistration interceptorRegistration, InterceptorActivators interceptorActivators, DuplexStreamingServerMethod<TRequest, TResponse> next)
         {
             return async (requestStream, responseStream, context) =>
             {
                 var serviceProvider = context.GetHttpContext().RequestServices;
-                var interceptorActivator = interceptorRegistration.GetActivator(serviceProvider);
+                var interceptorActivator = interceptorActivators.GetInterceptorActivator(interceptorRegistration.Type);
                 var interceptorHandle = CreateInterceptor(interceptorRegistration, interceptorActivator, serviceProvider);
 
                 try
@@ -85,12 +87,12 @@ internal sealed class InterceptorPipelineBuilder<TRequest, TResponse>
     {
         return BuildPipeline(innerInvoker, BuildInvoker);
 
-        static ServerStreamingServerMethod<TRequest, TResponse> BuildInvoker(InterceptorRegistration interceptorRegistration, ServerStreamingServerMethod<TRequest, TResponse> next)
+        static ServerStreamingServerMethod<TRequest, TResponse> BuildInvoker(InterceptorRegistration interceptorRegistration, InterceptorActivators interceptorActivators, ServerStreamingServerMethod<TRequest, TResponse> next)
         {
             return async (request, responseStream, context) =>
             {
                 var serviceProvider = context.GetHttpContext().RequestServices;
-                var interceptorActivator = interceptorRegistration.GetActivator(serviceProvider);
+                var interceptorActivator = interceptorActivators.GetInterceptorActivator(interceptorRegistration.Type);
                 var interceptorHandle = CreateInterceptor(interceptorRegistration, interceptorActivator, serviceProvider);
 
                 if (interceptorHandle.Instance == null)
@@ -114,12 +116,12 @@ internal sealed class InterceptorPipelineBuilder<TRequest, TResponse>
     {
         return BuildPipeline(innerInvoker, BuildInvoker);
 
-        static UnaryServerMethod<TRequest, TResponse> BuildInvoker(InterceptorRegistration interceptorRegistration, UnaryServerMethod<TRequest, TResponse> next)
+        static UnaryServerMethod<TRequest, TResponse> BuildInvoker(InterceptorRegistration interceptorRegistration, InterceptorActivators interceptorActivators, UnaryServerMethod<TRequest, TResponse> next)
         {
             return async (request, context) =>
             {
                 var serviceProvider = context.GetHttpContext().RequestServices;
-                var interceptorActivator = interceptorRegistration.GetActivator(serviceProvider);
+                var interceptorActivator = interceptorActivators.GetInterceptorActivator(interceptorRegistration.Type);
                 var interceptorHandle = CreateInterceptor(interceptorRegistration, interceptorActivator, serviceProvider);
 
                 try
@@ -134,7 +136,7 @@ internal sealed class InterceptorPipelineBuilder<TRequest, TResponse>
         }
     }
 
-    private T BuildPipeline<T>(T innerInvoker, Func<InterceptorRegistration, T, T> wrapInvoker)
+    private T BuildPipeline<T>(T innerInvoker, Func<InterceptorRegistration, InterceptorActivators, T, T> wrapInvoker)
     {
         // The inner invoker will create the service instance and invoke the method
         var resolvedInvoker = innerInvoker;
@@ -142,7 +144,7 @@ internal sealed class InterceptorPipelineBuilder<TRequest, TResponse>
         // The list is reversed during construction so the first interceptor is built last and invoked first
         for (var i = _interceptors.Count - 1; i >= 0; i--)
         {
-            resolvedInvoker = wrapInvoker(_interceptors[i], resolvedInvoker);
+            resolvedInvoker = wrapInvoker(_interceptors[i], _interceptorActivators, resolvedInvoker);
         }
 
         return resolvedInvoker;

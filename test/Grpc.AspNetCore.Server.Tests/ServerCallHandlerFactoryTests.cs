@@ -1,4 +1,4 @@
-﻿#region Copyright notice and license
+#region Copyright notice and license
 
 // Copyright 2019 The gRPC Authors
 //
@@ -17,6 +17,7 @@
 #endregion
 
 using Grpc.AspNetCore.Server.Internal;
+using Grpc.Shared.Server;
 using Microsoft.Extensions.DependencyInjection;
 using NUnit.Framework;
 
@@ -37,7 +38,7 @@ public class ServerCallHandlerFactoryTests
         var options = factory.CreateMethodOptions();
 
         // Assert
-        Assert.AreEqual(GrpcServiceOptionsSetup.DefaultReceiveMaxMessageSize, options.MaxReceiveMessageSize);
+        Assert.AreEqual(MethodOptions.DefaultReceiveMaxMessageSize, options.MaxReceiveMessageSize);
     }
 
     [Test]

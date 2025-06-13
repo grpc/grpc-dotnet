@@ -18,7 +18,6 @@
 
 using System.IO.Compression;
 using Grpc.AspNetCore.Server;
-using Grpc.AspNetCore.Server.Internal;
 using Grpc.Net.Compression;
 
 namespace Grpc.Shared.Server;
@@ -28,6 +27,11 @@ namespace Grpc.Shared.Server;
 /// </summary>
 internal sealed class MethodOptions
 {
+    // Default to no send limit and 4mb receive limit.
+    // Matches the gRPC C impl defaults
+    // https://github.com/grpc/grpc/blob/977df7208a6e3f9a62a6369af5cd6e4b69b4fdec/include/grpc/impl/codegen/grpc_types.h#L413-L416
+    internal const int DefaultReceiveMaxMessageSize = 4 * 1024 * 1024;
+
     /// <summary>
     /// Gets the list of compression providers used to compress and decompress gRPC messages.
     /// </summary>
@@ -116,7 +120,7 @@ internal sealed class MethodOptions
         var tempInterceptors = new List<InterceptorRegistration>();
         int? maxSendMessageSize = null;
         var maxSendMessageSizeConfigured = false;
-        int? maxReceiveMessageSize = GrpcServiceOptionsSetup.DefaultReceiveMaxMessageSize;
+        int? maxReceiveMessageSize = DefaultReceiveMaxMessageSize;
         var maxReceiveMessageSizeConfigured = false;
         bool? enableDetailedErrors = null;
         string? responseCompressionAlgorithm = null;
@@ -127,12 +131,12 @@ internal sealed class MethodOptions
         {
             AddCompressionProviders(resolvedCompressionProviders, options.CompressionProviders);
             tempInterceptors.InsertRange(0, options.Interceptors);
-            if (!maxSendMessageSizeConfigured && options._maxSendMessageSizeConfigured)
+            if (!maxSendMessageSizeConfigured && options.MaxSendMessageSizeSpecified)
             {
                 maxSendMessageSize = options.MaxSendMessageSize;
                 maxSendMessageSizeConfigured = true;
             }
-            if (!maxReceiveMessageSizeConfigured && options._maxReceiveMessageSizeConfigured)
+            if (!maxReceiveMessageSizeConfigured && options.MaxReceiveMessageSizeSpecified)
             {
                 maxReceiveMessageSize = options.MaxReceiveMessageSize;
                 maxReceiveMessageSizeConfigured = true;

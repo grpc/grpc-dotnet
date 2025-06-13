@@ -60,23 +60,7 @@ public class InterceptorRegistration
     /// </summary>
     public IReadOnlyList<object> Arguments => _args;
 
-    private IGrpcInterceptorActivator? _interceptorActivator;
     private ObjectFactory? _factory;
-
-    [UnconditionalSuppressMessage("ReflectionAnalysis", "IL2026:UnrecognizedReflectionPattern",
-        Justification = "Type parameter members are preserved with DynamicallyAccessedMembers on InterceptorRegistration.Type property.")]
-    [UnconditionalSuppressMessage("AotAnalysis", "IL3050:RequiresDynamicCode",
-        Justification = "Type definition is explicitly specified and type argument is always an Interceptor type.")]
-    internal IGrpcInterceptorActivator GetActivator(IServiceProvider serviceProvider)
-    {
-        // Not thread safe. Side effect is resolving the service twice.
-        if (_interceptorActivator == null)
-        {
-            _interceptorActivator = (IGrpcInterceptorActivator)serviceProvider.GetRequiredService(typeof(IGrpcInterceptorActivator<>).MakeGenericType(Type));
-        }
-
-        return _interceptorActivator;
-    }
 
     internal ObjectFactory GetFactory()
     {
