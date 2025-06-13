@@ -16,15 +16,15 @@
 
 #endregion
 
-namespace Grpc.AspNetCore.Server.Tests.TestObjects;
+using Greet;
+using Grpc.Net.Client;
 
-[AttributeUsage(AttributeTargets.Class | AttributeTargets.Method)]
-public class CustomAttribute : Attribute
-{
-    public CustomAttribute(string value)
-    {
-        Value = value;
-    }
+using var channel = GrpcChannel.ForAddress("https://localhost:5001");
+var client = new Greeter.GreeterClient(channel);
 
-    public string Value { get; }
-}
+var reply = await client.SayHelloAsync(new HelloRequest { Name = "GreeterClient" });
+Console.WriteLine("Greeting: " + reply.Message);
+
+Console.WriteLine("Shutting down");
+Console.WriteLine("Press any key to exit...");
+Console.ReadKey();

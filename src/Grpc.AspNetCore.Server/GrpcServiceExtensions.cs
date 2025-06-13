@@ -77,8 +77,12 @@ public static class GrpcServicesExtensions
         services.TryAddSingleton<ServiceMethodsRegistry>();
         services.TryAddSingleton(typeof(ServiceRouteBuilder<>));
         services.TryAddEnumerable(ServiceDescriptor.Singleton(typeof(IServiceMethodProvider<>), typeof(BinderServiceMethodProvider<>)));
+        services.TryAddEnumerable(ServiceDescriptor.Singleton(typeof(IServiceMethodProvider<>), typeof(ServiceDefinitionMethodProvider<>)));
 
-        return new GrpcServerBuilder(services);
+        var builder = new GrpcServerBuilder(services);
+        builder.AddServiceOptions<ServerServiceDefinitionMarker>(options => options.SuppressCreatingService = true);
+
+        return builder;
 
         static void ConfigureRouting(RouteOptions options)
         {

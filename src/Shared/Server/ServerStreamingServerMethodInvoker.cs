@@ -67,7 +67,7 @@ internal sealed class ServerStreamingServerMethodInvoker<[DynamicallyAccessedMem
         GrpcActivatorHandle<TService> serviceHandle = default;
         try
         {
-            serviceHandle = ServiceActivator.Create(resolvedContext.GetHttpContext().RequestServices);
+            serviceHandle = CreateServiceHandle(resolvedContext);
             await _invoker(
                 serviceHandle.Instance,
                 request,
@@ -98,7 +98,7 @@ internal sealed class ServerStreamingServerMethodInvoker<[DynamicallyAccessedMem
             GrpcActivatorHandle<TService> serviceHandle = default;
             try
             {
-                serviceHandle = ServiceActivator.Create(httpContext.RequestServices);
+                serviceHandle = CreateServiceHandle(httpContext);
                 await _invoker(
                     serviceHandle.Instance,
                     request,

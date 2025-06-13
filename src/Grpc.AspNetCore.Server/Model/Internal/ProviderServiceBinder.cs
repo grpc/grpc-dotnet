@@ -91,7 +91,7 @@ internal sealed class ProviderServiceBinder<[DynamicallyAccessedMembers(GrpcProt
         // Accepting CORS preflight means gRPC will allow requests with OPTIONS + preflight headers.
         // If CORS middleware hasn't been configured then the request will reach gRPC handler.
         // gRPC will return 405 response and log that CORS has not been configured.
-        metadata.Add(new HttpMethodMetadata(new[] { "POST" }, acceptCorsPreflight: true));
+        metadata.Add(new HttpMethodMetadata(["POST"], acceptCorsPreflight: true));
 
         return (invoker, metadata);
     }

@@ -38,7 +38,7 @@ using ChannelState = Grpc.Net.Client.Balancer.ChannelState;
 namespace Grpc.Net.Client.Tests.Balancer;
 
 [TestFixture]
-public class ClientChannelTests
+public class ConnectionManagerTests
 {
     internal class TestBackoffPolicyFactory : IBackoffPolicyFactory
     {
@@ -606,7 +606,7 @@ public class ClientChannelTests
         // There isn't a clean way to wait for UpdateAddresses to be waiting for the subchannel lock.
         // Use a long delay to ensure we're waiting for the lock and are in the right state.
         await updateAddressesTcs.Task.DefaultTimeout();
-        await Task.Delay(500);
+        await Task.Delay(1000);
         requestConnectionSyncPoint.Continue();
 
         // Ensure the pick completes without deadlock.

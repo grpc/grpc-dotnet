@@ -1,4 +1,4 @@
-﻿#region Copyright notice and license
+#region Copyright notice and license
 
 // Copyright 2019 The gRPC Authors
 //
@@ -16,19 +16,8 @@
 
 #endregion
 
-using System.Diagnostics;
-using Grpc.AspNetCore.Server.Model;
+namespace Grpc.AspNetCore.Server;
 
-namespace FunctionalTestsWebsite.Infrastructure;
-
-public class DynamicServiceModelProvider : IServiceMethodProvider<DynamicService>
+internal sealed class ServerServiceDefinitionMarker
 {
-    public Action<ServiceMethodProviderContext<DynamicService>>? CreateMethod { get; set; }
-
-    public void OnServiceMethodDiscovery(ServiceMethodProviderContext<DynamicService> context)
-    {
-        Debug.Assert(CreateMethod != null);
-
-        CreateMethod(context);
-    }
 }

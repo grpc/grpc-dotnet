@@ -17,8 +17,10 @@
 #endregion
 
 using System.Diagnostics.CodeAnalysis;
+using Grpc.AspNetCore.Server;
 using Grpc.AspNetCore.Server.Internal;
 using Grpc.AspNetCore.Server.Model.Internal;
+using Grpc.Core;
 using Grpc.Shared;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.Extensions.DependencyInjection;
@@ -43,7 +45,42 @@ public static class GrpcEndpointRouteBuilderExtensions
         ValidateServicesRegistered(builder.ServiceProvider);
 
         var serviceRouteBuilder = builder.ServiceProvider.GetRequiredService<ServiceRouteBuilder<TService>>();
-        var endpointConventionBuilders = serviceRouteBuilder.Build(builder);
+        var endpointConventionBuilders = serviceRouteBuilder.Build(builder, argument: null);
+
+        return new GrpcServiceEndpointConventionBuilder(endpointConventionBuilders);
+    }
+
+    /// <summary>
+    /// Maps incoming requests to the <see cref="ServerServiceDefinition"/> instance from the specified factory.
+    /// </summary>
+    /// <param name="builder">The <see cref="IEndpointRouteBuilder"/> to add the route to.</param>
+    /// <param name="mapDefinition">The factory for <see cref="ServerServiceDefinition"/> instance.</param>
+    /// <returns>A <see cref="GrpcServiceEndpointConventionBuilder"/> for endpoints associated with the service.</returns>
+    public static GrpcServiceEndpointConventionBuilder MapGrpcService(this IEndpointRouteBuilder builder, Func<IServiceProvider, ServerServiceDefinition> mapDefinition)
+    {
+        ArgumentNullException.ThrowIfNull(builder, nameof(builder));
+        ArgumentNullException.ThrowIfNull(mapDefinition, nameof(mapDefinition));
+
+        var serviceDefinition = mapDefinition(builder.ServiceProvider);
+
+        return MapGrpcService(builder, serviceDefinition);
+    }
+
+    /// <summary>
+    /// Maps incoming requests to the specified <see cref="ServerServiceDefinition"/> instance.
+    /// </summary>
+    /// <param name="builder">The <see cref="IEndpointRouteBuilder"/> to add the route to.</param>
+    /// <param name="serviceDefinition">The instance of <see cref="ServerServiceDefinition"/>.</param>
+    /// <returns>A <see cref="GrpcServiceEndpointConventionBuilder"/> for endpoints associated with the service.</returns>
+    public static GrpcServiceEndpointConventionBuilder MapGrpcService(this IEndpointRouteBuilder builder, ServerServiceDefinition serviceDefinition)
+    {
+        ArgumentNullException.ThrowIfNull(builder, nameof(builder));
+        ArgumentNullException.ThrowIfNull(serviceDefinition, nameof(serviceDefinition));
+
+        ValidateServicesRegistered(builder.ServiceProvider);
+
+        var serviceRouteBuilder = builder.ServiceProvider.GetRequiredService<ServiceRouteBuilder<ServerServiceDefinitionMarker>>();
+        var endpointConventionBuilders = serviceRouteBuilder.Build(builder, argument: serviceDefinition);
 
         return new GrpcServiceEndpointConventionBuilder(endpointConventionBuilders);
     }

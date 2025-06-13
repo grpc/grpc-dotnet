@@ -20,6 +20,7 @@ using System.Diagnostics.CodeAnalysis;
 using Grpc.AspNetCore.Server;
 using Grpc.AspNetCore.Server.Internal;
 using Grpc.Core;
+using Microsoft.AspNetCore.Http;
 
 namespace Grpc.Shared.Server;
 
@@ -63,5 +64,20 @@ internal abstract class ServerMethodInvokerBase<[DynamicallyAccessedMembers(Grpc
         Method = method;
         Options = options;
         ServiceActivator = serviceActivator;
+    }
+
+    protected GrpcActivatorHandle<TService> CreateServiceHandle(ServerCallContext context)
+    {
+        return CreateServiceHandle(context.GetHttpContext());
+    }
+
+    protected GrpcActivatorHandle<TService> CreateServiceHandle(HttpContext httpContext)
+    {
+        if (!Options.SuppressCreatingService)
+        {
+            return ServiceActivator.Create(httpContext.RequestServices);
+        }
+
+        return default;
     }
 }

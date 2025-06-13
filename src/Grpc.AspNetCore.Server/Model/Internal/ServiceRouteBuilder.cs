@@ -46,11 +46,11 @@ internal sealed class ServiceRouteBuilder<[DynamicallyAccessedMembers(GrpcProtoc
         _logger = loggerFactory.CreateLogger<ServiceRouteBuilder<TService>>();
     }
 
-    internal List<IEndpointConventionBuilder> Build(IEndpointRouteBuilder endpointRouteBuilder)
+    internal List<IEndpointConventionBuilder> Build(IEndpointRouteBuilder endpointRouteBuilder, object? argument)
     {
         Log.DiscoveringServiceMethods(_logger, typeof(TService));
 
-        var serviceMethodProviderContext = new ServiceMethodProviderContext<TService>(_serverCallHandlerFactory);
+        var serviceMethodProviderContext = new ServiceMethodProviderContext<TService>(_serverCallHandlerFactory, argument);
         foreach (var serviceMethodProvider in _serviceMethodProviders)
         {
             serviceMethodProvider.OnServiceMethodDiscovery(serviceMethodProviderContext);

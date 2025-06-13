@@ -1,5 +1,3 @@
-#region Copyright notice and license
-
 // Copyright 2019 The gRPC Authors
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -14,17 +12,22 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#endregion
+syntax = "proto3";
 
-namespace Grpc.AspNetCore.Server.Tests.TestObjects;
+package greet;
 
-[AttributeUsage(AttributeTargets.Class | AttributeTargets.Method)]
-public class CustomAttribute : Attribute
-{
-    public CustomAttribute(string value)
-    {
-        Value = value;
-    }
+// The greeting service definition.
+service Greeter {
+  // Sends a greeting
+  rpc SayHello (HelloRequest) returns (HelloReply);
+}
 
-    public string Value { get; }
+// The request message containing the user's name.
+message HelloRequest {
+  string name = 1;
+}
+
+// The response message containing the greetings
+message HelloReply {
+  string message = 1;
 }

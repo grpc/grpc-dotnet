@@ -1,4 +1,4 @@
-﻿#region Copyright notice and license
+#region Copyright notice and license
 
 // Copyright 2019 The gRPC Authors
 //
@@ -112,6 +112,8 @@ public class GrpcServiceOptions
     /// Get a collection of interceptors to be executed with every call. Interceptors are executed in order.
     /// </summary>
     public InterceptorCollection Interceptors { get; } = new InterceptorCollection();
+
+    internal bool SuppressCreatingService { get; set; }
 }
 
 /// <summary>

@@ -67,7 +67,7 @@ internal sealed class DuplexStreamingServerMethodInvoker<[DynamicallyAccessedMem
         GrpcActivatorHandle<TService> serviceHandle = default;
         try
         {
-            serviceHandle = ServiceActivator.Create(resolvedContext.GetHttpContext().RequestServices);
+            serviceHandle = CreateServiceHandle(resolvedContext);
             await _invoker(
                 serviceHandle.Instance,
                 requestStream,
@@ -98,7 +98,7 @@ internal sealed class DuplexStreamingServerMethodInvoker<[DynamicallyAccessedMem
             GrpcActivatorHandle<TService> serviceHandle = default;
             try
             {
-                serviceHandle = ServiceActivator.Create(httpContext.RequestServices);
+                serviceHandle = CreateServiceHandle(httpContext);
                 await _invoker(
                     serviceHandle.Instance,
                     requestStream,
