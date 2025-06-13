@@ -18,7 +18,6 @@
 
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
-using Grpc.Shared.Server;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Net.Http.Headers;
 
@@ -83,5 +82,5 @@ internal static class GrpcProtocolConstants
         return IsHttp3(protocol) ? Http3ResetStreamCancel : Http2ResetStreamCancel;
     }
 
-    internal const DynamicallyAccessedMemberTypes ServiceAccessibility = ServerDynamicAccessConstants.ServiceAccessibility;
+    internal const DynamicallyAccessedMemberTypes ServiceAccessibility = DynamicallyAccessedMemberTypes.PublicConstructors | DynamicallyAccessedMemberTypes.PublicMethods | DynamicallyAccessedMemberTypes.NonPublicMethods;
 }
