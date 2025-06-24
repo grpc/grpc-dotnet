@@ -21,6 +21,7 @@ using Grpc.AspNetCore.Server.Internal;
 using Grpc.AspNetCore.Server.Model;
 using Grpc.AspNetCore.Server.Model.Internal;
 using Grpc.AspNetCore.Server.Tests.TestObjects;
+using Grpc.Shared.Server;
 using Grpc.Tests.Shared;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging.Abstractions;
@@ -38,18 +39,20 @@ public class BinderServiceMethodProviderTests
         // Arrange
         var services = new ServiceCollection();
         services.AddSingleton<GreeterServiceWithDuplicateNames>();
+        var serviceProvider = services.BuildServiceProvider();
 
         var serverCallHandlerFactory = new ServerCallHandlerFactory<GreeterServiceWithDuplicateNames>(
             NullLoggerFactory.Instance,
             Options.Create<GrpcServiceOptions>(new GrpcServiceOptions()),
             Options.Create<GrpcServiceOptions<GreeterServiceWithDuplicateNames>>(new GrpcServiceOptions<GreeterServiceWithDuplicateNames>()),
-            new TestGrpcServiceActivator<GreeterServiceWithDuplicateNames>());
+            new TestGrpcServiceActivator<GreeterServiceWithDuplicateNames>(),
+            new InterceptorActivators(serviceProvider));
 
         var provider = new BinderServiceMethodProvider<GreeterServiceWithDuplicateNames>(NullLoggerFactory.Instance);
         var context = new ServiceMethodProviderContext<GreeterServiceWithDuplicateNames>(serverCallHandlerFactory, argument: null);
 
         var httpContext = HttpContextHelpers.CreateContext();
-        httpContext.RequestServices = services.BuildServiceProvider();
+        httpContext.RequestServices = serviceProvider;
 
         // Act
         provider.OnServiceMethodDiscovery(context);

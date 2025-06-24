@@ -27,10 +27,10 @@ namespace Grpc.AspNetCore.Server;
 public class GrpcServiceOptions
 {
     internal IList<ICompressionProvider>? _compressionProviders;
-    internal bool _maxReceiveMessageSizeConfigured;
     internal int? _maxReceiveMessageSize;
-    internal bool _maxSendMessageSizeConfigured;
     internal int? _maxSendMessageSize;
+    internal bool _maxSendMessageSizeSpecified;
+    internal bool _maxReceiveMessageSizeSpecified;
 
     /// <summary>
     /// Gets or sets the maximum message size in bytes that can be sent from the server.
@@ -45,7 +45,24 @@ public class GrpcServiceOptions
         set
         {
             _maxSendMessageSize = value;
-            _maxSendMessageSizeConfigured = true;
+            MaxSendMessageSizeSpecified = true;
+        }
+    }
+
+    /// <summary>
+    /// Gets or sets a flag indicating whether <see cref="MaxSendMessageSize"/> is specified.
+    /// This flag is automatically set to true when <see cref="MaxSendMessageSize"/> is configured.
+    /// </summary>
+    public bool MaxSendMessageSizeSpecified
+    {
+        get => _maxSendMessageSizeSpecified;
+        set
+        {
+            _maxSendMessageSizeSpecified = value;
+            if (!_maxSendMessageSizeSpecified)
+            {
+                _maxSendMessageSize = null;
+            }
         }
     }
 
@@ -62,7 +79,24 @@ public class GrpcServiceOptions
         set
         {
             _maxReceiveMessageSize = value;
-            _maxReceiveMessageSizeConfigured = true;
+            MaxReceiveMessageSizeSpecified = true;
+        }
+    }
+
+    /// <summary>
+    /// Gets or sets a flag indicating whether <see cref="MaxReceiveMessageSize"/> is specified.
+    /// This flag is automatically set to true when <see cref="MaxReceiveMessageSize"/> is configured.
+    /// </summary>
+    public bool MaxReceiveMessageSizeSpecified
+    {
+        get => _maxReceiveMessageSizeSpecified;
+        set
+        {
+            _maxReceiveMessageSizeSpecified = value;
+            if (!_maxReceiveMessageSizeSpecified)
+            {
+                _maxReceiveMessageSize = null;
+            }
         }
     }
 
@@ -113,7 +147,10 @@ public class GrpcServiceOptions
     /// </summary>
     public InterceptorCollection Interceptors { get; } = new InterceptorCollection();
 
-    internal bool SuppressCreatingService { get; set; }
+    /// <summary>
+    /// Gets or sets a value indicating whether creating a service is suppressed when handling a gRPC call.
+    /// </summary>
+    public bool SuppressCreatingService { get; set; }
 }
 
 /// <summary>

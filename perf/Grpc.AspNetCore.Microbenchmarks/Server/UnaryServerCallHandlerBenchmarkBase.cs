@@ -1,4 +1,4 @@
-﻿#region Copyright notice and license
+#region Copyright notice and license
 
 // Copyright 2019 The gRPC Authors
 //
@@ -83,7 +83,8 @@ public class UnaryServerCallHandlerBenchmarkBase
                     compressionProviders: CompressionProviders,
                     responseCompressionAlgorithm: ResponseCompressionAlgorithm,
                     interceptors: Interceptors),
-                new TestGrpcServiceActivator<TestService>(new TestService())),
+                new TestGrpcServiceActivator<TestService>(new TestService()),
+                new InterceptorActivators(serviceProvider)),
             NullLoggerFactory.Instance);
 
         _trailers = new HeaderDictionary();

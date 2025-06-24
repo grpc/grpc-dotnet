@@ -249,6 +249,7 @@ public class CallHandlerTests
         Func<Task>? handlerAction = null)
     {
         var method = new Method<TestMessage, TestMessage>(methodType, "test", "test", _marshaller, _marshaller);
+        var interceptorActivators = new InterceptorActivators(new ServiceCollection().BuildServiceProvider());
 
         switch (methodType)
         {
@@ -262,7 +263,8 @@ public class CallHandlerTests
                         },
                         method,
                         HttpContextServerCallContextHelper.CreateMethodOptions(),
-                        new TestGrpcServiceActivator<TestService>()),
+                        new TestGrpcServiceActivator<TestService>(),
+                        interceptorActivators),
                     loggerFactory ?? NullLoggerFactory.Instance);
             case MethodType.ClientStreaming:
                 return new ClientStreamingServerCallHandler<TestService, TestMessage, TestMessage>(
@@ -274,7 +276,8 @@ public class CallHandlerTests
                         },
                         method,
                         HttpContextServerCallContextHelper.CreateMethodOptions(),
-                        new TestGrpcServiceActivator<TestService>()),
+                        new TestGrpcServiceActivator<TestService>(),
+                        interceptorActivators),
                     loggerFactory ?? NullLoggerFactory.Instance);
             case MethodType.ServerStreaming:
                 return new ServerStreamingServerCallHandler<TestService, TestMessage, TestMessage>(
@@ -285,7 +288,8 @@ public class CallHandlerTests
                         },
                         method,
                         HttpContextServerCallContextHelper.CreateMethodOptions(),
-                        new TestGrpcServiceActivator<TestService>()),
+                        new TestGrpcServiceActivator<TestService>(),
+                        interceptorActivators),
                     loggerFactory ?? NullLoggerFactory.Instance);
             case MethodType.DuplexStreaming:
                 return new DuplexStreamingServerCallHandler<TestService, TestMessage, TestMessage>(
@@ -296,7 +300,8 @@ public class CallHandlerTests
                         },
                         method,
                         HttpContextServerCallContextHelper.CreateMethodOptions(),
-                        new TestGrpcServiceActivator<TestService>()),
+                        new TestGrpcServiceActivator<TestService>(),
+                        interceptorActivators),
                     loggerFactory ?? NullLoggerFactory.Instance);
             default:
                 throw new ArgumentException("Unexpected method type: " + methodType);

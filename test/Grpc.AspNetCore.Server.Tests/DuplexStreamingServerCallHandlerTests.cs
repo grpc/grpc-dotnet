@@ -23,6 +23,7 @@ using Grpc.Shared.Server;
 using Grpc.Tests.Shared;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.Features;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging.Abstractions;
 using NUnit.Framework;
 
@@ -47,7 +48,8 @@ public class DuplexStreamingServerCallHandlerTests
             },
             new Method<TestMessage, TestMessage>(MethodType.DuplexStreaming, "test", "test", _marshaller, _marshaller),
             HttpContextServerCallContextHelper.CreateMethodOptions(),
-            new TestGrpcServiceActivator<TestService>());
+            new TestGrpcServiceActivator<TestService>(),
+            new InterceptorActivators(new ServiceCollection().BuildServiceProvider()));
         var handler = new DuplexStreamingServerCallHandler<TestService, TestMessage, TestMessage>(invoker, NullLoggerFactory.Instance);
 
         // Verify there isn't a race condition when reading/writing on seperate threads.
