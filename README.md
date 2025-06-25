@@ -72,11 +72,9 @@ dotnet test Grpc.DotNet.sln
 
 ### Alternative implementation using Code-First (external library)
 
-An alternative way to use gRPC in .NET is to declare the Protobuf classes in C#, using [Mark Gravell](https://github.com/mgravell)'s [protobuf-net](https://github.com/protobuf-net/protobuf-net.Grpc).
+An alternative way to use gRPC in .NET is to define the Protobuf contracts directly in C# using [protobuf-net](https://github.com/protobuf-net/protobuf-net.Grpc).
 
-Here as an example:
-
-For more information read the docs [here](https://learn.microsoft.com/en-us/aspnet/core/grpc/code-first) or [here](https://protobuf-net.github.io/protobuf-net.Grpc/)
+For more information, see the documentation on [learn.microsoft.com](https://learn.microsoft.com/aspnet/core/grpc/code-first) or the [protobuf-net.Grpc repository](https://protobuf-net.github.io/protobuf-net.Grpc/).
 
 ## To contribute
 
