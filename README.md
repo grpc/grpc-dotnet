@@ -70,6 +70,12 @@ To run tests from the command line:
 dotnet test Grpc.DotNet.sln
 ```
 
+### Alternative implementation using Code-First (external library)
+
+An alternative way to use gRPC in .NET is to define the Protobuf contracts directly in C# using [protobuf-net](https://github.com/protobuf-net/protobuf-net.Grpc).
+
+For more information, see the documentation on [learn.microsoft.com](https://learn.microsoft.com/aspnet/core/grpc/code-first) or the [protobuf-net.Grpc website](https://protobuf-net.github.io/protobuf-net.Grpc/).
+
 ## To contribute
 
 Contributions are welcome!
