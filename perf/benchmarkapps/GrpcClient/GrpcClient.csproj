@@ -1,7 +1,8 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>net9.0</TargetFramework>
+    <TargetFramework Condition="'$(NetFxFramework)'!='true'">net9.0</TargetFramework>
+    <TargetFramework Condition="'$(NetFxFramework)'=='true'">net462</TargetFramework>
     <OutputType>Exe</OutputType>
     <DefineConstants Condition="'$(EnableGrpcWeb)' == 'true'">$(DefineConstants);GRPC_WEB</DefineConstants>
     <!-- Enable server GC to more closely simulate a microservice app making calls -->
@@ -23,6 +24,7 @@
     <PackageReference Include="Microsoft.Extensions.Logging.Console" />
     <PackageReference Include="Newtonsoft.Json" />
     <PackageReference Include="System.CommandLine" />
+    <PackageReference Include="System.Net.Http.WinHttpHandler" />
 
     <PackageReference Include="Google.Protobuf" />
     <PackageReference Include="Grpc.Core" />
@@ -47,11 +49,6 @@
   </ItemGroup>
   <ItemGroup Condition="'$(PublishAot)'=='true'">
     <PackageReference Include="Grpc.Net.Client" />
-  </ItemGroup>
-
-
-  <ItemGroup Condition="$([MSBuild]::VersionGreaterThanOrEquals($(TargetFrameworkVersion), 5.0))">
-
   </ItemGroup>
 
 </Project>

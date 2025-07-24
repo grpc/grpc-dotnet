@@ -21,6 +21,8 @@ using System.Security.Principal;
 
 namespace GrpcClient;
 
+#if NET9_0_OR_GREATER
+
 public class NamedPipeConnectionFactory
 {
     private readonly string _pipeName;
@@ -54,3 +56,5 @@ public class NamedPipeConnectionFactory
         }
     }
 }
+
+#endif
