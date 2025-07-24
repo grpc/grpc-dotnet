@@ -163,7 +163,7 @@ class Program
         return await rootCommand.InvokeAsync(args);
     }
 
-#if NET90_OR_GREATER
+#if NET9_0_OR_GREATER
     [UnconditionalSuppressMessage("AotAnalysis", "IL3050:RequiresDynamicCode",
         Justification = "DependencyInjection only used with safe types.")]
 #endif
