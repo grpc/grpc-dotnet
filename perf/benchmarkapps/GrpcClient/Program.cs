@@ -21,6 +21,7 @@ using System.CommandLine.Invocation;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
+using System.Net.Http;
 using System.Net.Security;
 using System.Net.Sockets;
 using System.Reflection;
@@ -78,6 +79,7 @@ class Program
         var streamsOption = new Option<int>(new string[] { "--streams" }, () => 1, "Maximum concurrent streams per connection");
         var enableCertAuthOption = new Option<bool>(new string[] { "--enableCertAuth" }, () => false, "Flag indicating whether client sends a client certificate");
         var deadlineOption = new Option<int>(new string[] { "--deadline" }, "Duration of deadline in seconds");
+        var winHttpHandlerOption = new Option<bool>(new string[] { "--winhttphandler" }, () => false, "Whether to use WinHttpHandler with Grpc.Net.Client");
 
         var rootCommand = new RootCommand();
         rootCommand.AddOption(urlOption);
@@ -97,6 +99,7 @@ class Program
         rootCommand.AddOption(streamsOption);
         rootCommand.AddOption(enableCertAuthOption);
         rootCommand.AddOption(deadlineOption);
+        rootCommand.AddOption(winHttpHandlerOption);
 
         rootCommand.SetHandler(async (InvocationContext context) =>
         {
@@ -118,6 +121,7 @@ class Program
             _options.Streams = context.ParseResult.GetValueForOption(streamsOption);
             _options.EnableCertAuth = context.ParseResult.GetValueForOption(enableCertAuthOption);
             _options.Deadline = context.ParseResult.GetValueForOption(deadlineOption);
+            _options.WinHttpHandler = context.ParseResult.GetValueForOption(winHttpHandlerOption);
 
             var runtimeVersion = typeof(object).GetTypeInfo().Assembly.GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion ?? "Unknown";
             var isServerGC = GCSettings.IsServerGC;
@@ -159,8 +163,10 @@ class Program
         return await rootCommand.InvokeAsync(args);
     }
 
+#if NET9_0_OR_GREATER
     [UnconditionalSuppressMessage("AotAnalysis", "IL3050:RequiresDynamicCode",
         Justification = "DependencyInjection only used with safe types.")]
+#endif
     private static ILoggerFactory CreateLoggerFactory()
     {
         return LoggerFactory.Create(c =>
@@ -244,7 +250,7 @@ class Program
             var text = "Exception from test: " + ex.Message;
             Log(text);
             _errorStringBuilder.AppendLine();
-            _errorStringBuilder.Append(CultureInfo.InvariantCulture, $"[{DateTime.Now:hh:mm:ss.fff}] {text}");
+            _errorStringBuilder.Append(string.Format(CultureInfo.InvariantCulture, "[{0:hh:mm:ss.fff}] {1}", DateTime.Now, text) );
         }
     }
 
@@ -425,7 +431,9 @@ class Program
         var initialUri = _options.Url!;
         var resolvedUri = initialUri.Authority;
 
+        Log($"Framework version: {System.Runtime.InteropServices.RuntimeInformation.FrameworkDescription}");
         Log($"gRPC client type: {_options.GrpcClientType}");
+        Log($"WinHttpHandler: {(_options.GrpcClientType == GrpcClientType.GrpcNetClient ? _options.WinHttpHandler.ToString() : "N/A")}");
         Log($"Log level: {_options.LogLevel}");
         Log($"Protocol: '{_options.Protocol}'");
         Log($"Creating channels to '{resolvedUri}'");
@@ -465,43 +473,12 @@ class Program
                 var address = useTls ? "https://" : "http://";
                 address += target;
 
-                var httpClientHandler = new SocketsHttpHandler();
-                httpClientHandler.UseProxy = false;
-                httpClientHandler.AllowAutoRedirect = false;
-                if (_options.EnableCertAuth)
-                {
-                    var basePath = Path.GetDirectoryName(AppContext.BaseDirectory);
-                    var certPath = Path.Combine(basePath!, "Certs", "client.pfx");
-                    var clientCertificates = X509CertificateLoader.LoadPkcs12CollectionFromFile(certPath, "1111");
-                    httpClientHandler.SslOptions.ClientCertificates = clientCertificates;
-                }
+                // Force H3 on all requests.
+                var versionOverride = _options.Protocol == "h3"
+                    ? new Version(3, 0)
+                    : null;
 
-                if (!string.IsNullOrEmpty(_options.UdsFileName))
-                {
-                    var connectionFactory = new UnixDomainSocketConnectionFactory(new UnixDomainSocketEndPoint(ResolveUdsPath(_options.UdsFileName)));
-                    httpClientHandler.ConnectCallback = connectionFactory.ConnectAsync;
-                }
-                else if (!string.IsNullOrEmpty(_options.NamedPipeName))
-                {
-                    var connectionFactory = new NamedPipeConnectionFactory(_options.NamedPipeName);
-                    httpClientHandler.ConnectCallback = connectionFactory.ConnectAsync;
-                }
-
-                httpClientHandler.SslOptions.RemoteCertificateValidationCallback =
-                    (object sender, X509Certificate? certificate, X509Chain? chain, SslPolicyErrors sslPolicyErrors) => true;
-
-                HttpMessageHandler httpMessageHandler = httpClientHandler;
-
-                Version? versionOverride = null;
-                if (_options.Protocol == "h3")
-                {
-                    // Stop gRPC channel from creating TCP socket.
-                    httpClientHandler.ConnectCallback = (context, cancellationToken) => throw new InvalidOperationException("Should never be called for H3.");
-
-                    // Force H3 on all requests.
-                    versionOverride = new Version(3, 0);
-                }
-
+                var httpMessageHandler = CreateMessageHandler();
                 return GrpcChannel.ForAddress(address, new GrpcChannelOptions
                 {
                     HttpHandler = httpMessageHandler,
@@ -509,6 +486,61 @@ class Program
                     HttpVersion = versionOverride
                 });
         }
+    }
+
+    private static HttpMessageHandler CreateMessageHandler()
+    {
+        if (_options.WinHttpHandler)
+        {
+            return CreateWinHttpHandler();
+        }
+
+#if NET9_0_OR_GREATER
+        var httpClientHandler = new SocketsHttpHandler();
+        httpClientHandler.UseProxy = false;
+        httpClientHandler.AllowAutoRedirect = false;
+        if (_options.EnableCertAuth)
+        {
+            var basePath = Path.GetDirectoryName(AppContext.BaseDirectory);
+            var certPath = Path.Combine(basePath!, "Certs", "client.pfx");
+            var clientCertificates = X509CertificateLoader.LoadPkcs12CollectionFromFile(certPath, "1111");
+            httpClientHandler.SslOptions.ClientCertificates = clientCertificates;
+        }
+
+        if (!string.IsNullOrEmpty(_options.UdsFileName))
+        {
+            var connectionFactory = new UnixDomainSocketConnectionFactory(new UnixDomainSocketEndPoint(ResolveUdsPath(_options.UdsFileName)));
+            httpClientHandler.ConnectCallback = connectionFactory.ConnectAsync;
+        }
+        else if (!string.IsNullOrEmpty(_options.NamedPipeName))
+        {
+            var connectionFactory = new NamedPipeConnectionFactory(_options.NamedPipeName);
+            httpClientHandler.ConnectCallback = connectionFactory.ConnectAsync;
+        }
+
+        httpClientHandler.SslOptions.RemoteCertificateValidationCallback =
+            (object sender, X509Certificate? certificate, X509Chain? chain, SslPolicyErrors sslPolicyErrors) => true;
+
+        if (_options.Protocol == "h3")
+        {
+            // Stop gRPC channel from creating TCP socket.
+            httpClientHandler.ConnectCallback = (context, cancellationToken) => throw new InvalidOperationException("Should never be called for H3.");
+        }
+
+        return httpClientHandler;
+#else
+        return CreateWinHttpHandler();
+#endif
+    }
+
+    private static WinHttpHandler CreateWinHttpHandler()
+    {
+#pragma warning disable CA1416 // Validate platform compatibility
+        return new WinHttpHandler
+        {
+            ServerCertificateValidationCallback = (sender, certificate, chain, sslPolicyErrors) => true,
+        };
+#pragma warning restore CA1416 // Validate platform compatibility
     }
 
     private static string ResolveUdsPath(string udsFileName) => Path.Combine(Path.GetTempPath(), udsFileName);
