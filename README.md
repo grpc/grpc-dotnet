@@ -62,12 +62,12 @@ startvs.cmd
 
 To build from the command line:
 ```
-dotnet build Grpc.DotNet.sln
+dotnet build Grpc.DotNet.slnx
 ```
 
 To run tests from the command line:
 ```
-dotnet test Grpc.DotNet.sln
+dotnet test Grpc.DotNet.slnx
 ```
 
 ### Alternative implementation using Code-First (external library)
