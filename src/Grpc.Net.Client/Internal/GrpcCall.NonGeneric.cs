@@ -173,7 +173,7 @@ internal abstract class GrpcCall
         }
 
         // Don't access Headers.ContentType property because it is not threadsafe.
-        var contentType = GrpcProtocolHelpers.GetHeaderValue(httpResponse.Content?.Headers, "Content-Type");
+        var contentType = HttpRequestHelpers.GetHeaderValue(httpResponse.Content?.Headers, "Content-Type");
         if (contentType == null)
         {
             return new Status(StatusCode.Cancelled, "Bad gRPC response. Response did not have a content-type header.");

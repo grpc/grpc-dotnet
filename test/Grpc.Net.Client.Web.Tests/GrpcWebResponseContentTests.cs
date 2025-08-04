@@ -31,13 +31,18 @@ public class GrpcWebResponseContentTests
     {
         // Arrange
         var testHttpContext = new TestHttpContent();
-        var content = new GrpcWebResponseContent(testHttpContext, GrpcWebMode.GrpcWeb, new TestHttpHeaders());
+        var content = CreateResponseContent(testHttpContext);
 
         // Act
         content.Dispose();
 
         // Assert
         Assert.IsTrue(testHttpContext.Disposed);
+    }
+
+    private static GrpcWebResponseContent CreateResponseContent(TestHttpContent testHttpContext)
+    {
+        return new GrpcWebResponseContent(testHttpContext, GrpcWebMode.GrpcWeb, new TestHttpHeaders(), new HttpResponseMessage());
     }
 
     private class TestHttpHeaders : HttpHeaders

@@ -182,7 +182,7 @@ public sealed class GrpcWebHandler : DelegatingHandler
             response.EnsureTrailingHeaders();
 #endif
 
-            response.Content = new GrpcWebResponseContent(response.Content, GrpcWebMode, response.TrailingHeaders());
+            response.Content = new GrpcWebResponseContent(response.Content, GrpcWebMode, response.TrailingHeaders(), response);
         }
 
         // The gRPC client validates HTTP version 2.0 and will error if it isn't. Always set
@@ -196,6 +196,7 @@ public sealed class GrpcWebHandler : DelegatingHandler
         return response;
     }
 
+#if NETSTANDARD2_0
     private bool Http2NotSupported()
     {
         if (Environment.Version.Major == 4 &&
@@ -212,6 +213,7 @@ public sealed class GrpcWebHandler : DelegatingHandler
 
         return false;
     }
+#endif
 
     private void FixBrowserUserAgent(HttpRequestMessage request)
     {

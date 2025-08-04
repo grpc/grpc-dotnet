@@ -1,4 +1,4 @@
-﻿#region Copyright notice and license
+#region Copyright notice and license
 
 // Copyright 2019 The gRPC Authors
 //
@@ -26,13 +26,15 @@ internal sealed class GrpcWebResponseContent : HttpContent
     private readonly HttpContent _inner;
     private readonly GrpcWebMode _mode;
     private readonly HttpHeaders _responseTrailers;
+    private readonly HttpResponseMessage _response;
     private Stream? _innerStream;
 
-    public GrpcWebResponseContent(HttpContent inner, GrpcWebMode mode, HttpHeaders responseTrailers)
+    public GrpcWebResponseContent(HttpContent inner, GrpcWebMode mode, HttpHeaders responseTrailers, HttpResponseMessage response)
     {
         _inner = inner;
         _mode = mode;
         _responseTrailers = responseTrailers;
+        _response = response;
 
         foreach (var header in inner.Headers)
         {
@@ -55,7 +57,7 @@ internal sealed class GrpcWebResponseContent : HttpContent
             _innerStream = new Base64ResponseStream(_innerStream);
         }
 
-        _innerStream = new GrpcWebResponseStream(_innerStream, _responseTrailers);
+        _innerStream = new GrpcWebResponseStream(_innerStream, _responseTrailers, _response);
 
         await _innerStream.CopyToAsync(stream).ConfigureAwait(false);
     }
@@ -69,7 +71,7 @@ internal sealed class GrpcWebResponseContent : HttpContent
             stream = new Base64ResponseStream(stream);
         }
 
-        return new GrpcWebResponseStream(stream, _responseTrailers);
+        return new GrpcWebResponseStream(stream, _responseTrailers, _response);
     }
 
     protected override bool TryComputeLength(out long length)

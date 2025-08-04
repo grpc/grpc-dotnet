@@ -310,7 +310,7 @@ internal sealed partial class GrpcCall<TRequest, TResponse> : GrpcCall, IGrpcCal
             // Check if the headers have a status. If they do then wait for the overall call task
             // to complete before returning headers. This means that if the call failed with a
             // a status then it is possible to await response headers and then call GetStatus().
-            var grpcStatus = GrpcProtocolHelpers.GetHeaderValue(httpResponse.Headers, GrpcProtocolConstants.StatusTrailer);
+            var grpcStatus = HttpRequestHelpers.GetHeaderValue(httpResponse.Headers, GrpcProtocolConstants.StatusTrailer);
             if (grpcStatus != null)
             {
                 await CallTask.ConfigureAwait(false);

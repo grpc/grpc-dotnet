@@ -17,6 +17,7 @@
 #endregion
 
 using System.Diagnostics.CodeAnalysis;
+using System.Net.Http.Headers;
 
 namespace Grpc.Shared;
 
@@ -110,5 +111,62 @@ internal static class HttpRequestHelpers
         }
 
         return null;
+    }
+
+    public static string? GetHeaderValue(HttpHeaders? headers, string name, bool first = false)
+    {
+        if (headers == null)
+        {
+            return null;
+        }
+
+#if NET6_0_OR_GREATER
+        if (!headers.NonValidated.TryGetValues(name, out var values))
+        {
+            return null;
+        }
+
+        using (var e = values.GetEnumerator())
+        {
+            if (!e.MoveNext())
+            {
+                return null;
+            }
+
+            var result = e.Current;
+            if (!e.MoveNext())
+            {
+                return result;
+            }
+
+            if (first)
+            {
+                return result;
+            }
+        }
+        throw new InvalidOperationException($"Multiple {name} headers.");
+#else
+        if (!headers.TryGetValues(name, out var values))
+        {
+            return null;
+        }
+
+        // HttpHeaders appears to always return an array, but fallback to converting values to one just in case
+        var valuesArray = values as string[] ?? values.ToArray();
+
+        switch (valuesArray.Length)
+        {
+            case 0:
+                return null;
+            case 1:
+                return valuesArray[0];
+            default:
+                if (first)
+                {
+                    return valuesArray[0];
+                }
+                throw new InvalidOperationException($"Multiple {name} headers.");
+        }
+#endif
     }
 }
