@@ -56,7 +56,7 @@ public sealed class DeflateCompressionProvider : ICompressionProvider
         // compression algorithm (RFC 1951).  So while potentially
         // counterintuitive based on naming, this needs to use ZLibStream
         // rather than DeflateStream.
-        return new ZLibStream(stream, compressionLevel ?? _defaultCompressionLevel);
+        return new ZLibStream(stream, compressionLevel ?? _defaultCompressionLevel, leaveOpen: true);
     }
 
     /// <summary>

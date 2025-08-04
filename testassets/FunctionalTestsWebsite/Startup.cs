@@ -20,12 +20,13 @@ using System.Diagnostics;
 using System.Globalization;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
+using DeflateCompression;
 using FunctionalTestsWebsite.Infrastructure;
 using FunctionalTestsWebsite.Services;
 using Greet;
-using Grpc.AspNetCore.Server.Model;
 using Grpc.HealthCheck;
 using Grpc.Tests.Shared;
+using GzipCompression;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Localization;
 using Microsoft.Extensions.DependencyInjection.Extensions;
@@ -49,9 +50,13 @@ public class Startup
                 options.MaxSendMessageSize = 64 * 1024;
                 options.MaxReceiveMessageSize = 64 * 1024;
             })
-            .AddServiceOptions<CompressionService>(options =>
+            .AddServiceOptions<Services.GzipCompressionService>(options =>
             {
                 options.ResponseCompressionAlgorithm = "gzip";
+            })
+            .AddServiceOptions<Services.DeflateCompressionService>(options =>
+            {
+                options.ResponseCompressionAlgorithm = "deflate";
             });
         services.AddHttpContextAccessor();
 
@@ -200,7 +205,8 @@ public class Startup
             endpoints.MapGrpcService<LifetimeService>();
             endpoints.MapGrpcService<SingletonCounterService>();
             endpoints.MapGrpcService<NestedService>();
-            endpoints.MapGrpcService<CompressionService>();
+            endpoints.MapGrpcService<Services.GzipCompressionService>();
+            endpoints.MapGrpcService<Services.DeflateCompressionService>();
             endpoints.MapGrpcService<AnyService>();
             endpoints.MapGrpcService<GreeterService>();
             endpoints.MapGrpcService<StreamService>();

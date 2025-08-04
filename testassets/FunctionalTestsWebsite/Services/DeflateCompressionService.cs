@@ -1,4 +1,4 @@
-﻿#region Copyright notice and license
+#region Copyright notice and license
 
 // Copyright 2019 The gRPC Authors
 //
@@ -16,12 +16,12 @@
 
 #endregion
 
-using Compression;
+using DeflateCompression;
 using Grpc.Core;
 
 namespace FunctionalTestsWebsite.Services;
 
-public class CompressionService : Compression.CompressionService.CompressionServiceBase
+public class DeflateCompressionService : DeflateCompression.DeflateCompressionService.DeflateCompressionServiceBase
 {
     public override Task<HelloReply> SayHello(HelloRequest request, ServerCallContext context)
     {

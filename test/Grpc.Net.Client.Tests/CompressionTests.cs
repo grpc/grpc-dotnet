@@ -32,8 +32,11 @@ namespace Grpc.Net.Client.Tests;
 [TestFixture]
 public class CompressionTests
 {
-    [Test]
-    public async Task AsyncUnaryCall_UnknownCompressMetadataSentWithRequest_ThrowsError()
+    [TestCase("gzip")]
+#if NET6_0_OR_GREATER
+    [TestCase("deflate")]
+#endif
+    public async Task AsyncUnaryCall_UnknownCompressMetadataSentWithRequest_ThrowsError(string compression)
     {
         // Arrange
         HttpRequestMessage? httpRequestMessage = null;
@@ -48,7 +51,7 @@ public class CompressionTests
             helloRequest = await StreamSerializationHelper.ReadMessageAsync(
                 requestStream,
                 ClientTestHelpers.ServiceMethod.RequestMarshaller.ContextualDeserializer,
-                "gzip",
+                compression,
                 maximumMessageSize: null,
                 GrpcProtocolConstants.DefaultCompressionProviders,
                 singleMessage: true,
@@ -79,9 +82,13 @@ public class CompressionTests
         Assert.AreEqual("Could not find compression provider for 'not-supported'.", ex.Status.DebugException!.Message);
     }
 
-    [TestCase(true)]
-    [TestCase(false)]
-    public async Task AsyncUnaryCall_CompressMetadataSentWithRequest_RequestMessageCompressed(bool compressionDisabledOnOptions)
+    [TestCase(true, "gzip")]
+    [TestCase(false, "gzip")]
+#if NET6_0_OR_GREATER
+    [TestCase(true, "deflate")]
+    [TestCase(false, "deflate")]
+#endif
+    public async Task AsyncUnaryCall_CompressMetadataSentWithRequest_RequestMessageCompressed(bool compressionDisabledOnOptions, string compression)
     {
         // Arrange
         HttpRequestMessage? httpRequestMessage = null;
@@ -98,7 +105,7 @@ public class CompressionTests
             helloRequest = await StreamSerializationHelper.ReadMessageAsync(
                 new MemoryStream(requestData),
                 ClientTestHelpers.ServiceMethod.RequestMarshaller.ContextualDeserializer,
-                "gzip",
+                compression,
                 maximumMessageSize: null,
                 GrpcProtocolConstants.DefaultCompressionProviders,
                 singleMessage: true,
@@ -119,7 +126,7 @@ public class CompressionTests
 
         var invoker = HttpClientCallInvokerFactory.Create(httpClient, configure: o => o.CompressionProviders = compressionProviders);
 
-        var compressionMetadata = CreateClientCompressionMetadata("gzip");
+        var compressionMetadata = CreateClientCompressionMetadata(compression);
         var callOptions = new CallOptions(headers: compressionMetadata);
         if (compressionDisabledOnOptions)
         {
@@ -143,7 +150,7 @@ public class CompressionTests
 #else
         Assert.AreEqual("identity,gzip,test", httpRequestMessage.Headers.GetValues(GrpcProtocolConstants.MessageAcceptEncodingHeader).Single());
 #endif
-        Assert.AreEqual("gzip", httpRequestMessage.Headers.GetValues(GrpcProtocolConstants.MessageEncodingHeader).Single());
+        Assert.AreEqual(compression, httpRequestMessage.Headers.GetValues(GrpcProtocolConstants.MessageEncodingHeader).Single());
         Assert.AreEqual(false, httpRequestMessage.Headers.Contains(GrpcProtocolConstants.CompressionRequestAlgorithmHeader));
 
         CompatibilityHelpers.Assert(helloRequest != null);
@@ -152,8 +159,11 @@ public class CompressionTests
         Assert.AreEqual(compressionDisabledOnOptions, isRequestNotCompressed);
     }
 
-    [Test]
-    public async Task AsyncUnaryCall_CompressedResponse_ResponseMessageDecompressed()
+    [TestCase("gzip")]
+#if NET6_0_OR_GREATER
+    [TestCase("deflate")]
+#endif
+    public async Task AsyncUnaryCall_CompressedResponse_ResponseMessageDecompressed(string compression)
     {
         // Arrange
         HttpRequestMessage? httpRequestMessage = null;
@@ -168,7 +178,7 @@ public class CompressionTests
             helloRequest = await StreamSerializationHelper.ReadMessageAsync(
                 requestStream,
                 ClientTestHelpers.ServiceMethod.RequestMarshaller.ContextualDeserializer,
-                "gzip",
+                compression,
                 maximumMessageSize: null,
                 GrpcProtocolConstants.DefaultCompressionProviders,
                 singleMessage: true,
@@ -179,10 +189,14 @@ public class CompressionTests
                 Message = "Hello world"
             };
 
-            var compressionProvider = new GzipCompressionProvider(CompressionLevel.Fastest);
+            if (!GrpcProtocolConstants.DefaultCompressionProviders.TryGetValue(compression, out var compressionProvider))
+            {
+                throw new InvalidOperationException($"Could not find compression provider for '{compression}'.");
+            }
+
             var streamContent = await ClientTestHelpers.CreateResponseContent(reply, compressionProvider).DefaultTimeout();
 
-            return ResponseUtils.CreateResponse(HttpStatusCode.OK, streamContent, grpcEncoding: "gzip");
+            return ResponseUtils.CreateResponse(HttpStatusCode.OK, streamContent, grpcEncoding: compression);
         });
         var invoker = HttpClientCallInvokerFactory.Create(handler, "http://localhost");
 
@@ -248,8 +262,11 @@ public class CompressionTests
 #endif
     }
 
-    [Test]
-    public async Task AsyncClientStreamingCall_CompressMetadataSentWithRequest_RequestMessageCompressed()
+    [TestCase("gzip")]
+#if NET6_0_OR_GREATER
+    [TestCase("deflate")]
+#endif
+    public async Task AsyncClientStreamingCall_CompressMetadataSentWithRequest_RequestMessageCompressed(string compression)
     {
         // Arrange
         HttpRequestMessage? httpRequestMessage = null;
@@ -269,7 +286,7 @@ public class CompressionTests
             helloRequest1 = await StreamSerializationHelper.ReadMessageAsync(
                 requestStream,
                 ClientTestHelpers.ServiceMethod.RequestMarshaller.ContextualDeserializer,
-                "gzip",
+                compression,
                 maximumMessageSize: null,
                 GrpcProtocolConstants.DefaultCompressionProviders,
                 singleMessage: false,
@@ -279,7 +296,7 @@ public class CompressionTests
             helloRequest2 = await StreamSerializationHelper.ReadMessageAsync(
                 requestStream,
                 ClientTestHelpers.ServiceMethod.RequestMarshaller.ContextualDeserializer,
-                "gzip",
+                compression,
                 maximumMessageSize: null,
                 GrpcProtocolConstants.DefaultCompressionProviders,
                 singleMessage: false,
@@ -300,7 +317,7 @@ public class CompressionTests
 
         var invoker = HttpClientCallInvokerFactory.Create(httpClient, configure: o => o.CompressionProviders = compressionProviders);
 
-        var compressionMetadata = CreateClientCompressionMetadata("gzip");
+        var compressionMetadata = CreateClientCompressionMetadata(compression);
         var callOptions = new CallOptions(headers: compressionMetadata);
 
         // Act
@@ -330,7 +347,7 @@ public class CompressionTests
 #else
         Assert.AreEqual("identity,gzip,test", httpRequestMessage.Headers.GetValues(GrpcProtocolConstants.MessageAcceptEncodingHeader).Single());
 #endif
-        Assert.AreEqual("gzip", httpRequestMessage.Headers.GetValues(GrpcProtocolConstants.MessageEncodingHeader).Single());
+        Assert.AreEqual(compression, httpRequestMessage.Headers.GetValues(GrpcProtocolConstants.MessageEncodingHeader).Single());
         Assert.AreEqual(false, httpRequestMessage.Headers.Contains(GrpcProtocolConstants.CompressionRequestAlgorithmHeader));
 
         CompatibilityHelpers.Assert(helloRequest1 != null);
