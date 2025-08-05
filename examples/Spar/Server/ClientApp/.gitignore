@@ -9,6 +9,9 @@
 # dependencies
 /node_modules
 
+# parcel cache
+/.parcel-cache
+
 # IDEs and editors
 /.idea
 .project
