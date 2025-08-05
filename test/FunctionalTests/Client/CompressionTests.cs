@@ -16,13 +16,13 @@
 
 #endregion
 
-using Compression;
+using DeflateCompression;
 using Grpc.AspNetCore.FunctionalTests.Infrastructure;
 using Grpc.AspNetCore.Server.Internal;
 using Grpc.Core;
 using Grpc.Net.Client;
 using Grpc.Tests.Shared;
-using NUnit.Framework;
+using GzipCompression;
 
 namespace Grpc.AspNetCore.FunctionalTests.Client;
 
@@ -55,16 +55,54 @@ public class CompressionTests : FunctionalTestBase
             LoggerFactory = LoggerFactory,
             HttpClient = httpClient
         });
-        var client = new CompressionService.CompressionServiceClient(channel);
+        var client = new GzipCompressionService.GzipCompressionServiceClient(channel);
 
         // Act
-        var call = client.SayHelloAsync(new HelloRequest { Name = "World" }, headers: compressionMetadata);
+        var call = client.SayHelloAsync(new GzipCompression.HelloRequest { Name = "World" }, headers: compressionMetadata);
         var response = await call.ResponseAsync.DefaultTimeout();
 
         // Assert
         Assert.AreEqual("Hello World", response.Message);
         Assert.AreEqual(algorithmName, requestMessageEncoding);
         Assert.AreEqual("gzip", responseMessageEncoding);
+    }
+
+    [TestCase("identity")]
+    [TestCase("gzip")]
+    [TestCase("deflate")]
+    public async Task SendCompressedMessage_ServiceCompressionConfigured_ResponseDeflateEncoding(string algorithmName)
+    {
+        // Arrange
+        var compressionMetadata = CreateClientCompressionMetadata(algorithmName);
+
+        string? requestMessageEncoding = null;
+        string? responseMessageEncoding = null;
+        using var httpClient = Fixture.CreateClient(messageHandler: new TestDelegateHandler(
+            r =>
+            {
+                requestMessageEncoding = r.Headers.GetValues(GrpcProtocolConstants.MessageEncodingHeader).Single();
+            },
+            r =>
+            {
+                responseMessageEncoding = r.Headers.GetValues(GrpcProtocolConstants.MessageEncodingHeader).Single();
+            }
+        ));
+
+        var channel = GrpcChannel.ForAddress(httpClient.BaseAddress!, new GrpcChannelOptions
+        {
+            LoggerFactory = LoggerFactory,
+            HttpClient = httpClient
+        });
+        var client = new DeflateCompressionService.DeflateCompressionServiceClient(channel);
+
+        // Act
+        var call = client.SayHelloAsync(new DeflateCompression.HelloRequest { Name = "World" }, headers: compressionMetadata);
+        var response = await call.ResponseAsync.DefaultTimeout();
+
+        // Assert
+        Assert.AreEqual("Hello World", response.Message);
+        Assert.AreEqual(algorithmName, requestMessageEncoding);
+        Assert.AreEqual("deflate", responseMessageEncoding);
     }
 
     private static Metadata CreateClientCompressionMetadata(string algorithmName)

@@ -285,7 +285,7 @@ internal abstract partial class RetryCallBase<TRequest, TResponse> : IGrpcCall<T
         // https://github.com/grpc/proposal/blob/master/A6-client-retries.md#pushback
         if (httpResponse != null)
         {
-            var headerValue = GrpcProtocolHelpers.GetHeaderValue(httpResponse.Headers, GrpcProtocolConstants.RetryPushbackHeader);
+            var headerValue = HttpRequestHelpers.GetHeaderValue(httpResponse.Headers, GrpcProtocolConstants.RetryPushbackHeader);
             if (headerValue != null)
             {
                 Log.RetryPushbackReceived(Logger, headerValue);

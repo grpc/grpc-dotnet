@@ -1,4 +1,4 @@
-﻿#region Copyright notice and license
+#region Copyright notice and license
 
 // Copyright 2019 The gRPC Authors
 //
@@ -30,13 +30,48 @@ namespace Grpc.Net.Client.Web.Tests;
 public class GrpcWebResponseStreamTests
 {
     [Test]
+    public async Task CompressedTrailers()
+    {
+        // Arrange
+        var data = Convert.FromBase64String("AQAAACkfiwgAAAAAAAD/4uIPzy/KSVFIK8rPVdDzcw0BBAAA//8goODwEQAAAIEAAAAoH4sIAAAAAAAA/0ovKkjWLS5JLCkttlIw4OUCBAAA///9bCSrEAAAAA==");
+        var trailingHeaders = new TestHttpHeaders();
+        var ms = new MemoryStream(data);
+        var responseMessage = new HttpResponseMessage();
+        responseMessage.Headers.Add("grpc-encoding", "gzip");
+        var responseStream = CreateResponseStream(stream: ms, trailingHeaders: trailingHeaders, responseMessage: responseMessage);
+
+        // Act 1
+        var contentHeaderData = new byte[5];
+        var read1 = await ReadAsync(responseStream, contentHeaderData);
+
+        // Assert 1
+        Assert.AreEqual(5, read1);
+
+        // Act 2
+        var messageData = new byte[41];
+        var read2 = await ReadAsync(responseStream, messageData);
+
+        // Assert 2
+        Assert.AreEqual(41, read2);
+
+        // Act 3
+        var trailerData = new byte[4096];
+        var read3 = await ReadAsync(responseStream, trailerData);
+
+        // Assert 3
+        Assert.AreEqual(0, read3);
+        Assert.AreEqual(1, trailingHeaders.Count());
+        Assert.AreEqual("0", trailingHeaders.GetValues("grpc-status").Single());
+    }
+
+    [Test]
     public async Task ReadAsync_EmptyMessage_ParseMessageAndTrailers()
     {
         // Arrange
         var data = Convert.FromBase64String("AAAAAACAAAAAEA0KZ3JwYy1zdGF0dXM6IDA=");
         var trailingHeaders = new TestHttpHeaders();
         var ms = new MemoryStream(data);
-        var responseStream = new GrpcWebResponseStream(ms, trailingHeaders);
+        var responseStream = CreateResponseStream(stream: ms, trailingHeaders: trailingHeaders);
 
         // Act 1
         var contentHeaderData = new byte[5];
@@ -74,7 +109,7 @@ public class GrpcWebResponseStreamTests
 
         var trailingHeaders = new TestHttpHeaders();
         var ms = new MemoryStream(data);
-        var responseStream = new GrpcWebResponseStream(ms, trailingHeaders);
+        var responseStream = CreateResponseStream(stream: ms, trailingHeaders: trailingHeaders);
 
         // Act & Assert header
         var contentHeaderData = new byte[1];
@@ -121,7 +156,7 @@ public class GrpcWebResponseStreamTests
 
         var trailingHeaders = new TestHttpHeaders();
         var ms = new MemoryStream(data);
-        var responseStream = new GrpcWebResponseStream(ms, trailingHeaders);
+        var responseStream = CreateResponseStream(stream: ms, trailingHeaders: trailingHeaders);
 
         // Act & Assert header
         var contentHeaderData = new byte[1];
@@ -170,7 +205,7 @@ public class GrpcWebResponseStreamTests
         var data = new byte[] { 0, 0, 0, 0, 0, 128, 0, 0, 0, 0 };
         var trailingHeaders = new TestHttpHeaders();
         var ms = new MemoryStream(data);
-        var responseStream = new GrpcWebResponseStream(ms, trailingHeaders);
+        var responseStream = CreateResponseStream(stream: ms, trailingHeaders: trailingHeaders);
 
         // Act 1
         var contentHeaderData = new byte[5];
@@ -199,7 +234,7 @@ public class GrpcWebResponseStreamTests
         var data = new byte[] { 0, 0, 0, 0, 0, 128, 0, 0, 0, 0 };
         var trailingHeaders = new TestHttpHeaders();
         var ms = new MemoryStream(data);
-        var responseStream = new GrpcWebResponseStream(ms, trailingHeaders);
+        var responseStream = CreateResponseStream(stream: ms, trailingHeaders: trailingHeaders);
         var contentHeaderData = new byte[1];
 
         await ReadByteAsync(responseStream, contentHeaderData);
@@ -232,7 +267,7 @@ public class GrpcWebResponseStreamTests
         // Arrange
         var data = new byte[] { 0, 0, 0, 0, 1, 99, 128, 0, 0, 0, 0 };
         var ms = new MemoryStream(data);
-        var responseStream = new GrpcWebResponseStream(ms, new TestHttpHeaders());
+        var responseStream = CreateResponseStream(stream: ms);
 
         // Act 1
         var contentHeaderData = new byte[1024];
@@ -269,7 +304,7 @@ public class GrpcWebResponseStreamTests
         // Arrange
         var data = new byte[] { 0, 0, 0, 0, 0, 128, 0, 0, 0, 0, 1 };
         var ms = new MemoryStream(data);
-        var responseStream = new GrpcWebResponseStream(ms, new TestHttpHeaders());
+        var responseStream = CreateResponseStream(stream: ms);
 
         // Act 1
         var contentHeaderData = new byte[5];
@@ -318,5 +353,10 @@ public class GrpcWebResponseStreamTests
 #else
         return stream.ReadAsync(data, cancellationToken).AsTask();
 #endif
+    }
+
+    private static GrpcWebResponseStream CreateResponseStream(Stream stream, HttpHeaders? trailingHeaders = null, HttpResponseMessage? responseMessage = null)
+    {
+        return new GrpcWebResponseStream(stream, trailingHeaders ?? new TestHttpHeaders(), responseMessage ?? new HttpResponseMessage());
     }
 }

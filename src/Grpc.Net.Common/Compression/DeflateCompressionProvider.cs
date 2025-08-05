@@ -1,4 +1,4 @@
-﻿#region Copyright notice and license
+#region Copyright notice and license
 
 // Copyright 2019 The gRPC Authors
 //
@@ -56,7 +56,7 @@ public sealed class DeflateCompressionProvider : ICompressionProvider
         // compression algorithm (RFC 1951).  So while potentially
         // counterintuitive based on naming, this needs to use ZLibStream
         // rather than DeflateStream.
-        return new ZLibStream(stream, compressionLevel ?? _defaultCompressionLevel);
+        return new ZLibStream(stream, compressionLevel ?? _defaultCompressionLevel, leaveOpen: true);
     }
 
     /// <summary>
@@ -71,7 +71,7 @@ public sealed class DeflateCompressionProvider : ICompressionProvider
         // compression algorithm (RFC 1951).  So while potentially
         // counterintuitive based on naming, this needs to use ZLibStream
         // rather than DeflateStream.
-        return new ZLibStream(stream, CompressionMode.Decompress);
+        return new ZLibStream(stream, CompressionMode.Decompress, leaveOpen: true);
     }
 }
 #endif

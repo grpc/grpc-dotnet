@@ -216,7 +216,7 @@ internal static class GrpcProtocolHelpers
 
     internal static string GetRequestEncoding(HttpRequestHeaders headers)
     {
-        var grpcRequestEncoding = GetHeaderValue(
+        var grpcRequestEncoding = HttpRequestHelpers.GetHeaderValue(
             headers,
             GrpcProtocolConstants.MessageEncodingHeader,
             first: true);
@@ -226,7 +226,7 @@ internal static class GrpcProtocolHelpers
 
     internal static string GetGrpcEncoding(HttpResponseMessage response)
     {
-        var grpcEncoding = GetHeaderValue(
+        var grpcEncoding = HttpRequestHelpers.GetHeaderValue(
             response.Headers,
             GrpcProtocolConstants.MessageEncodingHeader,
             first: true);
@@ -321,63 +321,6 @@ internal static class GrpcProtocolHelpers
         headers.TryAddWithoutValidation(entry.Key, value);
     }
 
-    public static string? GetHeaderValue(HttpHeaders? headers, string name, bool first = false)
-    {
-        if (headers == null)
-        {
-            return null;
-        }
-
-#if NET6_0_OR_GREATER
-        if (!headers.NonValidated.TryGetValues(name, out var values))
-        {
-            return null;
-        }
-
-        using (var e = values.GetEnumerator())
-        {
-            if (!e.MoveNext())
-            {
-                return null;
-            }
-
-            var result = e.Current;
-            if (!e.MoveNext())
-            {
-                return result;
-            }
-
-            if (first)
-            {
-                return result;
-            }
-        }
-        throw new InvalidOperationException($"Multiple {name} headers.");
-#else
-        if (!headers.TryGetValues(name, out var values))
-        {
-            return null;
-        }
-
-        // HttpHeaders appears to always return an array, but fallback to converting values to one just in case
-        var valuesArray = values as string[] ?? values.ToArray();
-
-        switch (valuesArray.Length)
-        {
-            case 0:
-                return null;
-            case 1:
-                return valuesArray[0];
-            default:
-                if (first)
-                {
-                    return valuesArray[0];
-                }
-                throw new InvalidOperationException($"Multiple {name} headers.");
-        }
-#endif
-    }
-
     public static Status GetResponseStatus(HttpResponseMessage httpResponse, bool isBrowser, bool isWinHttp)
     {
         Status? status;
@@ -409,7 +352,7 @@ internal static class GrpcProtocolHelpers
 
     public static bool TryGetStatusCore(HttpHeaders headers, [NotNullWhen(true)] out Status? status)
     {
-        var grpcStatus = GetHeaderValue(headers, GrpcProtocolConstants.StatusTrailer);
+        var grpcStatus = HttpRequestHelpers.GetHeaderValue(headers, GrpcProtocolConstants.StatusTrailer);
 
         // grpc-status is a required trailer
         if (grpcStatus == null)
@@ -426,7 +369,7 @@ internal static class GrpcProtocolHelpers
 
         // grpc-message is optional
         // Always read the gRPC message from the same headers collection as the status
-        var grpcMessage = GetHeaderValue(headers, GrpcProtocolConstants.MessageTrailer);
+        var grpcMessage = HttpRequestHelpers.GetHeaderValue(headers, GrpcProtocolConstants.MessageTrailer);
 
         if (!string.IsNullOrEmpty(grpcMessage))
         {

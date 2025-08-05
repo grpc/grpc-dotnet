@@ -17,7 +17,8 @@
     <Protobuf Include="..\Proto\any.proto" Link="Protos\any.proto" />
     <Protobuf Include="..\Proto\authorize.proto" Link="Protos\authorize.proto" />
     <Protobuf Include="..\Proto\chat.proto" Link="Protos\chat.proto" />
-    <Protobuf Include="..\Proto\compression.proto" Link="Protos\compression.proto" />
+    <Protobuf Include="..\Proto\gzip_compression.proto" Link="Protos\gzip_compression.proto" />
+    <Protobuf Include="..\Proto\deflate_compression.proto" Link="Protos\deflate_compression.proto" />
     <Protobuf Include="..\Proto\count.proto" Link="Protos\count.proto" />
     <Protobuf Include="..\Proto\greet.proto" Link="Protos\greet.proto" />
     <Protobuf Include="..\Proto\lifetime.proto" Link="Protos\lifetime.proto" />
