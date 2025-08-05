@@ -410,11 +410,15 @@ public class CompressionTests : FunctionalTestBase
         AssertHasLogRpcConnectionError(StatusCode.Internal, "Request did not include grpc-encoding value with compressed message.");
     }
 
-    [TestCase("gzip", "gzip", true)]
-    [TestCase("gzip", "identity, gzip", true)]
-    [TestCase("gzip", "gzip ", true)]
-    [TestCase("deflate", "deflate", false)]
-    public async Task SendCompressedMessageAndReturnResultWithNoCompressFlag_ResponseNotCompressed(string algorithmName, string messageAcceptEncoding, bool algorithmSupportedByServer)
+    [TestCase("gzip_compression.GzipCompressionService", "gzip", "gzip", true)]
+    [TestCase("gzip_compression.GzipCompressionService", "gzip", "identity, deflate, gzip", true)]
+    [TestCase("gzip_compression.GzipCompressionService", "gzip", "gzip ", true)]
+    [TestCase("gzip_compression.GzipCompressionService", "deflate", "deflate", false)]
+    [TestCase("deflate_compression.DeflateCompressionService", "gzip", "gzip", false)]
+    [TestCase("deflate_compression.DeflateCompressionService", "deflate", "identity, deflate, gzip", true)]
+    [TestCase("deflate_compression.DeflateCompressionService", "deflate", "deflate", true)]
+    [TestCase("deflate_compression.DeflateCompressionService", "deflate", "deflate ", true)]
+    public async Task SendCompressedMessageAndReturnResultWithNoCompressFlag_ResponseNotCompressed(string url, string algorithmName, string messageAcceptEncoding, bool algorithmSupportedByServer)
     {
         // Arrange
         var requestMessage = new HelloRequest
@@ -425,7 +429,7 @@ public class CompressionTests : FunctionalTestBase
         var requestStream = new MemoryStream();
         MessageHelpers.WriteMessage(requestStream, requestMessage, algorithmName);
 
-        var httpRequest = GrpcHttpHelper.Create("Compression.CompressionService/WriteMessageWithoutCompression");
+        var httpRequest = GrpcHttpHelper.Create($"{url}/WriteMessageWithoutCompression");
         httpRequest.Headers.Add(GrpcProtocolConstants.MessageEncodingHeader, algorithmName);
         httpRequest.Headers.Add(GrpcProtocolConstants.MessageAcceptEncodingHeader, messageAcceptEncoding);
         httpRequest.Content = new GrpcStreamContent(requestStream);
@@ -451,9 +455,11 @@ public class CompressionTests : FunctionalTestBase
         response.AssertTrailerStatus();
     }
 
-    [TestCase("gzip", true)]
-    [TestCase("deflate", false)]
-    public async Task SendUncompressedMessageToServiceWithCompression_ResponseCompressed(string algorithmName, bool algorithmSupportedByServer)
+    [TestCase("gzip_compression.GzipCompressionService", "gzip", true)]
+    [TestCase("gzip_compression.GzipCompressionService", "deflate", false)]
+    [TestCase("deflate_compression.DeflateCompressionService", "gzip", false)]
+    [TestCase("deflate_compression.DeflateCompressionService", "deflate", true)]
+    public async Task SendUncompressedMessageToServiceWithCompression_ResponseCompressed(string url, string algorithmName, bool algorithmSupportedByServer)
     {
         // Arrange
         var requestMessage = new HelloRequest
@@ -464,7 +470,7 @@ public class CompressionTests : FunctionalTestBase
         var requestStream = new MemoryStream();
         MessageHelpers.WriteMessage(requestStream, requestMessage);
 
-        var httpRequest = GrpcHttpHelper.Create("Compression.CompressionService/SayHello");
+        var httpRequest = GrpcHttpHelper.Create($"{url}/SayHello");
         httpRequest.Headers.Add(GrpcProtocolConstants.MessageAcceptEncodingHeader, algorithmName);
         httpRequest.Content = new GrpcStreamContent(requestStream);
 
@@ -489,8 +495,9 @@ public class CompressionTests : FunctionalTestBase
         response.AssertTrailerStatus();
     }
 
-    [Test]
-    public async Task SendIdentityGrpcAcceptEncodingToServiceWithCompression_ResponseUncompressed()
+    [TestCase("gzip_compression.GzipCompressionService")]
+    [TestCase("deflate_compression.DeflateCompressionService")]
+    public async Task SendIdentityGrpcAcceptEncodingToServiceWithCompression_ResponseUncompressed(string url)
     {
         // Arrange
         var requestMessage = new HelloRequest
@@ -501,7 +508,7 @@ public class CompressionTests : FunctionalTestBase
         var requestStream = new MemoryStream();
         MessageHelpers.WriteMessage(requestStream, requestMessage);
 
-        var httpRequest = GrpcHttpHelper.Create("Compression.CompressionService/SayHello");
+        var httpRequest = GrpcHttpHelper.Create($"{url}/SayHello");
         httpRequest.Headers.Add(GrpcProtocolConstants.MessageEncodingHeader, "identity");
         httpRequest.Headers.Add(GrpcProtocolConstants.MessageAcceptEncodingHeader, "identity");
         httpRequest.Content = new GrpcStreamContent(requestStream);
