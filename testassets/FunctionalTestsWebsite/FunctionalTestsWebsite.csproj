@@ -12,7 +12,7 @@
     <ProjectReference Include="..\..\src\Grpc.AspNetCore\Grpc.AspNetCore.csproj" />
     <ProjectReference Include="..\..\src\Grpc.HealthCheck\Grpc.HealthCheck.csproj" />
 
-    <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" VersionOverride="$(MicrosoftAspNetCoreApp6PackageVersion)" />
+    <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" VersionOverride="$(MicrosoftAspNetCoreApp8PackageVersion)" />
 
     <Protobuf Include="..\Proto\any.proto" Link="Protos\any.proto" />
     <Protobuf Include="..\Proto\authorize.proto" Link="Protos\authorize.proto" />
