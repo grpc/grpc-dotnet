@@ -36,18 +36,14 @@ public class LinkerTests
 
 #if NET9_0_OR_GREATER
     [Test]
-#if NET10_0_OR_GREATER
-    [Ignore("Currently not working on .NET 10.0")]
-#endif
+    [Ignore("Currently not working on .NET 10 SDK")]
     public async Task RunWebsiteAndCallWithClient_Aot_Success()
     {
         await RunWebsiteAndCallWithClient(publishAot: true);
     }
 
     [Test]
-#if NET10_0_OR_GREATER
-    [Ignore("Currently not working on .NET 10.0")]
-#endif
+    [Ignore("Currently not working on .NET 10 SDK")]
     public async Task RunWebsiteAndCallWithClient_Trimming_Success()
     {
         await RunWebsiteAndCallWithClient(publishAot: false);
