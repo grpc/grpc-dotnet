@@ -7,7 +7,6 @@
   <ItemGroup>
     <Protobuf Include="..\Proto\count.proto" GrpcServices="Server" Link="Protos\count.proto" />
 
-    <PackageReference Include="Microsoft.Extensions.Hosting" />
     <PackageReference Include="Grpc.AspNetCore" />
   </ItemGroup>
 
