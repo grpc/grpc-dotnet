@@ -553,6 +553,7 @@ public class ConnectionManagerTests
 
         await using var serviceProvider = services.BuildServiceProvider();
         var loggerFactory = serviceProvider.GetRequiredService<ILoggerFactory>();
+        var logger = loggerFactory.CreateLogger(nameof(PickAsync_UpdateAddressesWhileRequestingConnection_DoesNotDeadlock));
 
         var resolver = new TestResolver(loggerFactory);
         resolver.UpdateAddresses(new List<BalancerAddress>
@@ -579,20 +580,23 @@ public class ConnectionManagerTests
         {
             if (w.EventId.Name == "ConnectionRequested")
             {
+                logger.LogInformation("Connection has been requested. Waiting for signal to continue...");
                 requestConnectionSyncPoint.WaitToContinue().Wait();
+                logger.LogInformation("Connection request is continuing.");
             }
         };
 
         // Task should pause when requesting connection because of the logger sink.
+        logger.LogInformation("Start pick while requesting connection.");
         var pickTask = Task.Run(() => clientChannel.PickAsync(
             new PickContext { Request = new HttpRequestMessage() },
             waitForReady: true,
             CancellationToken.None).AsTask());
 
-        // Wait until we're paused on requesting a connection.
+        logger.LogInformation("Wait until we're paused on requesting a connection.");
         await requestConnectionSyncPoint.WaitForSyncPoint().DefaultTimeout();
 
-        // Update addresses while requesting a connection.
+        logger.LogInformation("Update addresses while requesting a connection.");
         var updateAddressesTcs = new TaskCompletionSource<object?>(TaskCreationOptions.RunContinuationsAsynchronously);
         var updateAddressesTask = Task.Run(() =>
         {
@@ -605,13 +609,17 @@ public class ConnectionManagerTests
 
         // There isn't a clean way to wait for UpdateAddresses to be waiting for the subchannel lock.
         // Use a long delay to ensure we're waiting for the lock and are in the right state.
+        logger.LogInformation("Wait for other thread to block while updating addresses.");
         await updateAddressesTcs.Task.DefaultTimeout();
         await Task.Delay(1000);
+
+        logger.LogInformation("UpdateAddresses should now be waiting on lock. Signal connection request to continue.");
         requestConnectionSyncPoint.Continue();
 
         // Ensure the pick completes without deadlock.
         try
         {
+            logger.LogInformation("Wait for pick to complete without deadlock.");
             await pickTask.DefaultTimeout();
         }
         catch (TimeoutException ex)
