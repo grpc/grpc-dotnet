@@ -189,7 +189,7 @@ The browser example example shows how to use [gRPC-Web](https://github.com/grpc/
 The gRPC-Web JavaScript client was generated from *greet.proto* using [`protoc`](https://github.com/protocolbuffers/protobuf/releases) with the [`protoc-gen-grpc-web`](https://github.com/grpc/grpc-web/releases) plugin.
 
 > [!NOTE]  
-> Run 'npm install' and 'npm run build' in the wwwroot directory to build the required JavaScript dependencies.
+> Run `npm install` and `npm run build` in the *wwwroot* directory to build the required JavaScript dependencies.
 
 ##### Scenarios:
 
