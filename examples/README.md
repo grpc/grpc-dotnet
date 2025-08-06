@@ -74,7 +74,8 @@ The reflector example shows how to host the [gRPC Server Reflection Protocol](ht
 
 The certifier example shows how to configure the client and the server to use a [TLS client certificate](https://blogs.msdn.microsoft.com/kaushal/2015/05/27/client-certificate-authentication-part-1/) with a gRPC call. The server is configured to require a client certificate using [ASP.NET Core client certificate authentication](https://docs.microsoft.com/en-us/aspnet/core/security/authentication/certauth).
 
-> **NOTE:** client.pfx is a self-signed certificate. When running the client you may get an error that the certificate is not trusted: `The certificate chain was issued by an authority that is not trusted`. [Add the certificate](https://www.thesslstore.com/knowledgebase/ssl-install/how-to-import-intermediate-root-certificates-using-mmc/) to your computer's trusted root cert store to fix this error. Don't use this certificate in production environments.
+> [!NOTE]  
+> client.pfx is a self-signed certificate. When running the client you may get an error that the certificate is not trusted: `The certificate chain was issued by an authority that is not trusted`. [Add the certificate](https://www.thesslstore.com/knowledgebase/ssl-install/how-to-import-intermediate-root-certificates-using-mmc/) to your computer's trusted root cert store to fix this error. Don't use this certificate in production environments.
 
 ##### Scenarios:
 
@@ -153,7 +154,8 @@ The vigor example example shows how to integrate [ASP.NET Core health checks](ht
 
 The compressor example example shows how to enable compression of gRPC request and response messages using gzip.
 
-> **IMPORTANT:** Using compression with dynamically generated content can lead to security problems such as the [CRIME](https://wikipedia.org/wiki/CRIME_(security_exploit)) and [BREACH](https://wikipedia.org/wiki/BREACH_(security_exploit)) attacks.
+> [!IMPORTANT]  
+> Using compression with dynamically generated content can lead to security problems such as the [CRIME](https://wikipedia.org/wiki/CRIME_(security_exploit)) and [BREACH](https://wikipedia.org/wiki/BREACH_(security_exploit)) attacks.
 
 ##### Scenarios:
 
@@ -186,6 +188,9 @@ The browser example example shows how to use [gRPC-Web](https://github.com/grpc/
 
 The gRPC-Web JavaScript client was generated from *greet.proto* using [`protoc`](https://github.com/protocolbuffers/protobuf/releases) with the [`protoc-gen-grpc-web`](https://github.com/grpc/grpc-web/releases) plugin.
 
+> [!NOTE]  
+> Run 'npm install' and 'npm run build' in the wwwroot directory to build the required JavaScript dependencies.
+
 ##### Scenarios:
 
 * Configure ASP.NET Core server to support `grpc-web` and `grpc-web-text` content types
@@ -201,18 +206,6 @@ The blazor example example shows how to call a gRPC service from a Blazor WebAss
 * Configure .NET gRPC client in Blazor to use gRPC-Web
 * Get service address using `IConfiguration` and `appsettings.json`
 * Call gRPC services with Blazor WebAssembly from a browser
-
-## [Spar](./Spar)
-
-The spar example example shows how to call a gRPC service from a single page application (SPA) and make cross-origin gRPC-Web requests. The SPA uses [Vue.js](https://vuejs.org/) and [gRPC-Web](https://github.com/grpc/grpc-web). The server is configured to support [Cross Origin Resource Sharing (CORS)](https://docs.microsoft.com/aspnet/core/security/cors). This example requires [npm and NodeJS](https://nodejs.org/) to be installed on your computer.
-
-The gRPC-Web JavaScript client was generated from *greet.proto* using [`protoc`](https://github.com/protocolbuffers/protobuf/releases) with the [`protoc-gen-grpc-web`](https://github.com/grpc/grpc-web/releases) plugin.
-
-##### Scenarios:
-
-* Configure ASP.NET Core server to support `grpc-web` and `grpc-web-text` content types
-* Configure ASP.NET Core server to enable gRPC-Web cross-origin requests (CORS)
-* Call gRPC services with JavaScript from a SPA
 
 ## [Transcoder](./Transcoder)
 
