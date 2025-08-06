@@ -2,6 +2,10 @@
   "version": "1.0.0",
   "name": "browser-server",
   "private": true,
+  "scripts": {
+    "build": "webpack",
+    "build:watch": "webpack --watch"
+  },
   "devDependencies": {
     "@grpc/proto-loader": "^0.8.0",
     "google-protobuf": "^3.21.4",
