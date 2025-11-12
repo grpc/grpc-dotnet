@@ -1,4 +1,4 @@
-﻿#region Copyright notice and license
+#region Copyright notice and license
 
 // Copyright 2019 The gRPC Authors
 //
@@ -25,33 +25,37 @@ internal static class CommonOptions
 {
     public static Option<string> ProjectOption()
     {
-        var o = new Option<string>(
-            aliases: new[] { "-p", "--project" },
-            description: CoreStrings.ProjectOptionDescription);
+        var o = new Option<string>("--project", ["-p"])
+        {
+            Description = CoreStrings.ProjectOptionDescription
+        };
         return o;
     }
 
     public static Option<Services> ServiceOption()
     {
-        var o = new Option<Services>(
-            aliases: new[] { "-s", "--services" },
-            description: CoreStrings.ServiceOptionDescription);
+        var o = new Option<Services>("--services", ["-s"])
+        {
+            Description = CoreStrings.ServiceOptionDescription
+        };
         return o;
     }
 
     public static Option<Access> AccessOption()
     {
-        var o = new Option<Access>(
-            aliases: new[] { "--access" },
-            description: CoreStrings.AccessOptionDescription);
+        var o = new Option<Access>("--access")
+        {
+            Description = CoreStrings.AccessOptionDescription
+        };
         return o;
     }
 
     public static Option<string> AdditionalImportDirsOption()
     {
-        var o = new Option<string>(
-            aliases: new[] { "-i", "--additional-import-dirs" },
-            description: CoreStrings.AdditionalImportDirsOption);
+        var o = new Option<string>("--additional-import-dirs", ["-i"])
+        {
+            Description = CoreStrings.AdditionalImportDirsOption
+        };
         return o;
     }
 }

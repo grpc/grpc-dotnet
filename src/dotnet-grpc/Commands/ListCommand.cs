@@ -1,4 +1,4 @@
-﻿#region Copyright notice and license
+#region Copyright notice and license
 
 // Copyright 2019 The gRPC Authors
 //
@@ -17,8 +17,6 @@
 #endregion
 
 using System.CommandLine;
-using System.CommandLine.Rendering;
-using System.CommandLine.Rendering.Views;
 using Grpc.Dotnet.Cli.Internal;
 using Grpc.Dotnet.Cli.Options;
 using Grpc.Dotnet.Cli.Properties;
@@ -28,7 +26,7 @@ namespace Grpc.Dotnet.Cli.Commands;
 
 internal sealed class ListCommand : CommandBase
 {
-    public ListCommand(IConsole console, string? projectPath, HttpClient httpClient)
+    public ListCommand(ConsoleService console, string? projectPath, HttpClient httpClient)
         : base(console, projectPath, httpClient) { }
 
     public static Command Create(HttpClient httpClient)
@@ -38,33 +36,44 @@ internal sealed class ListCommand : CommandBase
             description: CoreStrings.ListCommandDescription);
         var projectOption = CommonOptions.ProjectOption();
 
-        command.AddOption(projectOption);
+        command.Add(projectOption);
 
-        command.SetHandler(
+        command.SetAction(
             (context) =>
             {
-                var project = context.ParseResult.GetValueForOption(projectOption);
+                var project = context.GetValue(projectOption);
+
+                var console = new ConsoleService(context.InvocationConfiguration.Output, context.InvocationConfiguration.Error);
                 try
                 {
-                    var command = new ListCommand(context.Console, project, httpClient);
+                    var command = new ListCommand(console, project, httpClient);
                     command.List();
 
-                    context.ExitCode = 0;
+                    return 0;
                 }
                 catch (CLIToolException e)
                 {
-                    context.Console.LogError(e);
+                    console.LogError(e);
 
-                    context.ExitCode = -1;
+                    return -1;
                 }
             });
 
         return command;
     }
 
+    private class ListProtobufElement
+    {
+        public required string ProtobufReference { get; init; }
+        public required string ServiceType { get; init; }
+
+        public string? SourceUrl { get; init; }
+        public string? Access { get; init; }
+        public string? AdditionalImportDirs { get; init; }
+    }
+
     public void List()
     {
-        var consoleRenderer = new ConsoleRenderer(Console);
         var protobufElements = Project.GetItems(ProtobufElement).ToList();
         if (protobufElements.Count == 0)
         {
@@ -72,57 +81,37 @@ internal sealed class ListCommand : CommandBase
             return;
         }
 
-        var table = new TableView<ProjectItem> { Items = protobufElements };
-
-        // Required columns (always displayed)
-        table.AddColumn(r => r.UnevaluatedInclude, CoreStrings.TableColumnProtobufReference);
-        table.AddColumn(r =>
+        var typedProtobufElements = protobufElements.Select(e => new ListProtobufElement
         {
-            var serviceType = r.GetMetadataValue(GrpcServicesElement);
-            return string.IsNullOrEmpty(serviceType) ? "Both" : serviceType;
-        }, CoreStrings.TableColumnServiceType);
+            ProtobufReference = e.UnevaluatedInclude,
+            ServiceType = e.GetMetadataValue(GrpcServicesElement) is { Length: > 0 } serviceType ? serviceType : "Both",
+            SourceUrl = e.GetMetadataValue(SourceUrlElement),
+            Access = e.GetMetadataValue(AccessElement),
+            AdditionalImportDirs = e.GetMetadataValue(AdditionalImportDirsElement)
+        }).ToList();
 
-        // Optional columns (only displayed if an element is not default)
-        if (protobufElements.Any(r => !string.IsNullOrEmpty(r.GetMetadataValue(SourceUrlElement))))
+        foreach (var element in typedProtobufElements)
         {
-            table.AddColumn(r => r.GetMetadataValue(SourceUrlElement), CoreStrings.TableColumnSourceUrl);
-        }
+            // Required columns (always displayed)
+            Console.Log("{0}: {1}", CoreStrings.TableColumnProtobufReference, element.ProtobufReference);
+            Console.Log("{0}: {1}", CoreStrings.TableColumnServiceType, element.ServiceType);
 
-        // The default value is Public set by Grpc.Tools so skip this column if everything is default
-        if (protobufElements.Any(r => !string.Equals(r.GetMetadataValue(AccessElement), Access.Public.ToString(), StringComparison.OrdinalIgnoreCase)))
-        {
-            table.AddColumn(r => r.GetMetadataValue(AccessElement), CoreStrings.TableColumnAccess);
-        }
-
-        if (protobufElements.Any(r => !string.IsNullOrEmpty(r.GetMetadataValue(AdditionalImportDirsElement))))
-        {
-            table.AddColumn(r => r.GetMetadataValue(AdditionalImportDirsElement), CoreStrings.TableColumnAdditionalImports);
-        }
-
-        var screen = new ScreenView(consoleRenderer, Console) { Child = table };
-        Region region;
-        try
-        {
-            // Some environments incorrectly report zero width when there is no console
-            var width = System.Console.WindowWidth;
-            if (width == 0)
+            // Optional columns (only displayed if an element is not default)
+            if (!string.IsNullOrEmpty(element.SourceUrl))
             {
-                width = int.MaxValue;
+                Console.Log("{0}: {1}", CoreStrings.TableColumnSourceUrl, element.SourceUrl);
+            }
+            // The default value is Public set by Grpc.Tools so skip this column if everything is default
+            if (!string.IsNullOrEmpty(element.Access) && !string.Equals(element.Access, Access.Public.ToString(), StringComparison.OrdinalIgnoreCase))
+            {
+                Console.Log("{0}: {1}", CoreStrings.TableColumnAccess, element.Access);
+            }
+            if (!string.IsNullOrEmpty(element.AdditionalImportDirs))
+            {
+                Console.Log("{0}: {1}", CoreStrings.TableColumnAdditionalImports, element.AdditionalImportDirs);
             }
 
-            var height = System.Console.WindowHeight;
-            if (height == 0)
-            {
-                height = int.MaxValue;
-            }
-
-            region = new Region(0, 0, width, height);
+            Console.Log(string.Empty);
         }
-        catch (IOException)
-        {
-            // System.Console.WindowWidth can throw an IOException when runnning without a console attached
-            region = new Region(0, 0, int.MaxValue, int.MaxValue);
-        }
-        screen.Child?.Render(consoleRenderer, region);
     }
 }

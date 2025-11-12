@@ -1,4 +1,4 @@
-﻿#region Copyright notice and license
+#region Copyright notice and license
 
 // Copyright 2019 The gRPC Authors
 //
@@ -16,7 +16,6 @@
 
 #endregion
 
-using System.CommandLine.IO;
 using System.Globalization;
 using System.Reflection;
 using System.Runtime.InteropServices;
@@ -34,7 +33,6 @@ namespace Grpc.Dotnet.Cli.Tests;
 [TestFixture]
 public class CommandBaseTests : TestBase
 {
-
     [Test]
     public Task EnsureNugetPackages_AddsRequiredServerPackages_ForServer()
         => EnsureNugetPackages_AddsRequiredServerPackages(Services.Server);
@@ -46,7 +44,7 @@ public class CommandBaseTests : TestBase
     private async Task EnsureNugetPackages_AddsRequiredServerPackages(Services services)
     {
         // Arrange
-        var commandBase = new CommandBase(new TestConsole(), new Project());
+        var commandBase = CreateCommandBase();
 
         // Act
         await commandBase.EnsureNugetPackagesAsync(services);
@@ -62,7 +60,7 @@ public class CommandBaseTests : TestBase
     public async Task EnsureNugetPackages_AddsRequiredClientPackages_ForNonWebClient()
     {
         // Arrange
-        var commandBase = new CommandBase(new TestConsole(), new Project());
+        var commandBase = CreateCommandBase();
 
         // Act
         await commandBase.EnsureNugetPackagesAsync(Services.Client);
@@ -80,9 +78,7 @@ public class CommandBaseTests : TestBase
     public async Task EnsureNugetPackages_AddsRequiredClientPackages_ForWebClient()
     {
         // Arrange
-        var commandBase = new CommandBase(
-            new TestConsole(),
-            CreateIsolatedProject(Path.Combine(Directory.GetCurrentDirectory(), "TestAssets", "EmptyProject", "test.csproj")));
+        var commandBase = CreateCommandBase(project: CreateIsolatedProject(Path.Combine(Directory.GetCurrentDirectory(), "TestAssets", "EmptyProject", "test.csproj")));
 
         // Act
         await commandBase.EnsureNugetPackagesAsync(Services.Client);
@@ -99,7 +95,7 @@ public class CommandBaseTests : TestBase
     public async Task EnsureNugetPackages_AddsRequiredNonePackages_ForNone()
     {
         // Arrange
-        var commandBase = new CommandBase(new TestConsole(), new Project());
+        var commandBase = CreateCommandBase();
 
         // Act
         await commandBase.EnsureNugetPackagesAsync(Services.None);
@@ -116,7 +112,7 @@ public class CommandBaseTests : TestBase
     public async Task EnsureNugetPackages_DoesNotOverwriteExistingPackageReferences()
     {
         // Arrange
-        var commandBase = new CommandBase(new TestConsole(), new Project());
+        var commandBase = CreateCommandBase();
         commandBase.Project.AddItem(CommandBase.PackageReferenceElement, "Grpc.Tools");
 
         // Act
@@ -134,7 +130,7 @@ public class CommandBaseTests : TestBase
     public void AddProtobufReference_ThrowsIfFileNotFound()
     {
         // Arrange
-        var commandBase = new CommandBase(new TestConsole(), new Project());
+        var commandBase = CreateCommandBase();
 
         // Act, Assert
         Assert.Throws<CLIToolException>(() => commandBase.AddProtobufReference(Services.Both, string.Empty, Access.Public, "NonExistentFile", string.Empty));
@@ -166,9 +162,7 @@ public class CommandBaseTests : TestBase
     public void AddProtobufReference_AddsRelativeReference(string path, string normalizedPath, string link)
     {
         // Arrange
-        var commandBase = new CommandBase(
-            new TestConsole(),
-            CreateIsolatedProject(Path.Combine(Directory.GetCurrentDirectory(), "TestAssets", "EmptyProject", "test.csproj")));
+        var commandBase = CreateCommandBase(project: CreateIsolatedProject(Path.Combine(Directory.GetCurrentDirectory(), "TestAssets", "EmptyProject", "test.csproj")));
 
         // Act
         commandBase.AddProtobufReference(Services.Server, "ImportDir", Access.Internal, path, SourceUrl);
@@ -191,9 +185,7 @@ public class CommandBaseTests : TestBase
     public void AddProtobufReference_AddsAbsoluteReference(string path, string normalizedPath, string link)
     {
         // Arrange
-        var commandBase = new CommandBase(
-            new TestConsole(),
-            CreateIsolatedProject(Path.Combine(Directory.GetCurrentDirectory(), "TestAssets", "EmptyProject", "test.csproj")));
+        var commandBase = CreateCommandBase(project: CreateIsolatedProject(Path.Combine(Directory.GetCurrentDirectory(), "TestAssets", "EmptyProject", "test.csproj")));
 
         var referencePath = Path.Combine(Directory.GetCurrentDirectory(), "TestAssets", "EmptyProject", path);
         var normalizedReferencePath = Path.GetFullPath(
@@ -245,9 +237,7 @@ public class CommandBaseTests : TestBase
     public void AddProtobufReference_AdditionalImportDirs(string additionalImportDir, string normalizedAdditionalImportDir)
     {
         // Arrange
-        var commandBase = new CommandBase(
-            new TestConsole(),
-            CreateIsolatedProject(Path.Combine(Directory.GetCurrentDirectory(), "TestAssets", "EmptyProject", "test.csproj")));
+        var commandBase = CreateCommandBase(project: CreateIsolatedProject(Path.Combine(Directory.GetCurrentDirectory(), "TestAssets", "EmptyProject", "test.csproj")));
 
         const string proto = "Proto/a.proto";
 
@@ -271,9 +261,7 @@ public class CommandBaseTests : TestBase
     public void AddProtobufReference_Without_AdditionalImportDirs()
     {
         // Arrange
-        var commandBase = new CommandBase(
-            new TestConsole(),
-            CreateIsolatedProject(Path.Combine(Directory.GetCurrentDirectory(), "TestAssets", "EmptyProject", "test.csproj")));
+        var commandBase = CreateCommandBase(project: CreateIsolatedProject(Path.Combine(Directory.GetCurrentDirectory(), "TestAssets", "EmptyProject", "test.csproj")));
 
         const string proto = "Proto/a.proto";
         
@@ -318,7 +306,7 @@ public class CommandBaseTests : TestBase
     public void AddProtobufReference_DoesNotOverwriteReference(string path, string altPath, string normalizedPath)
     {
         // Arrange
-        var commandBase = new CommandBase(new TestConsole(), new Project());
+        var commandBase = CreateCommandBase();
         var referencePath = Path.Combine(Directory.GetCurrentDirectory(), "TestAssets", "EmptyProject", path);
         var altReferencePath = Path.Combine(Directory.GetCurrentDirectory(), "TestAssets", "EmptyProject", altPath);
         var normalizedReferencePath = Path.GetFullPath(
@@ -371,9 +359,7 @@ public class CommandBaseTests : TestBase
     public void AddProtobufReference_AddsLinkElementIfFileOutsideProject(string path, string normalizedPath)
     {
         // Arrange
-        var commandBase = new CommandBase(
-            new TestConsole(),
-            CreateIsolatedProject(Path.Combine(Directory.GetCurrentDirectory(), "TestAssets", "EmptyProject", "test.csproj")));
+        var commandBase = CreateCommandBase(project: CreateIsolatedProject(Path.Combine(Directory.GetCurrentDirectory(), "TestAssets", "EmptyProject", "test.csproj")));
 
         // Act
         commandBase.AddProtobufReference(Services.Server, "ImportDir", Access.Internal, path, SourceUrl);
@@ -460,7 +446,7 @@ public class CommandBaseTests : TestBase
     private void ResolveServices_ReturnsIdentity_IfNotDefault(Services services)
     {
         // Arrange
-        var commandBase = new CommandBase(new TestConsole(), new Project());
+        var commandBase = CreateCommandBase();
 
         // Act, Assert
         Assert.AreEqual(services, commandBase.ResolveServices(services));
@@ -470,7 +456,7 @@ public class CommandBaseTests : TestBase
     public void ResolveServices_ReturnsBoth_IfWebSDK()
     {
         // Arrange
-        var commandBase = new CommandBase(new TestConsole(), CreateIsolatedProject(Path.Combine(Directory.GetCurrentDirectory(), "TestAssets", "DuplicateProjects", "server.csproj")));
+        var commandBase = CreateCommandBase(project: CreateIsolatedProject(Path.Combine(Directory.GetCurrentDirectory(), "TestAssets", "DuplicateProjects", "server.csproj")));
 
         // Act, Assert
         Assert.AreEqual(Services.Both, commandBase.ResolveServices(Services.Default));
@@ -480,7 +466,7 @@ public class CommandBaseTests : TestBase
     public void ResolveServices_ReturnsClient_IfNotWebSDK()
     {
         // Arrange
-        var commandBase = new CommandBase(new TestConsole(), CreateIsolatedProject(Path.Combine(Directory.GetCurrentDirectory(), "TestAssets", "DuplicateProjects", "client.csproj")));
+        var commandBase = CreateCommandBase(project: CreateIsolatedProject(Path.Combine(Directory.GetCurrentDirectory(), "TestAssets", "DuplicateProjects", "client.csproj")));
 
         // Act, Assert
         Assert.AreEqual(Services.Client, commandBase.ResolveServices(Services.Default));
@@ -490,10 +476,11 @@ public class CommandBaseTests : TestBase
     public void GlobReferences_ExpandsRelativeReferences_WarnsIfReferenceNotResolved()
     {
         // Arrange
-        var testConsole = new TestConsole();
-        var commandBase = new CommandBase(
-            testConsole,
-            CreateIsolatedProject(Path.Combine(Directory.GetCurrentDirectory(), "TestAssets", "EmptyProject", "test.csproj")));
+        var outWriter = new StringWriter();
+        var console = new ConsoleService(outWriter, TextWriter.Null);
+        var commandBase = CreateCommandBase(
+            console: console,
+            project: CreateIsolatedProject(Path.Combine(Directory.GetCurrentDirectory(), "TestAssets", "EmptyProject", "test.csproj")));
         var invalidReference = Path.Combine("Proto", "invalid*reference.proto");
 
         // Act
@@ -502,15 +489,16 @@ public class CommandBaseTests : TestBase
         // Assert
         Assert.Contains(Path.Combine("Proto", "a.proto"), references);
         Assert.Contains(Path.Combine("Proto", "b.proto"), references);
-        Assert.AreEqual($"Warning: {string.Format(CultureInfo.InvariantCulture, CoreStrings.LogWarningNoReferenceResolved, invalidReference, SourceUrl)}", testConsole.Out.ToString()!.TrimEnd());
+        Assert.AreEqual($"Warning: {string.Format(CultureInfo.InvariantCulture, CoreStrings.LogWarningNoReferenceResolved, invalidReference, SourceUrl)}", outWriter.ToString().TrimEnd());
     }
 
     [Test]
     public void GlobReferences_ExpandsAbsoluteReferences_WarnsIfReferenceNotResolved()
     {
         // Arrange
-        var testConsole = new TestConsole();
-        var commandBase = new CommandBase(testConsole, new Project());
+        var outWriter = new StringWriter();
+        var console = new ConsoleService(outWriter, TextWriter.Null);
+        var commandBase = CreateCommandBase(console: console);
         var invalidReference = Path.Combine(Directory.GetCurrentDirectory(), "TestAssets", "EmptyProject", "Proto", "invalid*reference.proto");
 
         // Act
@@ -519,7 +507,7 @@ public class CommandBaseTests : TestBase
         // Assert
         Assert.Contains(Path.Combine(Directory.GetCurrentDirectory(), "TestAssets", "EmptyProject", "Proto", "a.proto"), references);
         Assert.Contains(Path.Combine(Directory.GetCurrentDirectory(), "TestAssets", "EmptyProject", "Proto", "b.proto"), references);
-        Assert.AreEqual($"Warning: {string.Format(CultureInfo.InvariantCulture, CoreStrings.LogWarningNoReferenceResolved, invalidReference, SourceUrl)}", testConsole.Out.ToString()!.TrimEnd());
+        Assert.AreEqual($"Warning: {string.Format(CultureInfo.InvariantCulture, CoreStrings.LogWarningNoReferenceResolved, invalidReference, SourceUrl)}", outWriter.ToString().TrimEnd());
     }
 
     private static readonly object[] DirectoryPaths =
@@ -533,7 +521,7 @@ public class CommandBaseTests : TestBase
     public async Task DownloadFileAsync_DirectoryAsDestination_Throws(string destination)
     {
         // Arrange
-        var commandBase = new CommandBase(new TestConsole(), new Project(), CreateClient());
+        var commandBase = new CommandBase(ConsoleService.Null, new Project(), CreateClient());
 
         // Act, Assert
         await ExceptionAssert.ThrowsAsync<CLIToolException>(() => commandBase.DownloadFileAsync(SourceUrl, destination)).DefaultTimeout();
@@ -543,7 +531,7 @@ public class CommandBaseTests : TestBase
     public async Task DownloadFileAsync_DownloadsRemoteFile()
     {
         // Arrange
-        var commandBase = new CommandBase(new TestConsole(), new Project(), CreateClient());
+        var commandBase = new CommandBase(ConsoleService.Null, new Project(), CreateClient());
         var tempProtoFile = Path.Combine(Directory.GetCurrentDirectory(), "TestAssets", "EmptyProject", "Proto", "c.proto");
 
         // Act
@@ -558,7 +546,7 @@ public class CommandBaseTests : TestBase
     public async Task DownloadFileAsync_DownloadsRemoteFile_OverwritesIfContentDoesNotMatch()
     {
         // Arrange
-        var commandBase = new CommandBase(new TestConsole(), new Project(), CreateClient());
+        var commandBase = new CommandBase(ConsoleService.Null, new Project(), CreateClient());
         var tempProtoFile = Path.Combine(Directory.GetCurrentDirectory(), "TestAssets", "EmptyProject", "Proto", "c.proto");
 
         // Act
@@ -574,7 +562,7 @@ public class CommandBaseTests : TestBase
     public async Task DownloadFileAsync_DownloadsRemoteFile_SkipIfContentMatches()
     {
         // Arrange
-        var commandBase = new CommandBase(new TestConsole(), new Project(), CreateClient());
+        var commandBase = new CommandBase(ConsoleService.Null, new Project(), CreateClient());
         var tempProtoFile = Path.Combine(Directory.GetCurrentDirectory(), "TestAssets", "EmptyProject", "Proto", "c.proto");
 
         // Act
@@ -591,7 +579,7 @@ public class CommandBaseTests : TestBase
     public async Task DownloadFileAsync_DownloadsRemoteFile_DoesNotOverwriteForDryrun()
     {
         // Arrange
-        var commandBase = new CommandBase(new TestConsole(), new Project(), CreateClient());
+        var commandBase = new CommandBase(ConsoleService.Null, new Project(), CreateClient());
         var tempProtoFile = Path.Combine(Directory.GetCurrentDirectory(), "TestAssets", "EmptyProject", "Proto", "c.proto");
 
         // Act
@@ -617,6 +605,11 @@ public class CommandBaseTests : TestBase
 
     private Project CreateIsolatedProject(string path)
         => Project.FromFile(path, new ProjectOptions { ProjectCollection = new ProjectCollection() });
+
+    private static CommandBase CreateCommandBase(ConsoleService? console = null, Project? project = null)
+    {
+        return new CommandBase(console ?? ConsoleService.Null, project ?? new Project());
+    }
 }
 
 [TestFixture]
@@ -646,7 +639,7 @@ public class CommandBaseRemoteFileTests : TestBase
                     }"
             }
         };
-        var commandBase = new CommandBase(new TestConsole(), new Project(), CreateClient(content));
+        var commandBase = new CommandBase(ConsoleService.Null, new Project(), CreateClient(content));
 
         // Act
         await commandBase.EnsureNugetPackagesAsync(Services.Client);

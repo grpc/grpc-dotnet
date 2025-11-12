@@ -16,7 +16,7 @@
 
 #endregion
 
-using System.CommandLine.IO;
+using System.CommandLine;
 using System.CommandLine.Parsing;
 using Grpc.Dotnet.Cli.Commands;
 using Grpc.Dotnet.Cli.Internal;
@@ -37,16 +37,17 @@ public class AddUrlCommandTests : TestBase
         // Arrange
         var currentDir = Directory.GetCurrentDirectory();
         var tempDir = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString());
-        var testConsole = new TestConsole();
+        var errorWriter = new StringWriter();
         new DirectoryInfo(Path.Combine(currentDir, "TestAssets", "EmptyProject")).CopyTo(tempDir);
 
-        var parser = Program.BuildParser(CreateClient());
+        var rootCommand = Program.BuildRootCommand(CreateClient());
 
         // Act
-        var result = await parser.InvokeAsync($"add-url -p {tempDir} -s Server --access Internal -i ImportDir -o {Path.Combine("Proto", "c.proto")} {SourceUrl}", testConsole);
+        var result = rootCommand.Parse($"add-url -p {tempDir} -s Server --access Internal -i ImportDir -o {Path.Combine("Proto", "c.proto")} {SourceUrl}");
+        var errorCode = await result.InvokeAsync(configuration: new InvocationConfiguration { Error = errorWriter });
 
         // Assert
-        Assert.AreEqual(0, result, testConsole.Error.ToString()!);
+        Assert.AreEqual(0, errorCode, errorWriter.ToString());
 
         var project = ProjectCollection.GlobalProjectCollection.LoadedProjects.Single(p => p.DirectoryPath == tempDir);
         project.ReevaluateIfNecessary();
@@ -81,7 +82,7 @@ public class AddUrlCommandTests : TestBase
 
         // Act
         Directory.SetCurrentDirectory(tempDir);
-        var command = new AddUrlCommand(new TestConsole(), CreateClient());
+        var command = new AddUrlCommand(ConsoleService.Null, CreateClient());
         await command.AddUrlAsync(Services.Server, Access.Internal, "ImportDir", SourceUrl, Path.Combine("Proto", "c.proto"));
         command.Project.ReevaluateIfNecessary();
 
@@ -116,7 +117,7 @@ public class AddUrlCommandTests : TestBase
 
         // Act, Assert
         Directory.SetCurrentDirectory(tempDir);
-        var command = new AddUrlCommand(new TestConsole(), CreateClient());
+        var command = new AddUrlCommand(ConsoleService.Null, CreateClient());
         await ExceptionAssert.ThrowsAsync<CLIToolException>(() => command.AddUrlAsync(Services.Server, Access.Internal, "ImportDir", SourceUrl, string.Empty)).DefaultTimeout();
 
         // Cleanup

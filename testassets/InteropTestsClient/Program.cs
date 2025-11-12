@@ -1,4 +1,4 @@
-﻿#region Copyright notice and license
+#region Copyright notice and license
 
 // Copyright 2019 The gRPC Authors
 //
@@ -33,51 +33,51 @@ public class Program
     public static async Task<int> Main(string[] args)
     {
         var options = new List<Option>();
-        var clientTypeOption = new Option<string>(new string[] { "--client_type" }, () => "httpclient") { Name = nameof(ClientOptions.ClientType) };
-        var serverHostOption = new Option<string>(new string[] { "--server_host" }) { IsRequired = true, Name = nameof(ClientOptions.ServerHost) };
-        var serverHostOverrideOption = new Option<string>(new string[] { "--server_host_override" }) { Name = nameof(ClientOptions.ServerHostOverride) };
-        var serverPortOption = new Option<int>(new string[] { "--server_port" }) { IsRequired = true, Name = nameof(ClientOptions.ServerPort) };
-        var testCaseOption = new Option<string>(new string[] { "--test_case" }) { IsRequired = true, Name = nameof(ClientOptions.TestCase) };
-        var useTlsOption = new Option<bool>(new string[] { "--use_tls" }) { Name = nameof(ClientOptions.UseTls) };
-        var useTestCAOption = new Option<bool>(new string[] { "--use_test_ca" }) { Name = nameof(ClientOptions.UseTestCa) };
-        var defaultServiceAccountOption = new Option<string>(new string[] { "--default_service_account" }) { Name = nameof(ClientOptions.DefaultServiceAccount) };
-        var oauthScopeOption = new Option<string>(new string[] { "--oauth_scope" }) { Name = nameof(ClientOptions.OAuthScope) };
-        var serviceAccountKeyFileOption = new Option<string>(new string[] { "--service_account_key_file" }) { Name = nameof(ClientOptions.ServiceAccountKeyFile) };
-        var grpcWebModeOption = new Option<string>(new string[] { "--grpc_web_mode" }) { Name = nameof(ClientOptions.GrpcWebMode) };
-        var useWinHttpOption = new Option<bool>(new string[] { "--use_winhttp" }) { Name = nameof(ClientOptions.UseWinHttp) };
-        var useHttp3Option = new Option<bool>(new string[] { "--use_http3" }) { Name = nameof(ClientOptions.UseHttp3) };
+        var clientTypeOption = new Option<string>("--client_type") { DefaultValueFactory = (r) => "httpclient", HelpName = nameof(ClientOptions.ClientType) };
+        var serverHostOption = new Option<string>("--server_host") { Required = true, HelpName = nameof(ClientOptions.ServerHost) };
+        var serverHostOverrideOption = new Option<string>("--server_host_override") { HelpName = nameof(ClientOptions.ServerHostOverride) };
+        var serverPortOption = new Option<int>("--server_port") { Required = true, HelpName = nameof(ClientOptions.ServerPort) };
+        var testCaseOption = new Option<string>("--test_case") { Required = true, HelpName = nameof(ClientOptions.TestCase) };
+        var useTlsOption = new Option<bool>("--use_tls") { HelpName = nameof(ClientOptions.UseTls) };
+        var useTestCAOption = new Option<bool>("--use_test_ca") { HelpName = nameof(ClientOptions.UseTestCa) };
+        var defaultServiceAccountOption = new Option<string>("--default_service_account") { HelpName = nameof(ClientOptions.DefaultServiceAccount) };
+        var oauthScopeOption = new Option<string>("--oauth_scope") { HelpName = nameof(ClientOptions.OAuthScope) };
+        var serviceAccountKeyFileOption = new Option<string>("--service_account_key_file") { HelpName = nameof(ClientOptions.ServiceAccountKeyFile) };
+        var grpcWebModeOption = new Option<string>("--grpc_web_mode") { HelpName = nameof(ClientOptions.GrpcWebMode) };
+        var useWinHttpOption = new Option<bool>("--use_winhttp") { HelpName = nameof(ClientOptions.UseWinHttp) };
+        var useHttp3Option = new Option<bool>("--use_http3") { HelpName = nameof(ClientOptions.UseHttp3) };
 
         var rootCommand = new RootCommand();
-        rootCommand.AddOption(clientTypeOption);
-        rootCommand.AddOption(serverHostOption);
-        rootCommand.AddOption(serverHostOverrideOption);
-        rootCommand.AddOption(serverPortOption);
-        rootCommand.AddOption(testCaseOption);
-        rootCommand.AddOption(useTlsOption);
-        rootCommand.AddOption(useTestCAOption);
-        rootCommand.AddOption(defaultServiceAccountOption);
-        rootCommand.AddOption(oauthScopeOption);
-        rootCommand.AddOption(serviceAccountKeyFileOption);
-        rootCommand.AddOption(grpcWebModeOption);
-        rootCommand.AddOption(useWinHttpOption);
-        rootCommand.AddOption(useHttp3Option);
+        rootCommand.Add(clientTypeOption);
+        rootCommand.Add(serverHostOption);
+        rootCommand.Add(serverHostOverrideOption);
+        rootCommand.Add(serverPortOption);
+        rootCommand.Add(testCaseOption);
+        rootCommand.Add(useTlsOption);
+        rootCommand.Add(useTestCAOption);
+        rootCommand.Add(defaultServiceAccountOption);
+        rootCommand.Add(oauthScopeOption);
+        rootCommand.Add(serviceAccountKeyFileOption);
+        rootCommand.Add(grpcWebModeOption);
+        rootCommand.Add(useWinHttpOption);
+        rootCommand.Add(useHttp3Option);
 
-        rootCommand.SetHandler(async (InvocationContext context) =>
+        rootCommand.SetAction(async (ParseResult context) =>
         {
             var options = new ClientOptions();
-            options.ClientType = context.ParseResult.GetValueForOption(clientTypeOption);
-            options.ServerHost = context.ParseResult.GetValueForOption(serverHostOption);
-            options.ServerHostOverride = context.ParseResult.GetValueForOption(serverHostOverrideOption);
-            options.ServerPort = context.ParseResult.GetValueForOption(serverPortOption);
-            options.TestCase = context.ParseResult.GetValueForOption(testCaseOption);
-            options.UseTls = context.ParseResult.GetValueForOption(useTlsOption);
-            options.UseTestCa = context.ParseResult.GetValueForOption(useTestCAOption);
-            options.DefaultServiceAccount = context.ParseResult.GetValueForOption(defaultServiceAccountOption);
-            options.OAuthScope = context.ParseResult.GetValueForOption(oauthScopeOption);
-            options.ServiceAccountKeyFile = context.ParseResult.GetValueForOption(serviceAccountKeyFileOption);
-            options.GrpcWebMode = context.ParseResult.GetValueForOption(grpcWebModeOption);
-            options.UseWinHttp = context.ParseResult.GetValueForOption(useWinHttpOption);
-            options.UseHttp3 = context.ParseResult.GetValueForOption(useHttp3Option);
+            options.ClientType = context.GetValue(clientTypeOption);
+            options.ServerHost = context.GetValue(serverHostOption);
+            options.ServerHostOverride = context.GetValue(serverHostOverrideOption);
+            options.ServerPort = context.GetValue(serverPortOption);
+            options.TestCase = context.GetValue(testCaseOption);
+            options.UseTls = context.GetValue(useTlsOption);
+            options.UseTestCa = context.GetValue(useTestCAOption);
+            options.DefaultServiceAccount = context.GetValue(defaultServiceAccountOption);
+            options.OAuthScope = context.GetValue(oauthScopeOption);
+            options.ServiceAccountKeyFile = context.GetValue(serviceAccountKeyFileOption);
+            options.GrpcWebMode = context.GetValue(grpcWebModeOption);
+            options.UseWinHttp = context.GetValue(useWinHttpOption);
+            options.UseHttp3 = context.GetValue(useHttp3Option);
 
             var runtimeVersion = typeof(object).Assembly.GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion ?? "Unknown";
 
@@ -97,7 +97,8 @@ public class Program
 
         Log("Interop Test Client");
 
-        return await rootCommand.InvokeAsync(args);
+        var result = rootCommand.Parse(args);
+        return await result.InvokeAsync();
     }
 
 #if NET5_0_OR_GREATER

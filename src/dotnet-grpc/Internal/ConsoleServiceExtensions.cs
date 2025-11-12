@@ -1,4 +1,4 @@
-﻿#region Copyright notice and license
+#region Copyright notice and license
 
 // Copyright 2019 The gRPC Authors
 //
@@ -16,24 +16,23 @@
 
 #endregion
 
-using System.CommandLine;
 using System.Globalization;
 
 namespace Grpc.Dotnet.Cli.Internal;
 
-internal static class ConsoleExtensions
+internal static class ConsoleServiceExtensions
 {
-    public static void Log(this IConsole console, string formatString, params string[] args)
+    public static void Log(this ConsoleService console, string formatString, params string[] args)
     {
-        console.Out.Write(string.Format(CultureInfo.CurrentCulture, formatString, args) + Environment.NewLine);
+        console.Output.Write(string.Format(CultureInfo.CurrentCulture, formatString, args) + Environment.NewLine);
     }
 
-    public static void LogWarning(this IConsole console, string formatString, params string[] args)
+    public static void LogWarning(this ConsoleService console, string formatString, params string[] args)
     {
-        console.Out.Write(string.Format(CultureInfo.CurrentCulture, $"Warning: {formatString}", args) + Environment.NewLine);
+        console.Output.Write(string.Format(CultureInfo.CurrentCulture, $"Warning: {formatString}", args) + Environment.NewLine);
     }
 
-    public static void LogError(this IConsole console, Exception e)
+    public static void LogError(this ConsoleService console, Exception e)
     {
         console.Error.Write($"Error: {e.Message}" + Environment.NewLine);
     }

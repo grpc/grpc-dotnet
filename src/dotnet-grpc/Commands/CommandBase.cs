@@ -1,4 +1,4 @@
-﻿#region Copyright notice and license
+#region Copyright notice and license
 
 // Copyright 2019 The gRPC Authors
 //
@@ -16,7 +16,6 @@
 
 #endregion
 
-using System.CommandLine;
 using System.Diagnostics;
 using System.Globalization;
 using System.Reflection;
@@ -47,24 +46,24 @@ internal class CommandBase
 
     private readonly HttpClient _httpClient;
 
-    public CommandBase(IConsole console, string? projectPath, HttpClient client)
+    public CommandBase(ConsoleService console, string? projectPath, HttpClient client)
         : this(console, ResolveProject(projectPath), client) { }
 
     // Internal for testing
-    internal CommandBase(IConsole console, Project project)
+    internal CommandBase(ConsoleService console, Project project)
         : this(console, project, new HttpClient()) { }
 
-    public CommandBase(IConsole console, HttpClient httpClient)
+    public CommandBase(ConsoleService console, HttpClient httpClient)
         : this(console, ResolveProject(null), httpClient) { }
 
-    internal CommandBase(IConsole console, Project project, HttpClient httpClient)
+    internal CommandBase(ConsoleService console, Project project, HttpClient httpClient)
     {
         Console = console;
         Project = project;
         _httpClient = httpClient;
     }
 
-    internal IConsole Console { get; set; }
+    internal ConsoleService Console { get; set; }
     internal Project Project { get; set; }
     private bool IsUsingWebSdk => Project.AllEvaluatedProperties.Any(p => string.Equals(UsingWebSDKPropertyName, p.Name, StringComparison.OrdinalIgnoreCase)
         && string.Equals("true", p.UnevaluatedValue, StringComparison.OrdinalIgnoreCase));

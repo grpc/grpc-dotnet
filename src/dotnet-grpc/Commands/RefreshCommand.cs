@@ -1,4 +1,4 @@
-﻿#region Copyright notice and license
+#region Copyright notice and license
 
 // Copyright 2019 The gRPC Authors
 //
@@ -25,11 +25,11 @@ namespace Grpc.Dotnet.Cli.Commands;
 
 internal sealed class RefreshCommand : CommandBase
 {
-    public RefreshCommand(IConsole console, string? projectPath, HttpClient httpClient)
+    public RefreshCommand(ConsoleService console, string? projectPath, HttpClient httpClient)
         : base(console, projectPath, httpClient) { }
 
     // Internal for testing
-    public RefreshCommand(IConsole console, HttpClient client)
+    public RefreshCommand(ConsoleService console, HttpClient client)
         : base(console, client) { }
 
     public static Command Create(HttpClient httpClient)
@@ -39,40 +39,40 @@ internal sealed class RefreshCommand : CommandBase
             description: CoreStrings.RefreshCommandDescription);
 
         var projectOption = CommonOptions.ProjectOption();
-        var dryRunOption = new Option<bool>(
-            aliases: new[] { "--dry-run" },
-            description: CoreStrings.DryRunOptionDescription
-            );
-        var referencesArgument = new Argument<string[]>
+        var dryRunOption = new Option<bool>("--dry-run")
         {
-            Name = "references",
+            Description = CoreStrings.DryRunOptionDescription
+        };
+        var referencesArgument = new Argument<string[]>("references")
+        {
             Description = CoreStrings.RefreshCommandArgumentDescription,
             Arity = ArgumentArity.ZeroOrMore
         };
 
-        command.AddOption(projectOption);
-        command.AddOption(dryRunOption);
-        command.AddArgument(referencesArgument);
+        command.Add(projectOption);
+        command.Add(dryRunOption);
+        command.Add(referencesArgument);
 
-        command.SetHandler(
+        command.SetAction(
             async (context) =>
             {
-                var project = context.ParseResult.GetValueForOption(projectOption);
-                var dryRun = context.ParseResult.GetValueForOption(dryRunOption);
-                var references = context.ParseResult.GetValueForArgument(referencesArgument);
-                
+                var project = context.GetValue(projectOption);
+                var dryRun = context.GetValue(dryRunOption);
+                var references = context.GetValue(referencesArgument) ?? [];
+
+                var console = new ConsoleService(context.InvocationConfiguration.Output, context.InvocationConfiguration.Error);
                 try
                 {
-                    var command = new RefreshCommand(context.Console, project, httpClient);
+                    var command = new RefreshCommand(console, project, httpClient);
                     await command.RefreshAsync(dryRun, references);
 
-                    context.ExitCode = 0;
+                    return 0;
                 }
                 catch (CLIToolException e)
                 {
-                    context.Console.LogError(e);
+                    console.LogError(e);
 
-                    context.ExitCode = -1;
+                    return -1;
                 }
             });
 

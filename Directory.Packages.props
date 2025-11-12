@@ -1,14 +1,14 @@
 <Project>
   <PropertyGroup>
     <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
-    <MicrosoftAspNetCoreAppPackageVersion>10.0.0-preview.6.25358.103</MicrosoftAspNetCoreAppPackageVersion>
+    <MicrosoftAspNetCoreAppPackageVersion>10.0.0</MicrosoftAspNetCoreAppPackageVersion>
     <MicrosoftAspNetCoreApp9PackageVersion>9.0.4</MicrosoftAspNetCoreApp9PackageVersion>
     <MicrosoftAspNetCoreApp8PackageVersion>8.0.15</MicrosoftAspNetCoreApp8PackageVersion>
     <GrpcDotNetPackageVersion>2.70.0</GrpcDotNetPackageVersion>
     <OpenTelemetryPackageVersion>1.6.0</OpenTelemetryPackageVersion>
     <OpenTelemetryIntergationPackageVersion>1.8.1</OpenTelemetryIntergationPackageVersion>
     <OpenTelemetryGrpcPackageVersion>1.8.0-beta.1</OpenTelemetryGrpcPackageVersion>
-    <MicrosoftExtensionsPackageVersion>10.0.0-preview.6.25358.103</MicrosoftExtensionsPackageVersion>
+    <MicrosoftExtensionsPackageVersion>10.0.0</MicrosoftExtensionsPackageVersion>
     <MicrosoftExtensionsLtsPackageVersion>8.0.0</MicrosoftExtensionsLtsPackageVersion>
   </PropertyGroup>
   <ItemGroup>
@@ -65,7 +65,7 @@
     <PackageVersion Include="Microsoft.Bcl.AsyncInterfaces" Version="8.0.0" />
     <PackageVersion Include="Microsoft.Build.Locator" Version="1.5.5" />
     <PackageVersion Include="Microsoft.Build" Version="17.3.2" />
-    <PackageVersion Include="Microsoft.CodeAnalysis.NetAnalyzers" Version="10.0.0-preview.25358.103" />
+    <PackageVersion Include="Microsoft.CodeAnalysis.NetAnalyzers" Version="10.0.100" />
     <PackageVersion Include="Microsoft.Crank.EventSources" Version="0.2.0-alpha.25128.2" />
     <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="17.14.1" />
     <PackageVersion Include="Microsoft.SourceLink.GitHub" Version="8.0.0" />
@@ -76,8 +76,7 @@
     <PackageVersion Include="NUnit3TestAdapter" Version="5.0.0" />
     <PackageVersion Include="protobuf-net.Grpc.AspNetCore" Version="1.0.140" />
     <PackageVersion Include="protobuf-net.Grpc" Version="1.0.140" />
-    <PackageVersion Include="System.CommandLine" Version="2.0.0-beta4.22272.1" />
-    <PackageVersion Include="System.CommandLine.Rendering" Version="0.4.0-alpha.22272.1" />
+    <PackageVersion Include="System.CommandLine" Version="2.0.0" />
     <PackageVersion Include="System.Diagnostics.DiagnosticSource" Version="6.0.1" />
     <PackageVersion Include="System.Memory" Version="4.5.3" />
     <PackageVersion Include="System.Net.Http.WinHttpHandler" Version="8.0.3" />

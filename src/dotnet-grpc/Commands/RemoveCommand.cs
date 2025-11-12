@@ -1,4 +1,4 @@
-﻿#region Copyright notice and license
+#region Copyright notice and license
 
 // Copyright 2019 The gRPC Authors
 //
@@ -25,7 +25,7 @@ namespace Grpc.Dotnet.Cli.Commands;
 
 internal sealed class RemoveCommand : CommandBase
 {
-    public RemoveCommand(IConsole console, string? projectPath, HttpClient httpClient)
+    public RemoveCommand(ConsoleService console, string? projectPath, HttpClient httpClient)
         : base(console, projectPath, httpClient) { }
 
     public static Command Create(HttpClient httpClient)
@@ -35,36 +35,35 @@ internal sealed class RemoveCommand : CommandBase
             description: CoreStrings.RemoveCommandDescription);
 
         var projectOption = CommonOptions.ProjectOption();
-        var referencesArgument = new Argument<string[]>
+        var referencesArgument = new Argument<string[]>("references")
         {
-            Name = "references",
             Description = CoreStrings.RemoveCommandArgumentDescription,
             Arity = ArgumentArity.OneOrMore
         };
-        
-        command.AddOption(projectOption);
-        command.AddArgument(referencesArgument);
 
-        command.SetHandler(
+        command.Add(projectOption);
+        command.Add(referencesArgument);
+
+        command.SetAction(
             (context) =>
             {
-                var project = context.ParseResult.GetValueForOption(projectOption);
-                var references = context.ParseResult.GetValueForArgument(referencesArgument);
+                var project = context.GetValue(projectOption);
+                var references = context.GetValue(referencesArgument) ?? [];
+
+                var console = new ConsoleService(context.InvocationConfiguration.Output, context.InvocationConfiguration.Error);
                 try
                 {
-                    var command = new RemoveCommand(context.Console, project, httpClient);
+                    var command = new RemoveCommand(console, project, httpClient);
                     command.Remove(references);
 
-                    context.ExitCode = 0;
+                    return 0;
                 }
                 catch (CLIToolException e)
                 {
-                    context.Console.LogError(e);
+                    console.LogError(e);
 
-                    context.ExitCode = -1;
+                    return -1;
                 }
-
-                return Task.CompletedTask;
             });
 
         return command;
