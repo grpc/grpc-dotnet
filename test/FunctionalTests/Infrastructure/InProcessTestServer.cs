@@ -32,7 +32,7 @@ public abstract class InProcessTestServer : IDisposable
 
     public abstract string GetUrl(TestServerEndpointName endpointName);
 
-    public abstract IWebHost? Host { get; }
+    public abstract IHost? Host { get; }
 
     public abstract void StartServer();
 
@@ -47,7 +47,7 @@ public class InProcessTestServer<TStartup> : InProcessTestServer
     private readonly LogSinkProvider _logSinkProvider;
     private readonly Action<IServiceCollection> _initialConfigureServices;
     private readonly Action<WebHostBuilderContext, KestrelServerOptions, IDictionary<TestServerEndpointName, EndpointInfoContainerBase>> _configureKestrel;
-    private IWebHost? _host;
+    private IHost? _host;
     private IHostApplicationLifetime? _lifetime;
     private Dictionary<TestServerEndpointName, EndpointInfoContainerBase>? _urls;
 
@@ -67,7 +67,7 @@ public class InProcessTestServer<TStartup> : InProcessTestServer
         return _urls[endpointName].Address;
     }
 
-    public override IWebHost? Host => _host;
+    public override IHost? Host => _host;
 
     public InProcessTestServer(Action<IServiceCollection> initialConfigureServices, Action<WebHostBuilderContext, KestrelServerOptions, IDictionary<TestServerEndpointName, EndpointInfoContainerBase>> configureKestrel)
     {
@@ -84,20 +84,24 @@ public class InProcessTestServer<TStartup> : InProcessTestServer
     {
         _urls = new Dictionary<TestServerEndpointName, EndpointInfoContainerBase>();
 
-        var builder = new WebHostBuilder()
+        var builder = new HostBuilder()
+            .ConfigureWebHost(configure =>
+            {
+                configure
+                    .UseStartup(typeof(TStartup))
+                    .UseKestrel((context, options) =>
+                    {
+                        _configureKestrel(context, options, _urls);
+                    })
+                    .UseContentRoot(Directory.GetCurrentDirectory());
+            })
             .ConfigureLogging(builder => builder
                 .SetMinimumLevel(LogLevel.Trace)
                 .AddProvider(new ForwardingLoggerProvider(_loggerFactory)))
             .ConfigureServices(services =>
             {
                 _initialConfigureServices?.Invoke(services);
-            })
-            .UseStartup(typeof(TStartup))
-            .UseKestrel((context, options) =>
-            {
-                _configureKestrel(context, options, _urls);
-            })
-            .UseContentRoot(Directory.GetCurrentDirectory());
+            });
 
         _host = builder.Build();
 
