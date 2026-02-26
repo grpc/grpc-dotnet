@@ -824,13 +824,12 @@ internal sealed partial class GrpcCall<TRequest, TResponse> : GrpcCall, IGrpcCal
         if (diagnosticSourceEnabled || Logger.IsEnabled(LogLevel.Critical) || Activity.Current != null || GrpcDiagnostics.ActivitySource.HasListeners())
         {
             activity = GrpcDiagnostics.ActivitySource.CreateActivity(GrpcDiagnostics.ActivityName, ActivityKind.Client);
-
             // ActivitySource only returns an activity if someone is listening.
-            // If we're at this point then we always want there to be an activity. Create the activity manually.
-            activity ??= new Activity(GrpcDiagnostics.ActivityName);
-
-            activity.AddTag(GrpcDiagnostics.GrpcMethodTagName, Method.FullName);
-            activity.Start();
+            if (activity != null)
+            {
+                activity.AddTag(GrpcDiagnostics.GrpcMethodTagName, Method.FullName);
+                activity.Start();
+            }
 
             if (diagnosticSourceEnabled)
             {
