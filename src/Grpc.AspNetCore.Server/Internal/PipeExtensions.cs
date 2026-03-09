@@ -23,6 +23,7 @@ using System.IO.Pipelines;
 using System.Runtime.CompilerServices;
 using Grpc.Core;
 using Grpc.Net.Compression;
+using Microsoft.AspNetCore.Connections;
 using Microsoft.Extensions.Logging;
 
 namespace Grpc.AspNetCore.Server.Internal;
@@ -206,6 +207,9 @@ internal static partial class PipeExtensions
 
             while (true)
             {
+                // Check for client disconnect before reading
+                serverCallContext.EnsureRequestNotAborted();
+
                 var result = await input.ReadAsync();
                 var buffer = result.Buffer;
 
@@ -216,6 +220,9 @@ internal static partial class PipeExtensions
                         throw new RpcException(MessageCancelledStatus);
                     }
 
+                    // Check for client disconnect during processing
+                    serverCallContext.EnsureRequestNotAborted();
+
                     if (!buffer.IsEmpty)
                     {
                         if (request != null)
@@ -225,6 +232,9 @@ internal static partial class PipeExtensions
 
                         if (TryReadMessage(ref buffer, serverCallContext, out var data))
                         {
+                            // Check for client disconnect before deserialization
+                            serverCallContext.EnsureRequestNotAborted();
+
                             // Finished and the complete message has arrived
                             GrpcServerLog.DeserializingMessage(logger, (int)data.Length, typeof(T));
 
@@ -275,6 +285,21 @@ internal static partial class PipeExtensions
                 }
             }
         }
+        catch (OperationCanceledException ex) when (serverCallContext.HttpContext.RequestAborted.IsCancellationRequested)
+        {
+            // Convert operation canceled due to client disconnect to proper RpcException
+            throw new RpcException(new Status(StatusCode.Cancelled, "Call canceled by the client.", ex));
+        }
+        catch (IOException ex) when (IsConnectionResetException(ex))
+        {
+            // Convert connection reset to proper RpcException
+            throw new RpcException(new Status(StatusCode.Cancelled, "Client disconnected during request.", ex));
+        }
+        catch (Exception ex) when (IsConnectionAbortedException(ex))
+        {
+            // Convert connection aborted to proper RpcException
+            throw new RpcException(new Status(StatusCode.Cancelled, "Connection aborted during request.", ex));
+        }
         catch (Exception ex) when (ex is not OperationCanceledException)
         {
             // Don't write error when user cancels read
@@ -303,6 +328,10 @@ internal static partial class PipeExtensions
             while (true)
             {
                 var completeMessage = false;
+
+                // Check for client disconnect before reading
+                serverCallContext.EnsureRequestNotAborted();
+
                 var result = await input.ReadAsync(cancellationToken);
                 var buffer = result.Buffer;
 
@@ -313,11 +342,17 @@ internal static partial class PipeExtensions
                         throw new RpcException(MessageCancelledStatus);
                     }
 
+                    // Check for client disconnect during processing
+                    serverCallContext.EnsureRequestNotAborted();
+
                     if (!buffer.IsEmpty)
                     {
                         if (TryReadMessage(ref buffer, serverCallContext, out var data))
                         {
                             completeMessage = true;
+
+                            // Check for client disconnect before deserialization
+                            serverCallContext.EnsureRequestNotAborted();
 
                             GrpcServerLog.DeserializingMessage(logger, (int)data.Length, typeof(T));
 
@@ -363,12 +398,43 @@ internal static partial class PipeExtensions
                 }
             }
         }
+        catch (OperationCanceledException ex) when (serverCallContext.HttpContext.RequestAborted.IsCancellationRequested)
+        {
+            // Convert operation canceled due to client disconnect to proper RpcException
+            throw new RpcException(new Status(StatusCode.Cancelled, "Call canceled by the client.", ex));
+        }
+        catch (IOException ex) when (IsConnectionResetException(ex))
+        {
+            // Convert connection reset to proper RpcException
+            throw new RpcException(new Status(StatusCode.Cancelled, "Client disconnected during request.", ex));
+        }
+        catch (Exception ex) when (IsConnectionAbortedException(ex))
+        {
+            // Convert connection aborted to proper RpcException
+            throw new RpcException(new Status(StatusCode.Cancelled, "Connection aborted during request.", ex));
+        }
         catch (Exception ex) when (!(ex is OperationCanceledException && cancellationToken.IsCancellationRequested))
         {
             // Don't write error when user cancels read
             GrpcServerLog.ErrorReadingMessage(logger, ex);
             throw;
         }
+    }
+
+    // Add helper methods for detecting connection issues
+    private static bool IsConnectionResetException(IOException ex)
+    {
+        return ex.Message.Contains("reset", StringComparison.OrdinalIgnoreCase) ||
+               ex.Message.Contains("aborted", StringComparison.OrdinalIgnoreCase) ||
+               ex.Message.Contains("disconnect", StringComparison.OrdinalIgnoreCase) ||
+               ex.Message.Contains("canceled", StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static bool IsConnectionAbortedException(Exception ex)
+    {
+        return ex is ObjectDisposedException ||
+               ex is ConnectionAbortedException ||
+               (ex is IOException ioEx && ioEx.InnerException is ConnectionAbortedException);
     }
 
     private static bool TryReadMessage(ref ReadOnlySequence<byte> buffer, HttpContextServerCallContext context, out ReadOnlySequence<byte> message)
