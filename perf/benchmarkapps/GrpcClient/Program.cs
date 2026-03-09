@@ -62,7 +62,21 @@ class Program
 
     public static async Task<int> Main(string[] args)
     {
-        var urlOption = new Option<Uri>("--url", ["-u"]) { Description = "The server url to request", Required = true };
+        var urlOption = new Option<Uri>("--url", ["-u"])
+        {
+            Description = "The server url to request",
+            Required = true,
+            CustomParser = result =>
+            {
+                var token = result.Tokens.SingleOrDefault();
+                if (token is null || !Uri.TryCreate(token.Value, UriKind.Absolute, out var uri))
+                {
+                    result.AddError("The --url option requires a valid absolute URI.");
+                    return null;
+                }
+                return uri;
+            }
+        };
         var udsFileNameOption = new Option<string>("--udsFileName") { Description = "The Unix Domain Socket file name" };
         var namedPipeNameOption = new Option<string>("--namedPipeName") { Description = "The Named Pipe name" };
         var connectionsOption = new Option<int>("--connections", ["-c"]) { DefaultValueFactory = (r) => 1, Description = "Total number of connections to keep open" };
