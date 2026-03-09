@@ -179,7 +179,7 @@ internal sealed class SocketConnectivitySubchannelTransport : ISubchannelTranspo
                     _initialSocketData = null;
                     _initialSocketCreatedTime = DateTime.UtcNow;
 
-                    // Schedule ping. Don't set a periodic interval to avoid any chance of timer causing the target method to run multiple times in paralle.
+                    // Schedule ping. Don't set a periodic interval to avoid any chance of timer causing the target method to run multiple times in parallel.
                     // This could happen because of execution delays (e.g. hitting a debugger breakpoint).
                     // Instead, the socket timer target method reschedules the next run after it has finished.
                     _socketConnectedTimer.Change(_socketPingInterval, Timeout.InfiniteTimeSpan);
