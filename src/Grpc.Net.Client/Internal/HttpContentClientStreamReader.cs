@@ -142,7 +142,11 @@ internal sealed class HttpContentClientStreamReader<TRequest, TResponse> : IAsyn
 #if NET5_0_OR_GREATER
                     _responseStream = await _httpResponse.Content.ReadAsStreamAsync(cancellationToken).ConfigureAwait(false);
 #else
-                    _responseStream = await _httpResponse.Content.ReadAsStreamAsync().ConfigureAwait(false);
+                    // On .NET Framework, HttpResponseMessage.Content can be null when no content
+                    // body was set (e.g. a Trailers-Only response). Use Stream.Null in that case.
+                    _responseStream = _httpResponse.Content != null
+                        ? await _httpResponse.Content.ReadAsStreamAsync().ConfigureAwait(false)
+                        : Stream.Null;
 #endif
                 }
                 catch (ObjectDisposedException)
