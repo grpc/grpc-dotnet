@@ -328,6 +328,20 @@ internal static class GrpcProtocolHelpers
         {
             if (!TryGetStatusCore(httpResponse.TrailingHeaders(), out status))
             {
+                if (httpResponse.Headers.TryGetValues(GrpcProtocolConstants.StatusTrailer, out var grpcStatus))
+                {
+                    // This is a Trailers-Only response: the server included grpc-status in
+                    // the response headers instead of trailers. Per the gRPC spec, this
+                    // happens when the server completes the call without sending a response
+                    // body (e.g. immediate errors, empty server streaming calls).
+                    var grpcMessage =
+                        HttpRequestHelpers.GetHeaderValue(
+                            httpResponse.Headers, GrpcProtocolConstants.MessageTrailer);
+
+                    status = new Status((StatusCode)int.Parse(grpcStatus.First(), CultureInfo.InvariantCulture), grpcMessage ?? string.Empty);
+                    return status.Value;
+                }
+
                 var detail = "No grpc-status found on response.";
                 if (isBrowser)
                 {
