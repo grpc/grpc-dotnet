@@ -41,4 +41,13 @@ public sealed class GrpcServiceEndpointConventionBuilder : IEndpointConventionBu
             endpointConventionBuilder.Add(convention);
         }
     }
+
+    /// <inheritdoc />
+    public void Finally(Action<EndpointBuilder> finallyConvention)
+    {
+        foreach (var endpointConventionBuilder in _endpointConventionBuilders)
+        {
+            endpointConventionBuilder.Finally(finallyConvention);
+        }
+    }
 }
