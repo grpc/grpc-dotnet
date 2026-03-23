@@ -20,7 +20,6 @@ using System.Collections;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
-using System.Net;
 using System.Runtime.ExceptionServices;
 using Grpc.Core;
 using Grpc.Net.Client.Internal.Http;
@@ -542,17 +541,13 @@ internal sealed partial class GrpcCall<TRequest, TResponse> : GrpcCall, IGrpcCal
                     }
                     else
                     {
-                        if (ClientStreamReader != null
-                            && ClientStreamReader.HttpResponseTcs != null
-                            && status.Value.StatusCode == StatusCode.OK
-                            && HttpResponse != null
-                            && HttpResponse.StatusCode == System.Net.HttpStatusCode.OK)
+                        if (ClientStreamReader != null && status.Value.StatusCode == StatusCode.OK)
                         {
-                            ClientStreamReader.HttpResponseTcs.TrySetResult((HttpResponse, status));
-
                             // This is a Trailers-Only response with OK status for a streaming call.
                             // Hand the response to the stream reader so it can process the (empty)
                             // stream and resolve the final call status. TCS will also be set in Dispose.
+                            ClientStreamReader.HttpResponseTcs.TrySetResult((HttpResponse, status));
+
                             status = await CallTask.ConfigureAwait(false);
                         }
 
