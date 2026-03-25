@@ -326,7 +326,11 @@ internal static class GrpcProtocolHelpers
         Status? status;
         try
         {
-            if (!TryGetStatusCore(httpResponse.TrailingHeaders(), out status))
+            // Scenarios:
+            // 1. The status will be in the trailers for a response with a message.
+            // 2. Trailers are in the headers when there is no message. That means we also check the headers for a trailers-only only response.
+            // 3. No status. This is an error. Return cancelled status.
+            if (!TryGetStatusCore(httpResponse.TrailingHeaders(), out status) && !TryGetStatusCore(httpResponse.Headers, out status))
             {
                 var detail = "No grpc-status found on response.";
                 if (isBrowser)

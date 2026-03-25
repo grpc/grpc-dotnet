@@ -181,6 +181,48 @@ public class AsyncDuplexStreamingCallTests
         Assert.IsFalse(await moveNextTask3.DefaultTimeout());
     }
 
+    [TestCase(StatusCode.OK, "Detail!")]
+    [TestCase(StatusCode.Unauthenticated, "")]
+    public async Task AsyncDuplexStreamingCall_TrailersOnly_TrailersReturnedWithHeaders(StatusCode statusCode, string statusMessage)
+    {
+        // Arrange
+        HttpResponseMessage? responseMessage = null;
+        var httpClient = ClientTestHelpers.CreateTestClient(request =>
+        {
+            responseMessage = ResponseUtils.CreateResponse(HttpStatusCode.OK, new ByteArrayContent(Array.Empty<byte>()), grpcStatusCode: null);
+            responseMessage.Headers.Add(GrpcProtocolConstants.StatusTrailer, statusCode.ToString("D"));
+            responseMessage.Headers.Add(GrpcProtocolConstants.MessageTrailer, statusMessage);
+            return Task.FromResult(responseMessage);
+        });
+        var invoker = HttpClientCallInvokerFactory.Create(httpClient);
+
+        // Act
+        var call = invoker.AsyncDuplexStreamingCall();
+        var headers = await call.ResponseHeadersAsync.DefaultTimeout();
+        var moveNextTask = call.ResponseStream.MoveNext(CancellationToken.None);
+        if (statusCode == StatusCode.OK)
+        {
+            Assert.IsFalse(await moveNextTask.DefaultTimeout());
+        }
+        else
+        {
+            var ex = await ExceptionAssert.ThrowsAsync<RpcException>(() => moveNextTask).DefaultTimeout();
+            Assert.AreEqual(statusCode, ex.StatusCode);
+            Assert.AreEqual(statusMessage, ex.Status.Detail);
+        }
+
+        // Assert
+        Assert.NotNull(responseMessage);
+
+        Assert.IsFalse(responseMessage!.TrailingHeaders().Any()); // sanity check that there are no trailers
+
+        Assert.AreEqual(statusCode, call.GetStatus().StatusCode);
+        Assert.AreEqual(statusMessage, call.GetStatus().Detail);
+
+        Assert.AreEqual(0, headers.Count);
+        Assert.AreEqual(0, call.GetTrailers().Count);
+    }
+
     [Test]
     public async Task AsyncDuplexStreamingCall_CancellationDisposeRace_Success()
     {

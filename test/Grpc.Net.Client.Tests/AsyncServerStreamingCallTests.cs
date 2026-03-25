@@ -335,18 +335,22 @@ public class AsyncServerStreamingCallTests
 
         Assert.AreEqual(StatusCode.Unimplemented, ex.StatusCode);
         Assert.AreEqual("Bad gRPC response. HTTP status code: 404", ex.Status.Detail);
+
+        Assert.AreEqual(StatusCode.Unimplemented, call.GetStatus().StatusCode);
+        Assert.AreEqual("Bad gRPC response. HTTP status code: 404", call.GetStatus().Detail);
     }
 
-    [Test]
-    public async Task AsyncServerStreamingCall_TrailersOnly_TrailersReturnedWithHeaders()
+    [TestCase(StatusCode.OK, "Detail!")]
+    [TestCase(StatusCode.Unauthenticated, "")]
+    public async Task AsyncServerStreamingCall_TrailersOnly_TrailersReturnedWithHeaders(StatusCode statusCode, string statusMessage)
     {
         // Arrange
         HttpResponseMessage? responseMessage = null;
         var httpClient = ClientTestHelpers.CreateTestClient(request =>
         {
             responseMessage = ResponseUtils.CreateResponse(HttpStatusCode.OK, new ByteArrayContent(Array.Empty<byte>()), grpcStatusCode: null);
-            responseMessage.Headers.Add(GrpcProtocolConstants.StatusTrailer, StatusCode.OK.ToString("D"));
-            responseMessage.Headers.Add(GrpcProtocolConstants.MessageTrailer, "Detail!");
+            responseMessage.Headers.Add(GrpcProtocolConstants.StatusTrailer, statusCode.ToString("D"));
+            responseMessage.Headers.Add(GrpcProtocolConstants.MessageTrailer, statusMessage);
             return Task.FromResult(responseMessage);
         });
         var invoker = HttpClientCallInvokerFactory.Create(httpClient);
@@ -354,15 +358,25 @@ public class AsyncServerStreamingCallTests
         // Act
         var call = invoker.AsyncServerStreamingCall(new HelloRequest());
         var headers = await call.ResponseHeadersAsync.DefaultTimeout();
-        Assert.IsFalse(await call.ResponseStream.MoveNext(CancellationToken.None).DefaultTimeout());
+        var moveNextTask = call.ResponseStream.MoveNext(CancellationToken.None);
+        if (statusCode == StatusCode.OK)
+        {
+            Assert.IsFalse(await moveNextTask.DefaultTimeout());
+        }
+        else
+        {
+            var ex = await ExceptionAssert.ThrowsAsync<RpcException>(() => moveNextTask).DefaultTimeout();
+            Assert.AreEqual(statusCode, ex.StatusCode);
+            Assert.AreEqual(statusMessage, ex.Status.Detail);
+        }
 
         // Assert
         Assert.NotNull(responseMessage);
 
         Assert.IsFalse(responseMessage!.TrailingHeaders().Any()); // sanity check that there are no trailers
 
-        Assert.AreEqual(StatusCode.OK, call.GetStatus().StatusCode);
-        Assert.AreEqual("Detail!", call.GetStatus().Detail);
+        Assert.AreEqual(statusCode, call.GetStatus().StatusCode);
+        Assert.AreEqual(statusMessage, call.GetStatus().Detail);
 
         Assert.AreEqual(0, headers.Count);
         Assert.AreEqual(0, call.GetTrailers().Count);

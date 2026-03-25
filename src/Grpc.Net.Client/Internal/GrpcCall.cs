@@ -307,15 +307,6 @@ internal sealed partial class GrpcCall<TRequest, TResponse> : GrpcCall, IGrpcCal
         {
             var httpResponse = await HttpResponseTask.ConfigureAwait(false);
 
-            // Check if the headers have a status. If they do then wait for the overall call task
-            // to complete before returning headers. This means that if the call failed with a
-            // a status then it is possible to await response headers and then call GetStatus().
-            var grpcStatus = HttpRequestHelpers.GetHeaderValue(httpResponse.Headers, GrpcProtocolConstants.StatusTrailer);
-            if (grpcStatus != null)
-            {
-                await CallTask.ConfigureAwait(false);
-            }
-
             var metadata = GrpcProtocolHelpers.BuildMetadata(httpResponse.Headers);
 
             // https://github.com/grpc/proposal/blob/master/A6-client-retries.md#exposed-retry-metadata
@@ -550,6 +541,16 @@ internal sealed partial class GrpcCall<TRequest, TResponse> : GrpcCall, IGrpcCal
                     }
                     else
                     {
+                        if (ClientStreamReader != null && status.Value.StatusCode == StatusCode.OK)
+                        {
+                            // This is a Trailers-Only response with OK status for a streaming call.
+                            // Hand the response to the stream reader so it can process the (empty)
+                            // stream and resolve the final call status. TCS will also be set in Dispose.
+                            ClientStreamReader.HttpResponseTcs.TrySetResult((HttpResponse, status));
+
+                            status = await CallTask.ConfigureAwait(false);
+                        }
+
                         finished = FinishCall(request, diagnosticSourceEnabled, activity, status.Value);
                         FinishResponseAndCleanUp(status.Value);
                     }

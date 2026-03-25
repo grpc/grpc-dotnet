@@ -23,6 +23,7 @@ using Grpc.Core;
 using Grpc.Net.Client.Internal;
 using Grpc.Net.Client.Internal.Http;
 using Grpc.Net.Client.Tests.Infrastructure;
+using Grpc.Shared;
 using Grpc.Tests.Shared;
 using Microsoft.Extensions.Logging.Testing;
 using NUnit.Framework;
@@ -409,6 +410,58 @@ public class AsyncClientStreamingCallTests
             throw new OperationCanceledException();
         }
 #endif
+    }
+
+    [TestCase(StatusCode.OK, "Detail!")]
+    [TestCase(StatusCode.Unauthenticated, "")]
+    public async Task AsyncClientStreamingCall_TrailersOnly_TrailersReturnedWithHeaders(StatusCode statusCode, string statusMessage)
+    {
+        // Arrange
+        HttpResponseMessage? responseMessage = null;
+        var httpClient = ClientTestHelpers.CreateTestClient(request =>
+        {
+            responseMessage = ResponseUtils.CreateResponse(HttpStatusCode.OK, new ByteArrayContent(Array.Empty<byte>()), grpcStatusCode: null);
+            responseMessage.Headers.Add(GrpcProtocolConstants.StatusTrailer, statusCode.ToString("D"));
+            responseMessage.Headers.Add(GrpcProtocolConstants.MessageTrailer, statusMessage);
+            return Task.FromResult(responseMessage);
+        });
+        var invoker = HttpClientCallInvokerFactory.Create(httpClient);
+
+        // Act
+        var call = invoker.AsyncClientStreamingCall();
+        var headers = await call.ResponseHeadersAsync.DefaultTimeout();
+        if (statusCode == StatusCode.OK)
+        {
+            // Trailers-only with OK status has no response message to deserialize
+            var ex = await ExceptionAssert.ThrowsAsync<RpcException>(() => call.ResponseAsync).DefaultTimeout();
+            Assert.AreEqual(StatusCode.Internal, ex.Status.StatusCode);
+            StringAssert.StartsWith("Failed to deserialize response message.", ex.Status.Detail);
+        }
+        else
+        {
+            var ex = await ExceptionAssert.ThrowsAsync<RpcException>(() => call.ResponseAsync).DefaultTimeout();
+            Assert.AreEqual(statusCode, ex.StatusCode);
+            Assert.AreEqual(statusMessage, ex.Status.Detail);
+        }
+
+        // Assert
+        Assert.NotNull(responseMessage);
+
+        Assert.IsFalse(responseMessage!.TrailingHeaders().Any()); // sanity check that there are no trailers
+
+        if (statusCode == StatusCode.OK)
+        {
+            Assert.AreEqual(StatusCode.Internal, call.GetStatus().StatusCode);
+            StringAssert.StartsWith("Failed to deserialize response message.", call.GetStatus().Detail);
+        }
+        else
+        {
+            Assert.AreEqual(statusCode, call.GetStatus().StatusCode);
+            Assert.AreEqual(statusMessage, call.GetStatus().Detail);
+        }
+
+        Assert.AreEqual(0, headers.Count);
+        Assert.AreEqual(0, call.GetTrailers().Count);
     }
 
     [Test]
