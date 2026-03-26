@@ -21,8 +21,8 @@
     <PackageReference Include="Google.Protobuf" />
     <PackageReference Include="Grpc.Tools" PrivateAssets="All" />
 
-    <Protobuf Include="Proto\grpc\reflection\v1alpha\reflection.proto" ProtoRoot="Proto" GrpcServices="Both" GrpcNamespace="Grpc.Reflection.V1Alpha" />
-    <Protobuf Include="Proto\grpc\reflection\v1\reflection.proto" ProtoRoot="Proto" GrpcServices="Both" GrpcNamespace="Grpc.Reflection.V1" />
+    <Protobuf Include="Proto\grpc\reflection\v1alpha\reflection.proto" ProtoRoot="Proto" GrpcServices="Both" />
+    <Protobuf Include="Proto\grpc\reflection\v1\reflection.proto" ProtoRoot="Proto" GrpcServices="Both" />
   </ItemGroup>
 
   <ItemGroup Condition=" '$(TargetFramework)' == 'net462' ">
