@@ -26,6 +26,7 @@ using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.Extensions.DependencyInjection;
 using NUnit.Framework;
+using V1 = Grpc.Reflection.V1;
 
 namespace Grpc.AspNetCore.Server.Tests.Reflection
 {
@@ -83,6 +84,51 @@ namespace Grpc.AspNetCore.Server.Tests.Reflection
             Assert.AreEqual("greet.ThirdGreeterWithBaseType", serviceResponse.Name);
         }
 
+        [Test]
+        public async Task Create_ConfiguredGrpcEndpoint_V1EndpointReturnedFromReflectionService()
+        {
+            // Arrange and act
+            TestServerStreamWriter<V1.ServerReflectionResponse> writer = await ConfigureReflectionV1ServerAndCallAsync(builder =>
+            {
+                builder.MapGrpcService<GreeterService>();
+            });
+
+            // Assert
+            Assert.AreEqual(1, writer.Responses.Count);
+            Assert.AreEqual(1, writer.Responses[0].ListServicesResponse.Service.Count);
+
+            var serviceResponse = writer.Responses[0].ListServicesResponse.Service[0];
+            Assert.AreEqual("greet.Greeter", serviceResponse.Name);
+        }
+
+        [Test]
+        public async Task Create_ConfiguredGrpcEndpoint_BothV1AndV1AlphaRegistered()
+        {
+            // Arrange
+            var endpointRouteBuilder = new TestEndpointRouteBuilder();
+
+            var services = ServicesHelpers.CreateServices();
+            services.AddGrpcReflection();
+            services.AddRouting();
+            services.AddSingleton<EndpointDataSource>(s =>
+            {
+                return new CompositeEndpointDataSource(endpointRouteBuilder.DataSources);
+            });
+
+            var serviceProvider = services.BuildServiceProvider(validateScopes: true);
+
+            endpointRouteBuilder.ServiceProvider = serviceProvider;
+            endpointRouteBuilder.MapGrpcService<GreeterService>();
+
+            // Act - verify both services are registered
+            var v1AlphaService = serviceProvider.GetRequiredService<ReflectionServiceImpl>();
+            var v1Service = serviceProvider.GetRequiredService<ReflectionV1ServiceImpl>();
+
+            // Assert
+            Assert.IsNotNull(v1AlphaService);
+            Assert.IsNotNull(v1Service);
+        }
+
         private static async Task<TestServerStreamWriter<ServerReflectionResponse>> ConfigureReflectionServerAndCallAsync(Action<IEndpointRouteBuilder> action)
         {
             // Arrange
@@ -120,6 +166,43 @@ namespace Grpc.AspNetCore.Server.Tests.Reflection
             return writer;
         }
 
+        private static async Task<TestServerStreamWriter<V1.ServerReflectionResponse>> ConfigureReflectionV1ServerAndCallAsync(Action<IEndpointRouteBuilder> action)
+        {
+            // Arrange
+            var endpointRouteBuilder = new TestEndpointRouteBuilder();
+
+            var services = ServicesHelpers.CreateServices();
+            services.AddGrpcReflection();
+            services.AddRouting();
+            services.AddSingleton<EndpointDataSource>(s =>
+            {
+                return new CompositeEndpointDataSource(endpointRouteBuilder.DataSources);
+            });
+
+            var serviceProvider = services.BuildServiceProvider(validateScopes: true);
+
+            endpointRouteBuilder.ServiceProvider = serviceProvider;
+
+            action(endpointRouteBuilder);
+
+            // Act
+            var service = serviceProvider.GetRequiredService<ReflectionV1ServiceImpl>();
+
+            var reader = new TestV1AsyncStreamReader
+            {
+                Current = new V1.ServerReflectionRequest
+                {
+                    ListServices = "" // list all services
+                }
+            };
+            var writer = new TestServerStreamWriter<V1.ServerReflectionResponse>();
+            var context = HttpContextServerCallContextHelper.CreateServerCallContext();
+
+            await service.ServerReflectionInfo(reader, writer, context);
+
+            return writer;
+        }
+
         private class InheritGreeterService : GreeterService
         {
         }
@@ -136,6 +219,24 @@ namespace Grpc.AspNetCore.Server.Tests.Reflection
         private class TestAsyncStreamReader : IAsyncStreamReader<ServerReflectionRequest>
         {
             public ServerReflectionRequest Current { get; set; } = default!;
+            private bool _hasNext = true;
+
+            public void Dispose()
+            {
+            }
+
+            public Task<bool> MoveNext(CancellationToken cancellationToken)
+            {
+                var result = Task.FromResult(_hasNext);
+                _hasNext = false;
+
+                return result;
+            }
+        }
+
+        private class TestV1AsyncStreamReader : IAsyncStreamReader<V1.ServerReflectionRequest>
+        {
+            public V1.ServerReflectionRequest Current { get; set; } = default!;
             private bool _hasNext = true;
 
             public void Dispose()

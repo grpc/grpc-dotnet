@@ -16,37 +16,37 @@
 
 using Google.Protobuf.Reflection;
 using Grpc.Core;
-using Grpc.Reflection.V1Alpha;
+using Grpc.Reflection.V1;
 
 namespace Grpc.Reflection;
 
 /// <summary>
-/// Implementation of server reflection service (v1alpha).
+/// Implementation of server reflection service (v1).
 /// </summary>
-public class ReflectionServiceImpl : Grpc.Reflection.V1Alpha.ServerReflection.ServerReflectionBase
+public class ReflectionV1ServiceImpl : Grpc.Reflection.V1.ServerReflection.ServerReflectionBase
 {
     readonly ReflectionServiceCore core;
 
     /// <summary>
-    /// Creates a new instance of <c>ReflectionServiceImpl</c>.
+    /// Creates a new instance of <c>ReflectionV1ServiceImpl</c>.
     /// </summary>
-    public ReflectionServiceImpl(IEnumerable<string> services, SymbolRegistry symbolRegistry)
+    public ReflectionV1ServiceImpl(IEnumerable<string> services, SymbolRegistry symbolRegistry)
     {
         core = new ReflectionServiceCore(services, symbolRegistry);
     }
 
     /// <summary>
-    /// Creates a new instance of <c>ReflectionServiceImpl</c>.
+    /// Creates a new instance of <c>ReflectionV1ServiceImpl</c>.
     /// </summary>
-    public ReflectionServiceImpl(IEnumerable<ServiceDescriptor> serviceDescriptors)
+    public ReflectionV1ServiceImpl(IEnumerable<ServiceDescriptor> serviceDescriptors)
     {
         core = new ReflectionServiceCore(serviceDescriptors);
     }
 
     /// <summary>
-    /// Creates a new instance of <c>ReflectionServiceImpl</c>.
+    /// Creates a new instance of <c>ReflectionV1ServiceImpl</c>.
     /// </summary>
-    public ReflectionServiceImpl(params ServiceDescriptor[] serviceDescriptors) : this((IEnumerable<ServiceDescriptor>) serviceDescriptors)
+    public ReflectionV1ServiceImpl(params ServiceDescriptor[] serviceDescriptors) : this((IEnumerable<ServiceDescriptor>) serviceDescriptors)
     {
     }
 

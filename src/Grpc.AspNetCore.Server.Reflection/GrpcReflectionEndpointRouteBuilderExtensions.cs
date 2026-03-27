@@ -40,7 +40,10 @@ public static class GrpcReflectionEndpointRouteBuilderExtensions
 
         ValidateServicesRegistered(builder.ServiceProvider);
 
-        return builder.MapGrpcService<ReflectionServiceImpl>();
+        var v1AlphaConventionBuilder = builder.MapGrpcService<ReflectionServiceImpl>();
+        var v1ConventionBuilder = builder.MapGrpcService<ReflectionV1ServiceImpl>();
+
+        return new CompositeEndpointConventionBuilder(v1AlphaConventionBuilder, v1ConventionBuilder);
     }
 
     private static void ValidateServicesRegistered(IServiceProvider serviceProvider)
@@ -50,6 +53,32 @@ public static class GrpcReflectionEndpointRouteBuilderExtensions
         {
             throw new InvalidOperationException("Unable to find the required services. Please add all the required services by calling " +
                 "'IServiceCollection.AddGrpcReflection()' inside the call to 'ConfigureServices(...)' in the application startup code.");
+        }
+    }
+
+    private sealed class CompositeEndpointConventionBuilder : IEndpointConventionBuilder
+    {
+        private readonly IEndpointConventionBuilder[] _builders;
+
+        public CompositeEndpointConventionBuilder(params IEndpointConventionBuilder[] builders)
+        {
+            _builders = builders;
+        }
+
+        public void Add(Action<EndpointBuilder> convention)
+        {
+            foreach (var builder in _builders)
+            {
+                builder.Add(convention);
+            }
+        }
+
+        public void Finally(Action<EndpointBuilder> finalConvention)
+        {
+            foreach (var builder in _builders)
+            {
+                builder.Finally(finalConvention);
+            }
         }
     }
 }

@@ -19,8 +19,10 @@
 
   <ItemGroup>
     <PackageReference Include="Google.Protobuf" />
-  
-    <!-- TODO(jtattermusch): add reference to Grpc.Tools and use it for generating the Reflection.cs and ReflectionGrpc.cs sources -->
+    <PackageReference Include="Grpc.Tools" PrivateAssets="All" />
+
+    <Protobuf Include="Proto\grpc\reflection\v1alpha\reflection.proto" ProtoRoot="Proto" GrpcServices="Both" />
+    <Protobuf Include="Proto\grpc\reflection\v1\reflection.proto" ProtoRoot="Proto" GrpcServices="Both" />
   </ItemGroup>
 
   <ItemGroup Condition=" '$(TargetFramework)' == 'net462' ">
