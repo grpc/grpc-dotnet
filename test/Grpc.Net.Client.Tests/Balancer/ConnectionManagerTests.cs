@@ -576,9 +576,10 @@ public class ConnectionManagerTests
         transportFactory.Transports.ForEach(t => t.Disconnect());
 
         var requestConnectionSyncPoint = new SyncPoint(runContinuationsAsynchronously: true);
+        var connectionRequestedIntercepted = 0;
         testSink.MessageLogged += (w) =>
         {
-            if (w.EventId.Name == "ConnectionRequested")
+            if (w.EventId.Name == "ConnectionRequested" && Interlocked.CompareExchange(ref connectionRequestedIntercepted, 1, 0) == 0)
             {
                 logger.LogInformation("Connection has been requested. Waiting for signal to continue...");
                 requestConnectionSyncPoint.WaitToContinue().Wait();
