@@ -291,7 +291,7 @@ public abstract class Interceptor
     }
 
     /// <summary>
-    /// Server-side handler for intercepting and incoming unary call.
+    /// Server-side handler for intercepting an incoming unary call.
     /// </summary>
     /// <typeparam name="TRequest">Request message type for this method.</typeparam>
     /// <typeparam name="TResponse">Response message type for this method.</typeparam>
