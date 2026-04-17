@@ -166,8 +166,8 @@ public sealed class ResolverResult
     /// Create <see cref="ResolverResult"/> for the specified addresses and service config.
     /// </summary>
     /// <param name="addresses">The resolved addresses.</param>
-    /// <param name="serviceConfig">An optional service config. A <c>null</c> value indicates that the resolver either didn't retreive a service config or an error occurred. The error must be specified using <paramref name="serviceConfigStatus"/>.</param>
-    /// <param name="serviceConfigStatus">A service config status. The status indicates an error retreiveing or parsing the config. The status must not be <see cref="StatusCode.OK"/> if no service config is specified.</param>
+    /// <param name="serviceConfig">An optional service config. A <c>null</c> value indicates that the resolver either didn't retrieve a service config or an error occurred. The error must be specified using <paramref name="serviceConfigStatus"/>.</param>
+    /// <param name="serviceConfigStatus">A service config status. The status indicates an error retrieving or parsing the config. The status must not be <see cref="StatusCode.OK"/> if no service config is specified.</param>
     /// <returns>A resolver result.</returns>
     [DebuggerStepThrough]
     public static ResolverResult ForResult(IReadOnlyList<BalancerAddress> addresses, ServiceConfig? serviceConfig, Status? serviceConfigStatus)
