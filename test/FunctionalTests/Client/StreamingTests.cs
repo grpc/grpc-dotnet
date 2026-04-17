@@ -218,8 +218,17 @@ public class StreamingTests : FunctionalTestBase
 
         await call.ResponseHeadersAsync.DefaultTimeout();
 
+        // Drain the response stream so the call is fully complete before checking status.
+        var ex = Assert.ThrowsAsync<RpcException>(async () =>
+        {
+            while (await call.ResponseStream.MoveNext(CancellationToken.None).DefaultTimeout())
+            {
+            }
+        });
+
         // Assert
         Assert.AreEqual(StatusCode.Unimplemented, call.GetStatus().StatusCode);
+        Assert.AreEqual(StatusCode.Unimplemented, ex!.StatusCode);
     }
 
     [Test]
