@@ -51,7 +51,7 @@ public struct ClientInterceptorContext<TRequest, TResponse>
     public Method<TRequest, TResponse> Method { get; }
 
     /// <summary>
-    /// Gets the host that the currect invocation will be dispatched to.
+    /// Gets the host that the current invocation will be dispatched to.
     /// </summary>
     public string? Host { get; }
 
