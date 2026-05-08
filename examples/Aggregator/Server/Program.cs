@@ -43,7 +43,7 @@ if (bool.TryParse(builder.Configuration["EnableOpenTelemetry"], out var enableOp
                    .AddGrpcClientInstrumentation()
                    .AddHttpClientInstrumentation();
 
-            tracing.AddZipkinExporter();
+                 tracing.AddOtlpExporter();
         });
 }
 
