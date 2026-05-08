@@ -5,9 +5,10 @@
     <MicrosoftAspNetCoreApp9PackageVersion>9.0.4</MicrosoftAspNetCoreApp9PackageVersion>
     <MicrosoftAspNetCoreApp8PackageVersion>8.0.15</MicrosoftAspNetCoreApp8PackageVersion>
     <GrpcDotNetPackageVersion>2.70.0</GrpcDotNetPackageVersion>
-    <OpenTelemetryPackageVersion>1.6.0</OpenTelemetryPackageVersion>
-    <OpenTelemetryIntergationPackageVersion>1.8.1</OpenTelemetryIntergationPackageVersion>
-    <OpenTelemetryGrpcPackageVersion>1.8.0-beta.1</OpenTelemetryGrpcPackageVersion>
+    <OpenTelemetryPackageVersion>1.15.3</OpenTelemetryPackageVersion>
+    <OpenTelemetryAspNetCoreInstrumentationPackageVersion>1.15.2</OpenTelemetryAspNetCoreInstrumentationPackageVersion>
+    <OpenTelemetryHttpInstrumentationPackageVersion>1.15.1</OpenTelemetryHttpInstrumentationPackageVersion>
+    <OpenTelemetryGrpcPackageVersion>1.15.1</OpenTelemetryGrpcPackageVersion>
     <MicrosoftExtensionsPackageVersion>10.0.0</MicrosoftExtensionsPackageVersion>
     <MicrosoftExtensionsLtsPackageVersion>8.0.0</MicrosoftExtensionsLtsPackageVersion>
   </PropertyGroup>
@@ -52,9 +53,9 @@
     <PackageVersion Include="OpenTelemetry" Version="$(OpenTelemetryPackageVersion)" />
     <PackageVersion Include="OpenTelemetry.Exporter.Zipkin" Version="$(OpenTelemetryPackageVersion)" />
     <PackageVersion Include="OpenTelemetry.Extensions.Hosting" Version="$(OpenTelemetryPackageVersion)" />
-    <PackageVersion Include="OpenTelemetry.Instrumentation.AspNetCore" Version="$(OpenTelemetryIntergationPackageVersion)" />
+    <PackageVersion Include="OpenTelemetry.Instrumentation.AspNetCore" Version="$(OpenTelemetryAspNetCoreInstrumentationPackageVersion)" />
     <PackageVersion Include="OpenTelemetry.Instrumentation.GrpcNetClient" Version="$(OpenTelemetryGrpcPackageVersion)" />
-    <PackageVersion Include="OpenTelemetry.Instrumentation.Http" Version="$(OpenTelemetryIntergationPackageVersion)" />
+    <PackageVersion Include="OpenTelemetry.Instrumentation.Http" Version="$(OpenTelemetryHttpInstrumentationPackageVersion)" />
 
     <!-- Other -->
     <PackageVersion Include="BenchmarkDotNet" Version="0.15.2" />
