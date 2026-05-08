@@ -8,7 +8,7 @@
     <OpenTelemetryPackageVersion>1.15.3</OpenTelemetryPackageVersion>
     <OpenTelemetryAspNetCoreInstrumentationPackageVersion>1.15.2</OpenTelemetryAspNetCoreInstrumentationPackageVersion>
     <OpenTelemetryHttpInstrumentationPackageVersion>1.15.1</OpenTelemetryHttpInstrumentationPackageVersion>
-    <OpenTelemetryGrpcPackageVersion>1.15.1</OpenTelemetryGrpcPackageVersion>
+    <OpenTelemetryGrpcPackageVersion>1.15.1-beta.1</OpenTelemetryGrpcPackageVersion>
     <MicrosoftExtensionsPackageVersion>10.0.0</MicrosoftExtensionsPackageVersion>
     <MicrosoftExtensionsLtsPackageVersion>8.0.0</MicrosoftExtensionsLtsPackageVersion>
   </PropertyGroup>
