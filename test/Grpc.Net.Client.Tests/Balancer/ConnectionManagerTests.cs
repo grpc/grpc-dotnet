@@ -890,7 +890,7 @@ public class ConnectionManagerTests
             new BalancerAddress("localhost", 80)
         });
 
-        var connectTimeout = TimeSpan.FromMilliseconds(100);
+        var connectTimeout = TimeSpan.FromMilliseconds(200);
         var connectAttempt = 0;
         var connectCanceledTcs = new TaskCompletionSource<object?>(TaskCreationOptions.RunContinuationsAsynchronously);
 
@@ -904,7 +904,7 @@ public class ConnectionManagerTests
                 // First attempt: wait longer than ConnectTimeout so the connect context
                 // cancellation token fires, then return Failure (simulating a SocketException
                 // that resolved before the OCE was observed by the transport).
-                await Task.Delay(connectTimeout + TimeSpan.FromMilliseconds(200), CancellationToken.None);
+                await Task.Delay(connectTimeout + TimeSpan.FromMilliseconds(400), CancellationToken.None);
                 return new TryConnectResult(ConnectivityState.TransientFailure, ConnectResult.Failure);
             }
 
