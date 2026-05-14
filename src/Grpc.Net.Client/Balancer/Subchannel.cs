@@ -432,6 +432,8 @@ public sealed class Subchannel : IDisposable
         catch (OperationCanceledException)
         {
             SubchannelLog.ConnectCanceled(_logger, Id);
+
+            UpdateConnectivityState(ConnectivityState.Idle, "Connect canceled.");
         }
         catch (Exception ex)
         {

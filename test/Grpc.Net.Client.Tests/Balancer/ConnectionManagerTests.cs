@@ -865,6 +865,95 @@ public class ConnectionManagerTests
         }
     }
 
+    [Test]
+    public async Task ConnectTimeout_FiresDuringFailedConnect_SubchannelRecoverable()
+    {
+        // Regression test for https://github.com/grpc/grpc-dotnet/issues/2734
+        // When ConnectTimeout fires and TryConnectAsync returns Failure (not Timeout),
+        // the ThrowIfCancellationRequested() after the switch throws OperationCanceledException.
+        // The catch block doesn't transition to Idle, so the subchannel gets permanently stuck
+        // in TransientFailure and RequestConnection() can never restart the connect loop.
+
+        // Arrange
+        var services = new ServiceCollection();
+        var testSink = new TestSink();
+        services.AddLogging(b => b.AddProvider(new TestLoggerProvider(testSink)));
+        services.AddNUnitLogger();
+
+        await using var serviceProvider = services.BuildServiceProvider();
+        var loggerFactory = serviceProvider.GetRequiredService<ILoggerFactory>();
+        var logger = loggerFactory.CreateLogger(GetType());
+
+        var resolver = new TestResolver(loggerFactory);
+        resolver.UpdateAddresses(new List<BalancerAddress>
+        {
+            new BalancerAddress("localhost", 80)
+        });
+
+        var connectTimeout = TimeSpan.FromMilliseconds(100);
+        var connectAttempt = 0;
+        var connectCanceledTcs = new TaskCompletionSource<object?>(TaskCreationOptions.RunContinuationsAsynchronously);
+
+        var transportFactory = TestSubchannelTransportFactory.Create(async (subchannel, attempt, cancellationToken) =>
+        {
+            var currentAttempt = Interlocked.Increment(ref connectAttempt);
+            logger.LogInformation($"TryConnectAsync attempt {currentAttempt}");
+
+            if (currentAttempt == 1)
+            {
+                // First attempt: wait longer than ConnectTimeout so the connect context
+                // cancellation token fires, then return Failure (simulating a SocketException
+                // that resolved before the OCE was observed by the transport).
+                await Task.Delay(connectTimeout + TimeSpan.FromMilliseconds(200), CancellationToken.None);
+                return new TryConnectResult(ConnectivityState.TransientFailure, ConnectResult.Failure);
+            }
+
+            // Subsequent attempts succeed.
+            return new TryConnectResult(ConnectivityState.Ready, ConnectResult.Success);
+        });
+        transportFactory.ConnectTimeout = connectTimeout;
+
+        testSink.MessageLogged += (w) =>
+        {
+            if (w.EventId.Name == "ConnectCanceled")
+            {
+                connectCanceledTcs.TrySetResult(null);
+            }
+        };
+
+        var clientChannel = CreateConnectionManager(loggerFactory, resolver, transportFactory);
+        clientChannel.ConfigureBalancer(c => new PickFirstBalancer(c, loggerFactory));
+
+        // Act
+        // Start connecting - this will call TryConnectAsync which takes >100ms,
+        // so ConnectTimeout fires during the connect attempt.
+        logger.LogInformation("Starting connect.");
+        _ = clientChannel.ConnectAsync(waitForReady: false, CancellationToken.None).ConfigureAwait(false);
+
+        // Wait for ConnectCanceled log, confirming the OCE was caught and the loop exited.
+        logger.LogInformation("Waiting for ConnectCanceled.");
+        await connectCanceledTcs.Task.DefaultTimeout();
+
+        // At this point, the subchannel's connect loop has exited.
+        // The bug: state is TransientFailure and RequestConnection() can't restart the loop.
+        logger.LogInformation("ConnectCanceled observed. Requesting new connection.");
+
+        // Assert - RequestConnection should be able to start a new connect loop
+        // and the subchannel should eventually reach Ready state.
+        var subchannels = clientChannel.GetSubchannels();
+        Assert.AreEqual(1, subchannels.Count);
+
+        // Trigger a new connection request (simulates a new RPC arriving).
+        subchannels[0].RequestConnection();
+
+        // The subchannel should recover and reach Ready.
+        await TestHelpers.AssertIsTrueRetryAsync(
+            () => subchannels[0].State == ConnectivityState.Ready,
+            "Wait for subchannel to reach Ready state.").DefaultTimeout();
+
+        Assert.AreEqual(ConnectivityState.Ready, subchannels[0].State);
+    }
+
     private class DropLoadBalancerFactory : LoadBalancerFactory
     {
         private readonly Func<IChannelControlHelper, DropLoadBalancer> _loadBalancerFunc;
