@@ -870,9 +870,8 @@ public class ConnectionManagerTests
     {
         // Regression test for https://github.com/grpc/grpc-dotnet/issues/2734
         // When ConnectTimeout fires and TryConnectAsync returns Failure (not Timeout),
-        // the ThrowIfCancellationRequested() after the switch throws OperationCanceledException.
-        // The catch block doesn't transition to Idle, so the subchannel gets permanently stuck
-        // in TransientFailure and RequestConnection() can never restart the connect loop.
+        // the subchannel should transition to Idle so that RequestConnection() can
+        // restart the connect loop.
 
         // Arrange
         var services = new ServiceCollection();
@@ -930,13 +929,16 @@ public class ConnectionManagerTests
         logger.LogInformation("Starting connect.");
         _ = clientChannel.ConnectAsync(waitForReady: false, CancellationToken.None).ConfigureAwait(false);
 
-        // Wait for ConnectCanceled log, confirming the OCE was caught and the loop exited.
+        // Wait for ConnectCanceled log, confirming the OCE was caught and the loop is exiting.
         logger.LogInformation("Waiting for ConnectCanceled.");
         await connectCanceledTcs.Task.DefaultTimeout();
 
-        // At this point, the subchannel's connect loop has exited.
-        // The bug: state is TransientFailure and RequestConnection() can't restart the loop.
-        logger.LogInformation("ConnectCanceled observed. Requesting new connection.");
+        // ConnectCanceled fires before UpdateConnectivityState(Idle) in the catch block.
+        // Wait for the state to actually reach Idle before calling RequestConnection().
+        logger.LogInformation("Waiting for subchannel to reach Idle after ConnectCanceled.");
+        await TestHelpers.AssertIsTrueRetryAsync(
+            () => clientChannel.GetSubchannels().Count == 1 && clientChannel.GetSubchannels()[0].State == ConnectivityState.Idle,
+            "Wait for subchannel to reach Idle state.").DefaultTimeout();
 
         // Assert - RequestConnection should be able to start a new connect loop
         // and the subchannel should eventually reach Ready state.
@@ -944,6 +946,7 @@ public class ConnectionManagerTests
         Assert.AreEqual(1, subchannels.Count);
 
         // Trigger a new connection request (simulates a new RPC arriving).
+        logger.LogInformation("Requesting new connection.");
         subchannels[0].RequestConnection();
 
         // The subchannel should recover and reach Ready.
