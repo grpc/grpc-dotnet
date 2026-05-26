@@ -97,6 +97,7 @@ internal sealed class HttpContentClientStreamReader<TRequest, TResponse> : IAsyn
             }
         }
 
+        Task<bool> moveNextTask;
         lock (_moveNextLock)
         {
             using (_call.StartScope())
@@ -109,12 +110,13 @@ internal sealed class HttpContentClientStreamReader<TRequest, TResponse> : IAsyn
                     return Task.FromException<bool>(ex);
                 }
 
+                moveNextTask = MoveNextCore(cancellationToken);
                 // Save move next task to track whether it is complete
-                _moveNextTask = MoveNextCore(cancellationToken);
+                _moveNextTask = moveNextTask;
             }
         }
 
-        return _moveNextTask;
+        return moveNextTask;
     }
 
     private async Task<bool> MoveNextCore(CancellationToken cancellationToken)
