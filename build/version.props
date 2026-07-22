@@ -8,7 +8,7 @@
     <GrpcDotnetAssemblyVersion>2.0.0.0</GrpcDotnetAssemblyVersion>
 
     <!-- file version of all grpc-dotnet -->
-    <GrpcDotnetAssemblyFileVersion>2.66.0.0</GrpcDotnetAssemblyFileVersion>
+    <GrpcDotnetAssemblyFileVersion>2.83.0.0</GrpcDotnetAssemblyFileVersion>
 
   </PropertyGroup>
 </Project>

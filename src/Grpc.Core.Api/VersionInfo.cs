@@ -36,7 +36,7 @@ public static class VersionInfo
     /// <summary>
     /// Current <c>AssemblyFileVersion</c> of gRPC C# assemblies
     /// </summary>
-    public const string CurrentAssemblyFileVersion = "2.66.0.0";
+    public const string CurrentAssemblyFileVersion = "2.83.0.0";
 
     /// <summary>
     /// Current version of gRPC C#
