@@ -78,15 +78,16 @@ internal abstract class ServerCallHandlerBase<[DynamicallyAccessedMembers(GrpcPr
             }
             else
             {
-                return AwaitHandleCall(serverCallContext, MethodInvoker.Method, handleCallTask);
+                return AwaitHandleCall(serverCallContext, handleCallTask);
             }
         }
         catch (Exception ex)
         {
-            return serverCallContext.ProcessHandlerErrorAsync(ex, MethodInvoker.Method.Name);
+            // Enhanced exception handling for deserialization errors
+            return HandleCallExceptionAsync(serverCallContext, ex);
         }
 
-        static async Task AwaitHandleCall(HttpContextServerCallContext serverCallContext, Method<TRequest, TResponse> method, Task handleCall)
+        static async Task AwaitHandleCall(HttpContextServerCallContext serverCallContext, Task handleCall)
         {
             try
             {
@@ -95,7 +96,7 @@ internal abstract class ServerCallHandlerBase<[DynamicallyAccessedMembers(GrpcPr
             }
             catch (Exception ex)
             {
-                await serverCallContext.ProcessHandlerErrorAsync(ex, method.Name);
+                await HandleCallExceptionAsync(serverCallContext, ex);
             }
         }
     }
@@ -152,6 +153,44 @@ internal abstract class ServerCallHandlerBase<[DynamicallyAccessedMembers(GrpcPr
         }
     }
 #endif
+
+    /// <summary>
+    /// Handles exceptions that occur during call processing, with special handling for deserialization cancellations.
+    /// </summary>
+    private static Task HandleCallExceptionAsync(HttpContextServerCallContext serverCallContext, Exception ex)
+    {
+        // If it's already an RpcException, let the existing logic handle it
+        if (ex is RpcException rpcEx)
+        {
+            return serverCallContext.ProcessHandlerErrorAsync(rpcEx, serverCallContext.Method);
+        }
+
+        // Convert specific exception types to proper RpcExceptions
+        var convertedException = ConvertToRpcException(ex, serverCallContext);
+        return serverCallContext.ProcessHandlerErrorAsync(convertedException, serverCallContext.Method);
+    }
+
+    /// <summary>
+    /// Converts framework exceptions to appropriate RpcExceptions.
+    /// </summary>
+    private static RpcException ConvertToRpcException(Exception ex, HttpContextServerCallContext _)
+    {
+        return ex switch
+        {
+            OperationCanceledException _ when _.HttpContext.RequestAborted.IsCancellationRequested =>
+                new RpcException(new Status(StatusCode.Cancelled, "Call canceled by the client.", ex)),
+            IOException ioEx when IsConnectionResetException(ioEx) =>
+                new RpcException(new Status(StatusCode.Cancelled, "Client disconnected.", ex)),
+            _ => new RpcException(new Status(StatusCode.Unknown, "Error processing call.", ex))
+        };
+    }
+
+    private static bool IsConnectionResetException(IOException ex)
+    {
+        return ex.Message.Contains("reset", StringComparison.OrdinalIgnoreCase) ||
+               ex.Message.Contains("aborted", StringComparison.OrdinalIgnoreCase) ||
+               ex.Message.Contains("disconnect", StringComparison.OrdinalIgnoreCase);
+    }
 
     private Task ProcessNonHttp2Request(HttpContext httpContext)
     {
