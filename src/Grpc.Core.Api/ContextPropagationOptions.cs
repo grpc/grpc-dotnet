@@ -20,6 +20,7 @@ using System;
 
 namespace Grpc.Core;
 
+
 /// <summary>
 /// Options for <see cref="ContextPropagationToken"/>.
 /// </summary>
