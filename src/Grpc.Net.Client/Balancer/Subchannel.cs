@@ -343,7 +343,9 @@ public sealed class Subchannel : IDisposable
             //
             // Try to get semaphore without waiting. If semaphore is already taken then start a task to wait for it to be released.
             // Start this inside a lock to make sure subchannel isn't shutdown before waiting for semaphore.
-            if (!_connectSemaphore.Wait(0))
+
+            var acquireSemaphoreTask = _connectSemaphore.WaitAsync(millisecondsTimeout: 0);
+            if (!acquireSemaphoreTask.Result)
             {
                 SubchannelLog.QueuingConnect(_logger, Id);
                 waitSemaporeTask = _connectSemaphore.WaitAsync(connectContext.CancellationToken);
