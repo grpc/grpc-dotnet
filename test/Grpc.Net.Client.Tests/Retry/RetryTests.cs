@@ -1150,10 +1150,21 @@ public class RetryTests
             await MakeGrpcCallAsync(logger, invoker, action);
 
             logger.LogDebug("Waiting for finalizers");
-            for (var i = 0; i < 5; i++)
+            if (expectedUnobservedExceptions > 0)
             {
-                TriggerUnobservedExceptions();
-                await Task.Delay(10);
+                await TestHelpers.AssertIsTrueRetryAsync(() =>
+                {
+                    TriggerUnobservedExceptions();
+                    return unobservedExceptions.Count >= expectedUnobservedExceptions;
+                }, "Wait for unobserved exceptions.", logger);
+            }
+            else
+            {
+                for (var i = 0; i < 5; i++)
+                {
+                    TriggerUnobservedExceptions();
+                    await Task.Delay(10);
+                }
             }
 
             foreach (var exception in unobservedExceptions)
