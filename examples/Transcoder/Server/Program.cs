@@ -16,29 +16,14 @@
 
 #endregion
 
-using Microsoft.OpenApi.Models;
 using Server;
 
 var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddGrpc().AddJsonTranscoding();
-builder.Services.AddSwaggerGen(c =>
-{
-    c.SwaggerDoc("v1", new OpenApiInfo { Title = "gRPC JSON transcoding example", Version = "v1" });
-
-    var filePath = Path.Combine(System.AppContext.BaseDirectory, "Server.xml");
-    c.IncludeXmlComments(filePath);
-    c.IncludeGrpcXmlComments(filePath, includeControllerXmlComments: true);
-});
-builder.Services.AddGrpcSwagger();
 
 var app = builder.Build();
 app.UseDefaultFiles();
 app.UseStaticFiles();
-app.UseSwagger();
-app.UseSwaggerUI(c =>
-{
-    c.SwaggerEndpoint("/swagger/v1/swagger.json", "gRPC JSON transcoding example V1");
-});
 app.MapGrpcService<GreeterService>();
 
 app.Run();

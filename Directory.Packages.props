@@ -1,16 +1,16 @@
 <Project>
   <PropertyGroup>
     <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
-    <MicrosoftAspNetCoreAppPackageVersion>10.0.0</MicrosoftAspNetCoreAppPackageVersion>
-    <MicrosoftAspNetCoreApp9PackageVersion>9.0.4</MicrosoftAspNetCoreApp9PackageVersion>
-    <MicrosoftAspNetCoreApp8PackageVersion>8.0.15</MicrosoftAspNetCoreApp8PackageVersion>
-    <GrpcDotNetPackageVersion>2.70.0</GrpcDotNetPackageVersion>
+    <MicrosoftAspNetCoreAppPackageVersion>10.0.11</MicrosoftAspNetCoreAppPackageVersion>
+    <MicrosoftAspNetCoreApp9PackageVersion>9.0.19</MicrosoftAspNetCoreApp9PackageVersion>
+    <MicrosoftAspNetCoreApp8PackageVersion>8.0.30</MicrosoftAspNetCoreApp8PackageVersion>
+    <GrpcDotNetPackageVersion>2.83.0</GrpcDotNetPackageVersion>
     <OpenTelemetryPackageVersion>1.15.3</OpenTelemetryPackageVersion>
     <OpenTelemetryAspNetCoreInstrumentationPackageVersion>1.15.2</OpenTelemetryAspNetCoreInstrumentationPackageVersion>
     <OpenTelemetryHttpInstrumentationPackageVersion>1.15.1</OpenTelemetryHttpInstrumentationPackageVersion>
     <OpenTelemetryGrpcPackageVersion>1.15.1-beta.1</OpenTelemetryGrpcPackageVersion>
-    <MicrosoftExtensionsPackageVersion>10.0.0</MicrosoftExtensionsPackageVersion>
-    <MicrosoftExtensionsLtsPackageVersion>8.0.0</MicrosoftExtensionsLtsPackageVersion>
+    <MicrosoftExtensionsPackageVersion>10.0.11</MicrosoftExtensionsPackageVersion>
+    <MicrosoftExtensionsLtsPackageVersion>8.0.1</MicrosoftExtensionsLtsPackageVersion>
   </PropertyGroup>
   <ItemGroup>
     <!-- ASP.NET Core -->
@@ -22,7 +22,6 @@
     <PackageVersion Include="Microsoft.AspNetCore.TestHost" Version="$(MicrosoftAspNetCoreAppPackageVersion)" />
     <PackageVersion Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="$(MicrosoftAspNetCoreAppPackageVersion)" />
     <PackageVersion Include="Microsoft.AspNetCore.Grpc.JsonTranscoding" Version="$(MicrosoftAspNetCoreAppPackageVersion)" />
-    <PackageVersion Include="Microsoft.AspNetCore.Grpc.Swagger" Version="0.8.0" />
 
     <!-- Extensions -->
     <PackageVersion Include="Microsoft.Extensions.Http" Version="$(MicrosoftExtensionsPackageVersion)" />
@@ -33,7 +32,7 @@
     <PackageVersion Include="Microsoft.Extensions.Logging.Abstractions" Version="$(MicrosoftExtensionsPackageVersion)" />
 
     <!-- gRPC -->
-    <PackageVersion Include="Grpc.Tools" Version="2.83.0-pre1" />
+    <PackageVersion Include="Grpc.Tools" Version="2.83.0" />
     <PackageVersion Include="Grpc.Core" Version="2.46.6" />
     <PackageVersion Include="Grpc.Core.Api" Version="$(GrpcDotNetPackageVersion)"/>
     <PackageVersion Include="Grpc.Net.Client" Version="$(GrpcDotNetPackageVersion)" />
@@ -62,7 +61,7 @@
     <PackageVersion Include="CommandLineParser" Version="2.5.0" />
     <PackageVersion Include="Google.Api.CommonProtos" Version="2.16.0" />
     <PackageVersion Include="Google.Apis.Auth" Version="1.70.0" />
-    <PackageVersion Include="Google.Protobuf" Version="3.31.1" />
+    <PackageVersion Include="Google.Protobuf" Version="3.35.1" />
     <PackageVersion Include="Microsoft.Bcl.AsyncInterfaces" Version="8.0.0" />
     <PackageVersion Include="Microsoft.Build.Locator" Version="1.5.5" />
     <PackageVersion Include="Microsoft.Build" Version="17.3.2" />
