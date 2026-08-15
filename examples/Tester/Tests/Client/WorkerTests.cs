@@ -66,6 +66,7 @@ namespace Tests.Client
             try
             {
                 await worker.StartAsync(CancellationToken.None);
+                await worker.ExecuteTask!;
                 Assert.Fail();
             }
             catch (RpcException ex)

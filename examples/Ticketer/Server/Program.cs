@@ -18,6 +18,7 @@
 
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
+using System.Security.Cryptography;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using Server;
@@ -75,5 +76,5 @@ static string GenerateJwtToken(string name)
 public partial class Program
 {
     private static readonly JwtSecurityTokenHandler JwtTokenHandler = new JwtSecurityTokenHandler();
-    private static readonly SymmetricSecurityKey SecurityKey = new SymmetricSecurityKey(Guid.NewGuid().ToByteArray());
+    private static readonly SymmetricSecurityKey SecurityKey = new SymmetricSecurityKey(RandomNumberGenerator.GetBytes(32));
 }
