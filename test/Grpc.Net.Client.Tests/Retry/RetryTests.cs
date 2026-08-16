@@ -1152,6 +1152,8 @@ public class RetryTests
             logger.LogDebug("Waiting for finalizers");
             if (expectedUnobservedExceptions > 0)
             {
+                // Wait for this case's exception while its handler is registered. Otherwise, a late
+                // finalizer could raise the exception after the next parameterized case has started.
                 await TestHelpers.AssertIsTrueRetryAsync(() =>
                 {
                     TriggerUnobservedExceptions();
@@ -1160,6 +1162,7 @@ public class RetryTests
             }
             else
             {
+                // No event can prove that an exception won't be raised, so use a fixed observation window.
                 for (var i = 0; i < 5; i++)
                 {
                     TriggerUnobservedExceptions();
