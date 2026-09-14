@@ -21,6 +21,7 @@ using System.Buffers.Binary;
 using Grpc.Core;
 using Grpc.Net.Client.Internal;
 using Grpc.Net.Client.Tests.Infrastructure;
+using Grpc.Tests.Shared;
 using NUnit.Framework;
 
 namespace Grpc.Net.Client.Tests;
@@ -309,6 +310,47 @@ public class GrpcCallSerializationContextTests
         Assert.AreEqual("Serialization did not return a payload.", ex.Message);
     }
 
+    [Test]
+    public async Task WriteMessageAsync_ConcurrentWrites_PayloadsAreIndependent()
+    {
+        // Arrange
+        var call = CreateCall();
+        var stream1 = new BlockingWriteStream();
+        var stream2 = new BlockingWriteStream();
+
+        // Act
+        var writeTask1 = stream1.WriteMessageAsync(call, (byte)1, SerializeByte, new CallOptions());
+        var payload1 = await stream1.WriteStartedTask.DefaultTimeout();
+
+        var writeTask2 = stream2.WriteMessageAsync(call, (byte)2, SerializeByte, new CallOptions());
+        var payload2 = await stream2.WriteStartedTask.DefaultTimeout();
+
+        try
+        {
+            // Assert
+            Assert.AreEqual(1, payload1.Span[GrpcProtocolConstants.HeaderSize]);
+            Assert.AreEqual(2, payload2.Span[GrpcProtocolConstants.HeaderSize]);
+        }
+        finally
+        {
+            stream1.Continue();
+            stream2.Continue();
+        }
+
+        await Task.WhenAll(writeTask1, writeTask2).DefaultTimeout();
+
+        static void SerializeByte(byte value, SerializationContext serializationContext)
+        {
+            serializationContext.SetPayloadLength(1);
+
+            var bufferWriter = serializationContext.GetBufferWriter();
+            bufferWriter.GetSpan(1)[0] = value;
+            bufferWriter.Advance(1);
+
+            serializationContext.Complete();
+        }
+    }
+
     private class TestGrpcCall : GrpcCall
     {
         public TestGrpcCall(CallOptions options, GrpcChannel channel) : base(options, channel)
@@ -321,7 +363,55 @@ public class GrpcCallSerializationContextTests
         public override Task<Status> CallTask => Task.FromResult(Status.DefaultCancelled);
     }
 
+    private sealed class BlockingWriteStream : Stream
+    {
+        private readonly TaskCompletionSource<ReadOnlyMemory<byte>> _writeStartedTcs = new TaskCompletionSource<ReadOnlyMemory<byte>>(TaskCreationOptions.RunContinuationsAsynchronously);
+        private readonly TaskCompletionSource<object?> _continueTcs = new TaskCompletionSource<object?>(TaskCreationOptions.RunContinuationsAsynchronously);
+
+        public Task<ReadOnlyMemory<byte>> WriteStartedTask => _writeStartedTcs.Task;
+
+        public void Continue() => _continueTcs.TrySetResult(null);
+
+        public override bool CanRead => false;
+        public override bool CanSeek => false;
+        public override bool CanWrite => true;
+        public override long Length => throw new NotSupportedException();
+        public override long Position
+        {
+            get => throw new NotSupportedException();
+            set => throw new NotSupportedException();
+        }
+
+        public override void Flush()
+        {
+        }
+
+        public override int Read(byte[] buffer, int offset, int count) => throw new NotSupportedException();
+        public override long Seek(long offset, SeekOrigin origin) => throw new NotSupportedException();
+        public override void SetLength(long value) => throw new NotSupportedException();
+        public override void Write(byte[] buffer, int offset, int count) => throw new NotSupportedException();
+
+#if NET462
+        public override async Task WriteAsync(byte[] buffer, int offset, int count, CancellationToken cancellationToken)
+        {
+            _writeStartedTcs.TrySetResult(buffer.AsMemory(offset, count));
+            await _continueTcs.Task.ConfigureAwait(false);
+        }
+#else
+        public override async ValueTask WriteAsync(ReadOnlyMemory<byte> buffer, CancellationToken cancellationToken = default)
+        {
+            _writeStartedTcs.TrySetResult(buffer);
+            await _continueTcs.Task.ConfigureAwait(false);
+        }
+#endif
+    }
+
     private GrpcCallSerializationContext CreateSerializationContext(string? requestGrpcEncoding = null, int? maxSendMessageSize = null)
+    {
+        return CreateCall(requestGrpcEncoding, maxSendMessageSize).CreateSerializationContext();
+    }
+
+    private TestGrpcCall CreateCall(string? requestGrpcEncoding = null, int? maxSendMessageSize = null)
     {
         var channelOptions = new GrpcChannelOptions();
         channelOptions.MaxSendMessageSize = maxSendMessageSize;
@@ -330,7 +420,7 @@ public class GrpcCallSerializationContextTests
         var call = new TestGrpcCall(new CallOptions(), GrpcChannel.ForAddress("http://localhost", channelOptions));
         call.RequestGrpcEncoding = requestGrpcEncoding ?? "identity";
 
-        return new GrpcCallSerializationContext(call);
+        return call;
     }
 
     private static (bool Compressed, int Length) DecodeHeader(ReadOnlySpan<byte> buffer)

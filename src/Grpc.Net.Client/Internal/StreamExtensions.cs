@@ -295,7 +295,7 @@ internal static partial class StreamExtensions
         CallOptions callOptions)
     {
         // Sync relevant changes here with other WriteMessageAsync
-        var serializationContext = call.SerializationContext;
+        var serializationContext = call.CreateSerializationContext();
         serializationContext.CallOptions = callOptions;
         serializationContext.Initialize();
         try

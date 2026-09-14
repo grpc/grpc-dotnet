@@ -29,7 +29,6 @@ internal abstract class GrpcCall
     // Getting logger name from generic type is slow
     private const string LoggerName = "Grpc.Net.Client.Internal.GrpcCall";
 
-    private GrpcCallSerializationContext? _serializationContext;
     private DefaultDeserializationContext? _deserializationContext;
 
     protected Metadata? Trailers { get; set; }
@@ -37,10 +36,7 @@ internal abstract class GrpcCall
     public bool ResponseFinished { get; protected set; }
     public HttpResponseMessage? HttpResponse { get; protected set; }
 
-    public GrpcCallSerializationContext SerializationContext
-    {
-        get { return _serializationContext ??= new GrpcCallSerializationContext(this); }
-    }
+    public GrpcCallSerializationContext CreateSerializationContext() => new GrpcCallSerializationContext(this);
 
     public DefaultDeserializationContext DeserializationContext
     {

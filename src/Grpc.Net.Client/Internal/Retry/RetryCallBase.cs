@@ -301,7 +301,7 @@ internal abstract partial class RetryCallBase<TRequest, TResponse> : IGrpcCall<T
 
     protected byte[] SerializePayload(GrpcCall<TRequest, TResponse> call, CallOptions callOptions, TRequest request)
     {
-        var serializationContext = call.SerializationContext;
+        var serializationContext = call.CreateSerializationContext();
         serializationContext.CallOptions = callOptions;
         serializationContext.Initialize();
 
