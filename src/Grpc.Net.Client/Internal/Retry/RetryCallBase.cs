@@ -301,20 +301,21 @@ internal abstract partial class RetryCallBase<TRequest, TResponse> : IGrpcCall<T
 
     protected byte[] SerializePayload(GrpcCall<TRequest, TResponse> call, CallOptions callOptions, TRequest request)
     {
-        var serializationContext = call.CreateSerializationContext();
-        serializationContext.CallOptions = callOptions;
-        serializationContext.Initialize();
+        var lease = call.RentSerializationContext(callOptions);
 
         try
         {
-            call.Method.RequestMarshaller.ContextualSerializer(request, serializationContext);
+            call.Method.RequestMarshaller.ContextualSerializer(request, lease.Context);
 
             // Need to take a copy because the serialization context will returned a rented buffer.
-            return serializationContext.GetWrittenPayload().ToArray();
+            var payload = lease.Context.GetWrittenPayload().ToArray();
+
+            lease.MarkReusable();
+            return payload;
         }
         finally
         {
-            serializationContext.Reset();
+            lease.Dispose();
         }
     }
 

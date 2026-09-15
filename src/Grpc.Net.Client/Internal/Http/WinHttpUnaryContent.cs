@@ -77,19 +77,19 @@ internal sealed class WinHttpUnaryContent<TRequest, TResponse> : HttpContent
 
     private int GetPayloadLength()
     {
-        var serializationContext = _call.CreateSerializationContext();
-        serializationContext.CallOptions = _call.Options;
-        serializationContext.Initialize();
+        var lease = _call.RentSerializationContext(_call.Options);
 
         try
         {
-            _call.Method.RequestMarshaller.ContextualSerializer(_request, serializationContext);
+            _call.Method.RequestMarshaller.ContextualSerializer(_request, lease.Context);
 
-            return serializationContext.GetWrittenPayload().Length;
+            var length = lease.Context.GetWrittenPayload().Length;
+            lease.MarkReusable();
+            return length;
         }
         finally
         {
-            serializationContext.Reset();
+            lease.Dispose();
         }
     }
 }

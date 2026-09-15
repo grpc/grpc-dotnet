@@ -311,6 +311,77 @@ public class GrpcCallSerializationContextTests
     }
 
     [Test]
+    public void RentSerializationContext_SequentialUse_ReusesSameInstance()
+    {
+        // Arrange
+        var call = CreateCall();
+
+        // Act - first, fully completed lease.
+        var lease1 = call.RentSerializationContext(new CallOptions());
+        var context1 = lease1.Context;
+        lease1.MarkReusable();
+        lease1.Dispose();
+
+        // A second, later (non-overlapping) lease.
+        var lease2 = call.RentSerializationContext(new CallOptions());
+        var context2 = lease2.Context;
+        lease2.MarkReusable();
+        lease2.Dispose();
+
+        // Assert - context is cached and reused
+        Assert.AreSame(context1, context2);
+    }
+
+    [Test]
+    public void RentSerializationContext_OverlappingUse_DoesNotShareInstance()
+    {
+        // Arrange
+        var call = CreateCall();
+
+        // Act - first lease is rented but not yet returned, simulating a write still in flight 
+        var lease1 = call.RentSerializationContext(new CallOptions());
+
+        // A second lease overlaps with the first.
+        var lease2 = call.RentSerializationContext(new CallOptions());
+
+        try
+        {
+            // Assert - the two overlapping operations must never share the same mutable context/buffer
+            Assert.AreNotSame(lease1.Context, lease2.Context);
+        }
+        finally
+        {
+            lease1.Dispose();
+            lease2.Dispose();
+        }
+    }
+
+    [Test]
+    public void RentSerializationContext_NotMarkedReusable_IsNotCached()
+    {
+        // Arrange
+        var call = CreateCall();
+
+        // Act - a lease that is disposed without MarkReusable must not be handed back for reuse.
+        var lease1 = call.RentSerializationContext(new CallOptions());
+        var context1 = lease1.Context;
+        lease1.Dispose();
+
+        var lease2 = call.RentSerializationContext(new CallOptions());
+
+        try
+        {
+            // Assert
+            Assert.AreNotSame(context1, lease2.Context);
+        }
+        finally
+        {
+            lease2.MarkReusable();
+            lease2.Dispose();
+        }
+    }
+
+    [Test]
     public async Task WriteMessageAsync_ConcurrentWrites_PayloadsAreIndependent()
     {
         // Arrange
@@ -408,7 +479,8 @@ public class GrpcCallSerializationContextTests
 
     private GrpcCallSerializationContext CreateSerializationContext(string? requestGrpcEncoding = null, int? maxSendMessageSize = null)
     {
-        return CreateCall(requestGrpcEncoding, maxSendMessageSize).CreateSerializationContext();
+        var call = CreateCall(requestGrpcEncoding, maxSendMessageSize);
+        return new GrpcCallSerializationContext(call);
     }
 
     private TestGrpcCall CreateCall(string? requestGrpcEncoding = null, int? maxSendMessageSize = null)
