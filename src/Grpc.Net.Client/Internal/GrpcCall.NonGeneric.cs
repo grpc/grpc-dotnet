@@ -37,9 +37,34 @@ internal abstract class GrpcCall
     public bool ResponseFinished { get; protected set; }
     public HttpResponseMessage? HttpResponse { get; protected set; }
 
-    public GrpcCallSerializationContext SerializationContext
+    /// <summary>
+    /// Rents a <see cref="GrpcCallSerializationContext"/> for a single serialization and write operation.
+    /// At most one idle context should be cached per <see cref="GrpcCall"/>
+    /// </summary>
+    internal SerializationContextLease RentSerializationContext(CallOptions callOptions)
     {
-        get { return _serializationContext ??= new GrpcCallSerializationContext(this); }
+        var context = Interlocked.Exchange(ref _serializationContext, null) ?? new GrpcCallSerializationContext(this);
+
+        try
+        {
+            context.CallOptions = callOptions;
+            context.Initialize();
+            return new SerializationContextLease(this, context);
+        }
+        catch
+        {
+            // Don't cache a context after initialization fails
+            context.Reset();
+            throw;
+        }
+    }
+
+    /// <summary>
+    /// Returns a context to the cache
+    /// </summary>
+    internal void ReturnSerializationContext(GrpcCallSerializationContext context)
+    {
+        Interlocked.CompareExchange(ref _serializationContext, context, null);
     }
 
     public DefaultDeserializationContext DeserializationContext

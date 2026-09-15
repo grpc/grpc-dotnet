@@ -295,21 +295,22 @@ internal static partial class StreamExtensions
         CallOptions callOptions)
     {
         // Sync relevant changes here with other WriteMessageAsync
-        var serializationContext = call.SerializationContext;
-        serializationContext.CallOptions = callOptions;
-        serializationContext.Initialize();
+        var lease = call.RentSerializationContext(callOptions);
         try
         {
             GrpcCallLog.SendingMessage(call.Logger);
 
             // Serialize message first. Need to know size to prefix the length in the header
-            serializer(message, serializationContext);
+            serializer(message, lease.Context);
 
             // Sending the header+content in a single WriteAsync call has significant performance benefits
             // https://github.com/dotnet/runtime/issues/35184#issuecomment-626304981
-            await stream.WriteAsync(serializationContext.GetWrittenPayload(), call.CancellationToken).ConfigureAwait(false);
+            await stream.WriteAsync(lease.Context.GetWrittenPayload(), call.CancellationToken).ConfigureAwait(false);
 
             GrpcCallLog.MessageSent(call.Logger);
+
+            // The write fully completed - safe to hand this context back for reuse.
+            lease.MarkReusable();
         }
         catch (Exception ex)
         {
@@ -328,7 +329,7 @@ internal static partial class StreamExtensions
         }
         finally
         {
-            serializationContext.Reset();
+            lease.Dispose();
         }
     }
 
