@@ -581,6 +581,14 @@ internal sealed partial class HttpContextServerCallContext : ServerCallContext, 
 
     private string DebuggerToString() => $"Method = {Method}";
 
+    internal void EnsureRequestNotAborted()
+    {
+        if (HttpContext.RequestAborted.IsCancellationRequested)
+        {
+            throw new RpcException(new Status(StatusCode.Cancelled, "Request was aborted by the client."));
+        }
+    }
+
     private sealed class HttpContextServerCallContextDebugView
     {
         private readonly HttpContextServerCallContext _context;
