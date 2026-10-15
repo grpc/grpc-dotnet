@@ -299,6 +299,8 @@ public sealed partial class GrpcChannel : ChannelBase, IDisposable
             // additional channels can use advanced connectivity features.
             if (!BalancerHttpHandler.IsSocketsHttpHandlerSetup(socketsHttpHandler))
             {
+                Thread.Sleep(1);
+
                 // Someone has already configured the handler callback.
                 // This channel can't support advanced connectivity features.
                 if (socketsHttpHandler.ConnectCallback != null)
