@@ -18,6 +18,7 @@
 
 using Greet;
 using Grpc.AspNetCore.FunctionalTests.Infrastructure;
+using Grpc.AspNetCore.Server.Internal;
 using Grpc.Core;
 using Grpc.Tests.Shared;
 using NUnit.Framework;
@@ -27,6 +28,34 @@ namespace Grpc.AspNetCore.FunctionalTests.Server;
 [TestFixture]
 public class MaxMessageSizeTests : FunctionalTestBase
 {
+    [TestCase("gzip")]
+    [TestCase("deflate")]
+    public async Task ReceivedCompressedMessageExceedsSize_ThrowError(string encoding)
+    {
+        SetExpectedErrorsFilter(writeContext =>
+            writeContext.EventId.Name == "ErrorReadingMessage" &&
+            GetRpcExceptionDetail(writeContext.Exception) == "Received message exceeds the maximum configured message size.");
+
+        var invoked = false;
+        var method = Fixture.DynamicGrpc.AddUnaryMethod<HelloRequest, HelloReply>((request, context) =>
+        {
+            invoked = true;
+            return Task.FromResult(new HelloReply());
+        });
+        using var ms = new MemoryStream();
+        MessageHelpers.WriteMessage(ms, new HelloRequest { Name = new string('!', 4 * 1024 * 1024 + 1) }, encoding);
+        Assert.Less(ms.Length, 64 * 1024);
+        using var request = GrpcHttpHelper.Create(method.FullName);
+        request.Headers.Add(GrpcProtocolConstants.MessageEncodingHeader, encoding);
+        request.Content = new GrpcStreamContent(ms);
+
+        using var response = await Fixture.Client.SendAsync(request).DefaultTimeout();
+
+        response.AssertTrailerStatus(StatusCode.ResourceExhausted, "Received message exceeds the maximum configured message size.");
+        Assert.IsFalse(invoked);
+        AssertHasLogRpcConnectionError(StatusCode.ResourceExhausted, "Received message exceeds the maximum configured message size.");
+    }
+
     [Test]
     public async Task ReceivedMessageExceedsSize_ThrowError()
     {

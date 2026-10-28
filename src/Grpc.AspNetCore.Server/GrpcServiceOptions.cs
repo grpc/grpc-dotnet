@@ -69,6 +69,7 @@ public class GrpcServiceOptions
     /// <summary>
     /// Gets or sets the maximum message size in bytes that can be received by the server.
     /// If the server receives a message that exceeds this limit, it throws an exception.
+    /// For compressed messages, the limit applies to both the compressed and decompressed message sizes.
     /// <para>
     /// A <c>null</c> value removes the maximum message size limit. Defaults to 4,194,304 (4 MB).
     /// </para>

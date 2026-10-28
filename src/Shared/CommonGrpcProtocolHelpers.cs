@@ -16,6 +16,7 @@
 
 #endregion
 
+using System.Buffers;
 using System.Text;
 
 namespace Grpc.Shared;
@@ -24,6 +25,41 @@ internal static class CommonGrpcProtocolHelpers
 {
     public static readonly Task<bool> TrueTask = Task.FromResult(true);
     public static readonly Task<bool> FalseTask = Task.FromResult(false);
+
+    public static bool TryReadCompressedMessage(Stream compressionStream, int? maxReceiveMessageSize, out ReadOnlySequence<byte> message)
+    {
+        using var output = new MemoryStream();
+        if (maxReceiveMessageSize == null)
+        {
+            compressionStream.CopyTo(output);
+        }
+        else
+        {
+            var buffer = ArrayPool<byte>.Shared.Rent(8192);
+            try
+            {
+                int read;
+                // Read at most one byte beyond the limit to detect oversized messages without fully decompressing them.
+                while ((read = compressionStream.Read(buffer, 0, (int)Math.Min(buffer.Length, maxReceiveMessageSize.Value - output.Length + 1))) > 0)
+                {
+                    if (output.Length + read > maxReceiveMessageSize.Value)
+                    {
+                        message = default;
+                        return false;
+                    }
+
+                    output.Write(buffer, 0, read);
+                }
+            }
+            finally
+            {
+                ArrayPool<byte>.Shared.Return(buffer);
+            }
+        }
+
+        message = new ReadOnlySequence<byte>(output.GetBuffer(), 0, (int)output.Length);
+        return true;
+    }
 
     // Timer and DateTime.UtcNow have a 14ms precision. Add a small delay when scheduling deadline
     // timer that tests if exceeded or not. This avoids rescheduling the deadline callback multiple

@@ -17,6 +17,7 @@
 #endregion
 
 using System.Buffers;
+using System.Buffers.Binary;
 using System.IO.Pipelines;
 using System.Text;
 using Grpc.AspNetCore.Server.Internal;
@@ -26,6 +27,7 @@ using Grpc.Core;
 using Grpc.Net.Compression;
 using Grpc.Tests.Shared;
 using Microsoft.AspNetCore.Http;
+using Moq;
 using NUnit.Framework;
 
 namespace Grpc.AspNetCore.Server.Tests;
@@ -131,6 +133,191 @@ public abstract class PipeExtensionsTestsBase
         // Assert
         Assert.AreEqual("Received message exceeds the maximum configured message size.", ex.Status.Detail);
         Assert.AreEqual(StatusCode.ResourceExhausted, ex.StatusCode);
+    }
+
+    [TestCase("gzip", false)]
+    [TestCase("gzip", true)]
+    [TestCase("deflate", false)]
+    [TestCase("deflate", true)]
+    public async Task ReadMessageAsync_CompressedMessage_EnforceReceiveSize(string encoding, bool streaming)
+    {
+        var provider = encoding == "gzip"
+            ? (ICompressionProvider)new GzipCompressionProvider(System.IO.Compression.CompressionLevel.Fastest)
+            : new DeflateCompressionProvider(System.IO.Compression.CompressionLevel.Fastest);
+        const int limit = 16 * 1024;
+
+        foreach (var size in new[] { limit - 1, limit, limit + 1 })
+        {
+            using var ms = CreateCompressedMessage(provider, new byte[size]);
+            Assert.Less(ms.Length - 5, limit);
+            var httpContext = new DefaultHttpContext();
+            httpContext.Request.Headers[GrpcProtocolConstants.MessageEncodingHeader] = encoding;
+            var context = HttpContextServerCallContextHelper.CreateServerCallContext(
+                httpContext,
+                compressionProviders: new List<ICompressionProvider> { provider },
+                maxReceiveMessageSize: limit);
+            var pipeReader = PipeReader.Create(ms);
+            var deserialized = false;
+            TestData Deserialize(DeserializationContext c)
+            {
+                deserialized = true;
+                return TestDataMarshaller.ContextualDeserializer(c);
+            }
+
+            if (size > limit)
+            {
+                var ex = await ExceptionAssert.ThrowsAsync<RpcException>(async () =>
+                {
+                    if (streaming)
+                    {
+                        await pipeReader.ReadStreamMessageAsync(context, Deserialize);
+                    }
+                    else
+                    {
+                        await pipeReader.ReadSingleMessageAsync(context, Deserialize);
+                    }
+                }).DefaultTimeout();
+
+                Assert.AreEqual(StatusCode.ResourceExhausted, ex.StatusCode);
+                Assert.AreEqual("Received message exceeds the maximum configured message size.", ex.Status.Detail);
+                Assert.IsFalse(deserialized);
+            }
+            else
+            {
+                var message = streaming
+                    ? await pipeReader.ReadStreamMessageAsync(context, Deserialize)
+                    : await pipeReader.ReadSingleMessageAsync(context, Deserialize);
+
+                Assert.IsTrue(deserialized);
+                Assert.AreEqual(size, message!.Span.Length);
+            }
+        }
+    }
+
+    [TestCase(false, null)]
+    [TestCase(true, null)]
+    [TestCase(false, int.MaxValue)]
+    [TestCase(true, int.MaxValue)]
+    public async Task ReadMessageAsync_CompressedMessage_LargeOrUnlimitedReceiveSize_ReturnData(bool streaming, int? limit)
+    {
+        var provider = new GzipCompressionProvider(System.IO.Compression.CompressionLevel.Fastest);
+        var content = new byte[32 * 1024];
+        using var ms = CreateCompressedMessage(provider, content);
+        var httpContext = new DefaultHttpContext();
+        httpContext.Request.Headers[GrpcProtocolConstants.MessageEncodingHeader] = "gzip";
+        var context = HttpContextServerCallContextHelper.CreateServerCallContext(
+            httpContext,
+            compressionProviders: new List<ICompressionProvider> { provider },
+            maxReceiveMessageSize: limit);
+        var pipeReader = PipeReader.Create(ms);
+
+        var message = streaming
+            ? await pipeReader.ReadStreamMessageAsync(context, TestDataMarshaller.ContextualDeserializer)
+            : await pipeReader.ReadSingleMessageAsync(context, TestDataMarshaller.ContextualDeserializer);
+
+        CollectionAssert.AreEqual(content, message!.Span.ToArray());
+    }
+
+    [TestCase(false, 0)]
+    [TestCase(true, 0)]
+    [TestCase(false, 16 * 1024)]
+    [TestCase(true, 16 * 1024)]
+    public async Task ReadMessageAsync_CompressedMessage_StopsDecompressingAtReceiveSize(bool streaming, int limit)
+    {
+        using var decompressionStream = new TrackingDecompressionStream(new byte[128 * 1024]);
+        var provider = new Mock<ICompressionProvider>();
+        provider.SetupGet(p => p.EncodingName).Returns("test");
+        provider.Setup(p => p.CreateDecompressionStream(It.IsAny<Stream>())).Returns(decompressionStream);
+        var httpContext = new DefaultHttpContext();
+        httpContext.Request.Headers[GrpcProtocolConstants.MessageEncodingHeader] = "test";
+        var context = HttpContextServerCallContextHelper.CreateServerCallContext(
+            httpContext,
+            compressionProviders: new List<ICompressionProvider> { provider.Object },
+            maxReceiveMessageSize: limit);
+        using var ms = new MemoryStream(new byte[] { 1, 0, 0, 0, 0 });
+        var pipeReader = PipeReader.Create(ms);
+        TestData Deserialize(DeserializationContext c) => throw new InvalidOperationException("Deserializer must not be called.");
+
+        var ex = await ExceptionAssert.ThrowsAsync<RpcException>(async () =>
+        {
+            if (streaming)
+            {
+                await pipeReader.ReadStreamMessageAsync(context, Deserialize);
+            }
+            else
+            {
+                await pipeReader.ReadSingleMessageAsync(context, Deserialize);
+            }
+        }).DefaultTimeout();
+
+        Assert.AreEqual(StatusCode.ResourceExhausted, ex.StatusCode);
+        Assert.AreEqual(limit + 1, decompressionStream.BytesRead);
+        Assert.IsTrue(decompressionStream.Disposed);
+    }
+
+    [TestCase(false)]
+    [TestCase(true)]
+    public async Task ReadMessageAsync_CompressedFrameExceedsReceiveSize_ThrowBeforeDecompressing(bool streaming)
+    {
+        var provider = new Mock<ICompressionProvider>();
+        provider.SetupGet(p => p.EncodingName).Returns("test");
+        var context = HttpContextServerCallContextHelper.CreateServerCallContext(
+            compressionProviders: new List<ICompressionProvider> { provider.Object },
+            maxReceiveMessageSize: 1);
+        using var ms = new MemoryStream(new byte[] { 1, 0, 0, 0, 2, 0, 0 });
+        var pipeReader = PipeReader.Create(ms);
+
+        var ex = await ExceptionAssert.ThrowsAsync<RpcException>(async () =>
+        {
+            if (streaming)
+            {
+                await pipeReader.ReadStreamMessageAsync(context, TestDataMarshaller.ContextualDeserializer);
+            }
+            else
+            {
+                await pipeReader.ReadSingleMessageAsync(context, TestDataMarshaller.ContextualDeserializer);
+            }
+        }).DefaultTimeout();
+
+        Assert.AreEqual(StatusCode.ResourceExhausted, ex.StatusCode);
+        provider.Verify(p => p.CreateDecompressionStream(It.IsAny<Stream>()), Times.Never);
+    }
+
+    private static MemoryStream CreateCompressedMessage(ICompressionProvider provider, byte[] content)
+    {
+        var ms = new MemoryStream();
+        ms.Write(new byte[] { 1, 0, 0, 0, 0 });
+        using (var compressionStream = provider.CreateCompressionStream(ms, null))
+        {
+            compressionStream.Write(content);
+        }
+
+        BinaryPrimitives.WriteInt32BigEndian(ms.GetBuffer().AsSpan(1), (int)ms.Length - 5);
+        ms.Position = 0;
+        return ms;
+    }
+
+    private sealed class TrackingDecompressionStream : MemoryStream
+    {
+        public int BytesRead { get; private set; }
+        public bool Disposed { get; private set; }
+
+        public TrackingDecompressionStream(byte[] content) : base(content)
+        {
+        }
+
+        public override int Read(byte[] buffer, int offset, int count)
+        {
+            var read = base.Read(buffer, offset, count);
+            BytesRead += read;
+            return read;
+        }
+
+        protected override void Dispose(bool disposing)
+        {
+            Disposed = true;
+            base.Dispose(disposing);
+        }
     }
 
     [Test]

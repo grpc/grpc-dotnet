@@ -23,6 +23,7 @@ using System.IO.Pipelines;
 using System.Runtime.CompilerServices;
 using Grpc.Core;
 using Grpc.Net.Compression;
+using Grpc.Shared;
 using Microsoft.Extensions.Logging;
 
 namespace Grpc.AspNetCore.Server.Internal;
@@ -406,7 +407,7 @@ internal static partial class PipeExtensions
             }
 
             // Performance improvement would be to decompress without converting to an intermediary byte array
-            if (!TryDecompressMessage(context.Logger, encoding, context.Options.CompressionProviders, messageBuffer, out var decompressedMessage))
+            if (!TryDecompressMessage(context.Logger, encoding, context.Options.CompressionProviders, messageBuffer, context.Options.MaxReceiveMessageSize, out var decompressedMessage))
             {
                 // https://github.com/grpc/grpc/blob/master/doc/compression.md#test-cases
                 // A message compressed by a client in a way not supported by its server MUST fail with status UNIMPLEMENTED,
@@ -439,19 +440,20 @@ internal static partial class PipeExtensions
         return true;
     }
 
-    private static bool TryDecompressMessage(ILogger logger, string compressionEncoding, IReadOnlyDictionary<string, ICompressionProvider> compressionProviders, in ReadOnlySequence<byte> messageData, out ReadOnlySequence<byte> result)
+    private static bool TryDecompressMessage(ILogger logger, string compressionEncoding, IReadOnlyDictionary<string, ICompressionProvider> compressionProviders, in ReadOnlySequence<byte> messageData, int? maxReceiveMessageSize, out ReadOnlySequence<byte> result)
     {
         if (compressionProviders.TryGetValue(compressionEncoding, out var compressionProvider))
         {
             GrpcServerLog.DecompressingMessage(logger, compressionProvider.EncodingName);
 
-            var output = new MemoryStream();
             using (var compressionStream = compressionProvider.CreateDecompressionStream(new ReadOnlySequenceStream(messageData)))
             {
-                compressionStream.CopyTo(output);
+                if (!CommonGrpcProtocolHelpers.TryReadCompressedMessage(compressionStream, maxReceiveMessageSize, out result))
+                {
+                    throw new RpcException(ReceivedMessageExceedsLimitStatus);
+                }
             }
 
-            result = new ReadOnlySequence<byte>(output.GetBuffer(), 0, (int)output.Length);
             return true;
         }
 
