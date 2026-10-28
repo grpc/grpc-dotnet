@@ -21,6 +21,7 @@ using Greet;
 using Grpc.Core;
 using Grpc.Net.Client.Internal;
 using Grpc.Net.Client.Tests.Infrastructure;
+using Grpc.Net.Compression;
 using Grpc.Tests.Shared;
 using NUnit.Framework;
 
@@ -29,6 +30,119 @@ namespace Grpc.Net.Client.Tests;
 [TestFixture]
 public class MaximumMessageSizeTests
 {
+    [TestCase("gzip", false)]
+    [TestCase("gzip", true)]
+#if NET6_0_OR_GREATER
+    [TestCase("deflate", false)]
+    [TestCase("deflate", true)]
+#endif
+    public async Task CompressedResponse_EnforceReceiveMaxMessageSize(string encoding, bool streaming)
+    {
+        var reply = new HelloReply { Message = new string('!', 16 * 1024) };
+        var provider = GrpcProtocolConstants.DefaultCompressionProviders[encoding];
+
+        foreach (var limit in new int?[] { reply.CalculateSize() - 1, reply.CalculateSize(), reply.CalculateSize() + 1, null, int.MaxValue })
+        {
+            using var httpClient = ClientTestHelpers.CreateTestClient(async request =>
+            {
+                var content = await ClientTestHelpers.CreateResponseContent(reply, provider).DefaultTimeout();
+                Assert.Less((await content.ReadAsByteArrayAsync()).Length - 5, reply.CalculateSize() - 1);
+                return ResponseUtils.CreateResponse(HttpStatusCode.OK, content, grpcEncoding: encoding);
+            });
+            var invoker = HttpClientCallInvokerFactory.Create(httpClient, configure: o => o.MaxReceiveMessageSize = limit);
+            var deserialized = false;
+            var responseMarshaller = Marshallers.Create<HelloReply>(
+                ClientTestHelpers.ServiceMethod.ResponseMarshaller.ContextualSerializer,
+                c =>
+                {
+                    deserialized = true;
+                    return ClientTestHelpers.ServiceMethod.ResponseMarshaller.ContextualDeserializer(c);
+                });
+            var method = new Method<HelloRequest, HelloReply>(
+                streaming ? MethodType.ServerStreaming : MethodType.Unary,
+                "ServiceName",
+                "MethodName",
+                ClientTestHelpers.ServiceMethod.RequestMarshaller,
+                responseMarshaller);
+
+            async Task<HelloReply> ReadResponseAsync()
+            {
+                if (streaming)
+                {
+                    using var call = invoker.AsyncServerStreamingCall(method, string.Empty, new CallOptions(), new HelloRequest());
+                    Assert.IsTrue(await call.ResponseStream.MoveNext(CancellationToken.None).DefaultTimeout());
+                    var message = call.ResponseStream.Current;
+                    Assert.IsFalse(await call.ResponseStream.MoveNext(CancellationToken.None).DefaultTimeout());
+                    return message;
+                }
+                else
+                {
+                    using var call = invoker.AsyncUnaryCall(method, string.Empty, new CallOptions(), new HelloRequest());
+                    return await call.ResponseAsync.DefaultTimeout();
+                }
+            }
+
+            if (reply.CalculateSize() > limit)
+            {
+                var ex = await ExceptionAssert.ThrowsAsync<RpcException>(ReadResponseAsync).DefaultTimeout();
+                Assert.AreEqual(StatusCode.ResourceExhausted, ex.StatusCode);
+                Assert.AreEqual("Received message exceeds the maximum configured message size.", ex.Status.Detail);
+                Assert.IsFalse(deserialized);
+            }
+            else
+            {
+                var response = await ReadResponseAsync().DefaultTimeout();
+                Assert.AreEqual(reply.Message, response.Message);
+                Assert.IsTrue(deserialized);
+            }
+        }
+    }
+
+    [TestCase(false, 0)]
+    [TestCase(true, 0)]
+    [TestCase(false, 16 * 1024)]
+    [TestCase(true, 16 * 1024)]
+    public async Task CompressedResponse_StopsDecompressingAtReceiveMaxMessageSize(bool streaming, int limit)
+    {
+        using var decompressionStream = new TrackingDecompressionStream(new byte[128 * 1024]);
+        var provider = new TestCompressionProvider(decompressionStream);
+        using var responseStream = new MemoryStream(new byte[] { 1, 0, 0, 0, 0 });
+
+        var ex = await ExceptionAssert.ThrowsAsync<RpcException>(() => StreamSerializationHelper.ReadMessageAsync<HelloReply>(
+            responseStream,
+            c => throw new InvalidOperationException("Deserializer must not be called."),
+            "test",
+            limit,
+            new Dictionary<string, ICompressionProvider> { ["test"] = provider },
+            singleMessage: !streaming,
+            CancellationToken.None)).DefaultTimeout();
+
+        Assert.AreEqual(StatusCode.ResourceExhausted, ex.StatusCode);
+        Assert.AreEqual("Received message exceeds the maximum configured message size.", ex.Status.Detail);
+        Assert.AreEqual(limit + 1, decompressionStream.BytesRead);
+        Assert.IsTrue(decompressionStream.Disposed);
+    }
+
+    [TestCase(false)]
+    [TestCase(true)]
+    public async Task CompressedResponse_WireSizeExceedsReceiveMaxMessageSize_ThrowBeforeDecompressing(bool streaming)
+    {
+        var provider = new TestCompressionProvider(null);
+        using var responseStream = new MemoryStream(new byte[] { 1, 0, 0, 0, 2, 0, 0 });
+
+        var ex = await ExceptionAssert.ThrowsAsync<RpcException>(() => StreamSerializationHelper.ReadMessageAsync<HelloReply>(
+            responseStream,
+            ClientTestHelpers.ServiceMethod.ResponseMarshaller.ContextualDeserializer,
+            "test",
+            1,
+            new Dictionary<string, ICompressionProvider> { ["test"] = provider },
+            singleMessage: !streaming,
+            CancellationToken.None)).DefaultTimeout();
+
+        Assert.AreEqual(StatusCode.ResourceExhausted, ex.StatusCode);
+        Assert.IsFalse(provider.DecompressionStreamCreated);
+    }
+
     private async Task<HttpResponseMessage> HandleRequest(HttpRequestMessage request)
     {
         var requestStream = await request.Content!.ReadAsStreamAsync().DefaultTimeout();
