@@ -27,7 +27,6 @@ using Grpc.Core;
 using Grpc.Net.Compression;
 using Grpc.Tests.Shared;
 using Microsoft.AspNetCore.Http;
-using Moq;
 using NUnit.Framework;
 
 namespace Grpc.AspNetCore.Server.Tests;
@@ -225,14 +224,12 @@ public abstract class PipeExtensionsTestsBase
     public async Task ReadMessageAsync_CompressedMessage_StopsDecompressingAtReceiveSize(bool streaming, int limit)
     {
         using var decompressionStream = new TrackingDecompressionStream(new byte[128 * 1024]);
-        var provider = new Mock<ICompressionProvider>();
-        provider.SetupGet(p => p.EncodingName).Returns("test");
-        provider.Setup(p => p.CreateDecompressionStream(It.IsAny<Stream>())).Returns(decompressionStream);
+        var provider = new TestCompressionProvider(decompressionStream);
         var httpContext = new DefaultHttpContext();
         httpContext.Request.Headers[GrpcProtocolConstants.MessageEncodingHeader] = "test";
         var context = HttpContextServerCallContextHelper.CreateServerCallContext(
             httpContext,
-            compressionProviders: new List<ICompressionProvider> { provider.Object },
+            compressionProviders: new List<ICompressionProvider> { provider },
             maxReceiveMessageSize: limit);
         using var ms = new MemoryStream(new byte[] { 1, 0, 0, 0, 0 });
         var pipeReader = PipeReader.Create(ms);
@@ -259,10 +256,9 @@ public abstract class PipeExtensionsTestsBase
     [TestCase(true)]
     public async Task ReadMessageAsync_CompressedFrameExceedsReceiveSize_ThrowBeforeDecompressing(bool streaming)
     {
-        var provider = new Mock<ICompressionProvider>();
-        provider.SetupGet(p => p.EncodingName).Returns("test");
+        var provider = new TestCompressionProvider(null);
         var context = HttpContextServerCallContextHelper.CreateServerCallContext(
-            compressionProviders: new List<ICompressionProvider> { provider.Object },
+            compressionProviders: new List<ICompressionProvider> { provider },
             maxReceiveMessageSize: 1);
         using var ms = new MemoryStream(new byte[] { 1, 0, 0, 0, 2, 0, 0 });
         var pipeReader = PipeReader.Create(ms);
@@ -280,7 +276,31 @@ public abstract class PipeExtensionsTestsBase
         }).DefaultTimeout();
 
         Assert.AreEqual(StatusCode.ResourceExhausted, ex.StatusCode);
-        provider.Verify(p => p.CreateDecompressionStream(It.IsAny<Stream>()), Times.Never);
+        Assert.IsFalse(provider.DecompressionStreamCreated);
+    }
+
+    private sealed class TestCompressionProvider : ICompressionProvider
+    {
+        private readonly Stream? _decompressionStream;
+
+        public TestCompressionProvider(Stream? decompressionStream)
+        {
+            _decompressionStream = decompressionStream;
+        }
+
+        public string EncodingName => "test";
+        public bool DecompressionStreamCreated { get; private set; }
+
+        public Stream CreateCompressionStream(Stream stream, System.IO.Compression.CompressionLevel? compressionLevel)
+        {
+            throw new NotImplementedException();
+        }
+
+        public Stream CreateDecompressionStream(Stream stream)
+        {
+            DecompressionStreamCreated = true;
+            return _decompressionStream ?? throw new InvalidOperationException("Decompressor must not be called.");
+        }
     }
 
     private static MemoryStream CreateCompressedMessage(ICompressionProvider provider, byte[] content)

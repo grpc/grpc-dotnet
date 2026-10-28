@@ -23,7 +23,6 @@ using Grpc.Net.Client.Internal;
 using Grpc.Net.Client.Tests.Infrastructure;
 using Grpc.Net.Compression;
 using Grpc.Tests.Shared;
-using Moq;
 using NUnit.Framework;
 
 namespace Grpc.Net.Client.Tests;
@@ -106,9 +105,7 @@ public class MaximumMessageSizeTests
     public async Task CompressedResponse_StopsDecompressingAtReceiveMaxMessageSize(bool streaming, int limit)
     {
         using var decompressionStream = new TrackingDecompressionStream(new byte[128 * 1024]);
-        var provider = new Mock<ICompressionProvider>();
-        provider.SetupGet(p => p.EncodingName).Returns("test");
-        provider.Setup(p => p.CreateDecompressionStream(It.IsAny<Stream>())).Returns(decompressionStream);
+        var provider = new TestCompressionProvider(decompressionStream);
         using var responseStream = new MemoryStream(new byte[] { 1, 0, 0, 0, 0 });
 
         var ex = await ExceptionAssert.ThrowsAsync<RpcException>(() => StreamSerializationHelper.ReadMessageAsync<HelloReply>(
@@ -116,7 +113,7 @@ public class MaximumMessageSizeTests
             c => throw new InvalidOperationException("Deserializer must not be called."),
             "test",
             limit,
-            new Dictionary<string, ICompressionProvider> { ["test"] = provider.Object },
+            new Dictionary<string, ICompressionProvider> { ["test"] = provider },
             singleMessage: !streaming,
             CancellationToken.None)).DefaultTimeout();
 
@@ -130,8 +127,7 @@ public class MaximumMessageSizeTests
     [TestCase(true)]
     public async Task CompressedResponse_WireSizeExceedsReceiveMaxMessageSize_ThrowBeforeDecompressing(bool streaming)
     {
-        var provider = new Mock<ICompressionProvider>();
-        provider.SetupGet(p => p.EncodingName).Returns("test");
+        var provider = new TestCompressionProvider(null);
         using var responseStream = new MemoryStream(new byte[] { 1, 0, 0, 0, 2, 0, 0 });
 
         var ex = await ExceptionAssert.ThrowsAsync<RpcException>(() => StreamSerializationHelper.ReadMessageAsync<HelloReply>(
@@ -139,12 +135,36 @@ public class MaximumMessageSizeTests
             ClientTestHelpers.ServiceMethod.ResponseMarshaller.ContextualDeserializer,
             "test",
             1,
-            new Dictionary<string, ICompressionProvider> { ["test"] = provider.Object },
+            new Dictionary<string, ICompressionProvider> { ["test"] = provider },
             singleMessage: !streaming,
             CancellationToken.None)).DefaultTimeout();
 
         Assert.AreEqual(StatusCode.ResourceExhausted, ex.StatusCode);
-        provider.Verify(p => p.CreateDecompressionStream(It.IsAny<Stream>()), Times.Never);
+        Assert.IsFalse(provider.DecompressionStreamCreated);
+    }
+
+    private sealed class TestCompressionProvider : ICompressionProvider
+    {
+        private readonly Stream? _decompressionStream;
+
+        public TestCompressionProvider(Stream? decompressionStream)
+        {
+            _decompressionStream = decompressionStream;
+        }
+
+        public string EncodingName => "test";
+        public bool DecompressionStreamCreated { get; private set; }
+
+        public Stream CreateCompressionStream(Stream stream, System.IO.Compression.CompressionLevel? compressionLevel)
+        {
+            throw new NotImplementedException();
+        }
+
+        public Stream CreateDecompressionStream(Stream stream)
+        {
+            DecompressionStreamCreated = true;
+            return _decompressionStream ?? throw new InvalidOperationException("Decompressor must not be called.");
+        }
     }
 
     private sealed class TrackingDecompressionStream : MemoryStream
