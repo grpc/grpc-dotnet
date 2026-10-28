@@ -293,29 +293,6 @@ public abstract class PipeExtensionsTestsBase
         return ms;
     }
 
-    private sealed class TrackingDecompressionStream : MemoryStream
-    {
-        public int BytesRead { get; private set; }
-        public bool Disposed { get; private set; }
-
-        public TrackingDecompressionStream(byte[] content) : base(content)
-        {
-        }
-
-        public override int Read(byte[] buffer, int offset, int count)
-        {
-            var read = base.Read(buffer, offset, count);
-            BytesRead += read;
-            return read;
-        }
-
-        protected override void Dispose(bool disposing)
-        {
-            Disposed = true;
-            base.Dispose(disposing);
-        }
-    }
-
     [Test]
     public async Task ReadSingleMessageAsync_LongMessage_ReturnData()
     {

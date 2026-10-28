@@ -143,29 +143,6 @@ public class MaximumMessageSizeTests
         Assert.IsFalse(provider.DecompressionStreamCreated);
     }
 
-    private sealed class TrackingDecompressionStream : MemoryStream
-    {
-        public int BytesRead { get; private set; }
-        public bool Disposed { get; private set; }
-
-        public TrackingDecompressionStream(byte[] content) : base(content)
-        {
-        }
-
-        public override int Read(byte[] buffer, int offset, int count)
-        {
-            var read = base.Read(buffer, offset, count);
-            BytesRead += read;
-            return read;
-        }
-
-        protected override void Dispose(bool disposing)
-        {
-            Disposed = true;
-            base.Dispose(disposing);
-        }
-    }
-
     private async Task<HttpResponseMessage> HandleRequest(HttpRequestMessage request)
     {
         var requestStream = await request.Content!.ReadAsStreamAsync().DefaultTimeout();
