@@ -143,30 +143,6 @@ public class MaximumMessageSizeTests
         Assert.IsFalse(provider.DecompressionStreamCreated);
     }
 
-    private sealed class TestCompressionProvider : ICompressionProvider
-    {
-        private readonly Stream? _decompressionStream;
-
-        public TestCompressionProvider(Stream? decompressionStream)
-        {
-            _decompressionStream = decompressionStream;
-        }
-
-        public string EncodingName => "test";
-        public bool DecompressionStreamCreated { get; private set; }
-
-        public Stream CreateCompressionStream(Stream stream, System.IO.Compression.CompressionLevel? compressionLevel)
-        {
-            throw new NotImplementedException();
-        }
-
-        public Stream CreateDecompressionStream(Stream stream)
-        {
-            DecompressionStreamCreated = true;
-            return _decompressionStream ?? throw new InvalidOperationException("Decompressor must not be called.");
-        }
-    }
-
     private sealed class TrackingDecompressionStream : MemoryStream
     {
         public int BytesRead { get; private set; }
