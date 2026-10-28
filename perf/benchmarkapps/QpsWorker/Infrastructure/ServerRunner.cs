@@ -1,4 +1,4 @@
-﻿#region Copyright notice and license
+#region Copyright notice and license
 
 // Copyright 2019 The gRPC Authors
 //
@@ -113,6 +113,8 @@ public class ServerRunner
 
             // Other gRPC servers don't include a server header
             kestrel.AddServerHeader = false;
+            kestrel.Limits.Http2.InitialStreamWindowSize = 2 * 1024 * 1024;
+            kestrel.Limits.Http2.InitialConnectionWindowSize = 4 * 1024 * 1024;
         });
 
         builder.Logging.ClearProviders();
