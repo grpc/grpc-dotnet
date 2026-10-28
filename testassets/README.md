@@ -28,7 +28,7 @@ docker compose -f docker-compose.yml up grpcweb-client
 
 gRPC-Web interop client is hosted at `http://localhost:8081`.
 
-The *testassets/InteropTestsGrpcWebWebsite/Tests* directory contains scripts for automatically executing the interop tests. Steps to run the tests:
+The *testassets/InteropTestsGrpcWebWebsite/Tests* directory contains scripts for automatically executing the interop tests. These scripts require Node.js 22.12 or later and npm. Run `npm install` in that directory before running the tests. Steps to run the tests:
 
 1. Start `InteropTestsWebsite` container
 2. Start `InteropTestsGrpcWebWebsite` container
