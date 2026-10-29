@@ -22,7 +22,9 @@ using Grpc.Net.Client.Configuration;
 namespace Grpc.Net.Client.Internal;
 
 /// <summary>
-/// Cached log scope and URI for a gRPC <see cref="IMethod"/>.
+/// Cached log scope, URI, and service config for methods with the same type and names,
+/// independent of their marshallers. Only exact <see cref="Method{TRequest,TResponse}"/>
+/// instances are cached; derived implementations are not.
 /// </summary>
 internal sealed class GrpcMethodInfo
 {

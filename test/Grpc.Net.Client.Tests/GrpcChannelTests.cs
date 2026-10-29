@@ -339,6 +339,134 @@ public class GrpcChannelTests
         Assert.AreEqual("Duplicate method config found. Service: '', method: ''.", ex.Message);
     }
 
+    [TestCase(0)]
+    [TestCase(ThreadSafeLookup<IMethod, GrpcMethodInfo>.Threshold)]
+    [TestCase(ThreadSafeLookup<IMethod, GrpcMethodInfo>.Threshold + 1)]
+    public void GetCachedGrpcMethodInfo_EquivalentMethods_ReturnsCachedInfo(int initialCount)
+    {
+        using var channel = GrpcChannel.ForAddress("https://localhost", CreateGrpcChannelOptions());
+        for (var i = 0; i < initialCount; i++)
+        {
+            channel.GetCachedGrpcMethodInfo(new Method<HelloRequest, HelloReply>(
+                MethodType.Unary, "ServiceName", $"Method-{i}",
+                ClientTestHelpers.HelloRequestMarshaller, ClientTestHelpers.HelloReplyMarshaller));
+        }
+
+        var method = ClientTestHelpers.GetServiceMethod();
+        var methodInfo = channel.GetCachedGrpcMethodInfo(method);
+
+        Assert.AreSame(methodInfo, channel.GetCachedGrpcMethodInfo(method));
+        for (var i = 0; i < 100; i++)
+        {
+            Assert.AreSame(methodInfo, channel.GetCachedGrpcMethodInfo(ClientTestHelpers.GetServiceMethod()));
+        }
+
+        var differentMarshallers = new Method<string, string>(
+            method.Type, method.ServiceName, method.Name,
+            Marshallers.StringMarshaller, Marshallers.StringMarshaller);
+        Assert.AreSame(methodInfo, channel.GetCachedGrpcMethodInfo(differentMarshallers));
+    }
+
+    [TestCase(0)]
+    [TestCase(ThreadSafeLookup<IMethod, GrpcMethodInfo>.Threshold + 1)]
+    public void GetCachedGrpcMethodInfo_InheritedMethod_DoesNotCache(int initialCount)
+    {
+        using var channel = GrpcChannel.ForAddress("https://localhost", CreateGrpcChannelOptions());
+        for (var i = 0; i < initialCount; i++)
+        {
+            channel.GetCachedGrpcMethodInfo(new Method<string, string>(
+                MethodType.Unary, "ServiceName", $"Method-{i}",
+                Marshallers.StringMarshaller, Marshallers.StringMarshaller));
+        }
+
+        var method = new InheritedMethod();
+        var first = channel.GetCachedGrpcMethodInfo(method);
+        var second = channel.GetCachedGrpcMethodInfo(method);
+        var knownMethod = ClientTestHelpers.GetServiceMethod();
+        var cached = channel.GetCachedGrpcMethodInfo(knownMethod);
+
+        Assert.AreNotSame(first, second);
+        Assert.AreNotSame(first, cached);
+        Assert.AreNotSame(cached, channel.GetCachedGrpcMethodInfo(method));
+        Assert.AreSame(cached, channel.GetCachedGrpcMethodInfo(knownMethod));
+    }
+
+    [Test]
+    public void GetCachedGrpcMethodInfo_InheritedMethodWithMutableMetadata_UsesCurrentMetadata()
+    {
+        using var channel = GrpcChannel.ForAddress("https://localhost", CreateGrpcChannelOptions());
+        var method = new MutableMethod { CurrentName = "FirstMethod" };
+        var first = channel.GetCachedGrpcMethodInfo(method);
+
+        method.CurrentName = "SecondMethod";
+        var second = channel.GetCachedGrpcMethodInfo(method);
+
+        Assert.AreEqual("/ServiceName/FirstMethod", first.CallUri.AbsolutePath);
+        Assert.AreEqual("/ServiceName/SecondMethod", second.CallUri.AbsolutePath);
+    }
+
+    private class InheritedMethod : Method<string, string>
+    {
+        public InheritedMethod() : base(MethodType.Unary, "ServiceName", "MethodName",
+            Marshallers.StringMarshaller, Marshallers.StringMarshaller)
+        {
+        }
+    }
+
+    private sealed class MutableMethod : InheritedMethod, IMethod
+    {
+        public string CurrentName { get; set; } = "";
+
+        string IMethod.Name => CurrentName;
+        string IMethod.FullName => "/" + ServiceName + "/" + CurrentName;
+    }
+
+    [TestCase(MethodType.ClientStreaming, "ServiceName", "MethodName")]
+    [TestCase(MethodType.Unary, "OtherService", "MethodName")]
+    [TestCase(MethodType.Unary, "ServiceName", "OtherMethod")]
+    [TestCase(MethodType.Unary, "servicename", "MethodName")]
+    [TestCase(MethodType.Unary, "ServiceName", "methodname")]
+    public void GetCachedGrpcMethodInfo_DifferentMethods_ReturnsDifferentInfo(MethodType type, string serviceName, string methodName)
+    {
+        using var channel = GrpcChannel.ForAddress("https://localhost", CreateGrpcChannelOptions());
+        var methodInfo = channel.GetCachedGrpcMethodInfo(ClientTestHelpers.GetServiceMethod());
+        var method = new Method<HelloRequest, HelloReply>(
+            type, serviceName, methodName,
+            ClientTestHelpers.HelloRequestMarshaller, ClientTestHelpers.HelloReplyMarshaller);
+
+        Assert.AreNotSame(methodInfo, channel.GetCachedGrpcMethodInfo(method));
+    }
+
+    [Test]
+    public void GetCachedGrpcMethodInfo_SameFullNameDifferentServiceAndMethod_ReturnsDifferentConfig()
+    {
+        using var channel = GrpcChannel.ForAddress("https://localhost", CreateGrpcChannelOptions(o =>
+            o.ServiceConfig = new ServiceConfig
+            {
+                MethodConfigs =
+                {
+                    new MethodConfig
+                    {
+                        Names = { new MethodName { Service = "Service/Name", Method = "Method" } },
+                        HedgingPolicy = new HedgingPolicy { MaxAttempts = 2 }
+                    },
+                    new MethodConfig
+                    {
+                        Names = { new MethodName { Service = "Service", Method = "Name/Method" } },
+                        HedgingPolicy = new HedgingPolicy { MaxAttempts = 3 }
+                    }
+                }
+            }));
+        var first = new Method<string, string>(MethodType.Unary, "Service/Name", "Method",
+            Marshallers.StringMarshaller, Marshallers.StringMarshaller);
+        var second = new Method<string, string>(MethodType.Unary, "Service", "Name/Method",
+            Marshallers.StringMarshaller, Marshallers.StringMarshaller);
+
+        Assert.AreEqual(first.FullName, second.FullName);
+        Assert.AreEqual(2, channel.GetCachedGrpcMethodInfo(first).MethodConfig!.HedgingPolicy!.MaxAttempts);
+        Assert.AreEqual(3, channel.GetCachedGrpcMethodInfo(second).MethodConfig!.HedgingPolicy!.MaxAttempts);
+    }
+
     [Test]
     public void Dispose_NotCalled_NotDisposed()
     {
