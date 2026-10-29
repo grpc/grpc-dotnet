@@ -118,6 +118,7 @@ public class ClientRunner
                 HttpHandler = new SocketsHttpHandler
                 {
                     EnableMultipleHttp2Connections = true,
+                    InitialHttp2StreamWindowSize = 2 * 1024 * 1024,
                     SslOptions = new SslClientAuthenticationOptions
                     {
                         // Ignore TLS certificate errors.
@@ -204,9 +205,20 @@ public class ClientRunner
 
         while (!_stoppedCts.Token.IsCancellationRequested)
         {
-            stopwatch.Restart();
-            client.UnaryCall(request);
-            stopwatch.Stop();
+            try
+            {
+                stopwatch.Restart();
+                client.UnaryCall(request, cancellationToken: _stoppedCts.Token);
+                stopwatch.Stop();
+            }
+            catch (RpcException ex) when (ex.StatusCode == StatusCode.Cancelled && _stoppedCts.Token.IsCancellationRequested)
+            {
+                break;
+            }
+            catch (OperationCanceledException) when (_stoppedCts.Token.IsCancellationRequested)
+            {
+                break;
+            }
 
             // spec requires data point in nanoseconds.
             _threadLocalHistogram.Value!.AddObservation(stopwatch.Elapsed.TotalSeconds * SecondsToNanos);
@@ -223,9 +235,20 @@ public class ClientRunner
 
         while (!_stoppedCts.Token.IsCancellationRequested)
         {
-            stopwatch.Restart();
-            await client.UnaryCallAsync(request);
-            stopwatch.Stop();
+            try
+            {
+                stopwatch.Restart();
+                await client.UnaryCallAsync(request, cancellationToken: _stoppedCts.Token);
+                stopwatch.Stop();
+            }
+            catch (RpcException ex) when (ex.StatusCode == StatusCode.Cancelled && _stoppedCts.Token.IsCancellationRequested)
+            {
+                break;
+            }
+            catch (OperationCanceledException) when (_stoppedCts.Token.IsCancellationRequested)
+            {
+                break;
+            }
 
             // spec requires data point in nanoseconds.
             _threadLocalHistogram.Value!.AddObservation(stopwatch.Elapsed.TotalSeconds * SecondsToNanos);
