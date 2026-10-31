@@ -108,7 +108,7 @@ public sealed partial class GrpcChannel : ChannelBase, IDisposable
     internal GrpcChannel(Uri address, GrpcChannelOptions channelOptions) : base(address.Authority)
     {
         _lock = new object();
-        _methodInfoCache = new ThreadSafeLookup<IMethod, GrpcMethodInfo>();
+        _methodInfoCache = new ThreadSafeLookup<IMethod, GrpcMethodInfo>(MethodInfoComparer.Instance);
 
         // Dispose the HTTP client/handler if...
         //   1. No client/handler was specified and so the channel created the client itself
@@ -569,8 +569,14 @@ public sealed partial class GrpcChannel : ChannelBase, IDisposable
         }
     }
 
-    internal GrpcMethodInfo GetCachedGrpcMethodInfo(IMethod method)
+    internal GrpcMethodInfo GetCachedGrpcMethodInfo<TRequest, TResponse>(Method<TRequest, TResponse> method)
     {
+        // Only the known implementation guarantees immutable method metadata.
+        if (method.GetType() != typeof(Method<TRequest, TResponse>))
+        {
+            return CreateMethodInfo(method);
+        }
+
         return _methodInfoCache.GetOrAdd(method, _createMethodInfoFunc);
     }
 
@@ -910,6 +916,25 @@ public sealed partial class GrpcChannel : ChannelBase, IDisposable
             debugText += ", Disposed = true";
         }
         return debugText;
+    }
+
+    private sealed class MethodInfoComparer : IEqualityComparer<IMethod>
+    {
+        public static readonly MethodInfoComparer Instance = new MethodInfoComparer();
+
+        public bool Equals(IMethod? x, IMethod? y)
+        {
+            return ReferenceEquals(x, y) ||
+                (x != null && y != null &&
+                x.Type == y.Type &&
+                string.Equals(x.FullName, y.FullName, StringComparison.Ordinal) &&
+                // Service config resolution uses these names independently of FullName.
+                string.Equals(x.ServiceName, y.ServiceName, StringComparison.Ordinal) &&
+                string.Equals(x.Name, y.Name, StringComparison.Ordinal));
+        }
+
+        public int GetHashCode(IMethod obj) =>
+            StringComparer.Ordinal.GetHashCode(obj.FullName) ^ obj.Type.GetHashCode();
     }
 
     private readonly struct MethodKey : IEquatable<MethodKey>

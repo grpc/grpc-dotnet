@@ -26,6 +26,12 @@ internal sealed class ThreadSafeLookup<TKey, TValue> where TKey : notnull
 
     private KeyValuePair<TKey, TValue>[] _array = Array.Empty<KeyValuePair<TKey, TValue>>();
     private ConcurrentDictionary<TKey, TValue>? _dictionary;
+    private readonly IEqualityComparer<TKey> _comparer;
+
+    public ThreadSafeLookup(IEqualityComparer<TKey>? comparer = null)
+    {
+        _comparer = comparer ?? EqualityComparer<TKey>.Default;
+    }
 
     /// <summary>
     /// Gets the value for the key if it exists. If the key does not exist then the value is created using the valueFactory.
@@ -62,7 +68,7 @@ internal sealed class ThreadSafeLookup<TKey, TValue> where TKey : notnull
                 if (_array.Length > Threshold - 1)
                 {
                     // Array length exceeds threshold so switch to dictionary.
-                    var newDict = new ConcurrentDictionary<TKey, TValue>();
+                    var newDict = new ConcurrentDictionary<TKey, TValue>(_comparer);
                     foreach (var kvp in _array)
                     {
                         newDict.TryAdd(kvp.Key, kvp.Value);
@@ -87,11 +93,11 @@ internal sealed class ThreadSafeLookup<TKey, TValue> where TKey : notnull
         return newValue;
     }
 
-    private static bool TryGetValue(KeyValuePair<TKey, TValue>[] array, TKey key, out TValue value)
+    private bool TryGetValue(KeyValuePair<TKey, TValue>[] array, TKey key, out TValue value)
     {
         foreach (var kvp in array)
         {
-            if (EqualityComparer<TKey>.Default.Equals(kvp.Key, key))
+            if (_comparer.Equals(kvp.Key, key))
             {
                 value = kvp.Value;
                 return true;

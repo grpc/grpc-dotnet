@@ -66,4 +66,35 @@ public class ThreadSafeLookupTests
             Assert.AreEqual($"Value-{i}", value);
         });
     }
+
+    [TestCase(0)]
+    [TestCase(ThreadSafeLookup<string, string>.Threshold)]
+    [TestCase(ThreadSafeLookup<string, string>.Threshold + 1)]
+    public void GetOrAdd_CustomComparer_ReturnsExistingValue(int initialCount)
+    {
+        var lookup = new ThreadSafeLookup<string, string>(StringComparer.OrdinalIgnoreCase);
+        for (var i = 0; i < initialCount; i++)
+        {
+            lookup.GetOrAdd($"Key-{i}", k => k);
+        }
+
+        var factoryCalls = 0;
+        var value = lookup.GetOrAdd("Key", k =>
+        {
+            factoryCalls++;
+            return "InitialValue";
+        });
+        var result = lookup.GetOrAdd("KEY", k =>
+        {
+            factoryCalls++;
+            return "NewValue";
+        });
+
+        Assert.AreEqual(value, result);
+        Assert.AreEqual(1, factoryCalls);
+        for (var i = 0; i < initialCount; i++)
+        {
+            Assert.AreEqual($"Key-{i}", lookup.GetOrAdd($"KEY-{i}", k => "NewValue"));
+        }
+    }
 }
