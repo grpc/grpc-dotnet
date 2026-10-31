@@ -218,6 +218,31 @@ public class DiagnosticsTests
         Assert.AreNotEqual(TimeSpan.Zero, activityDurationOnStop);
     }
 
+    [Test]
+    public async Task CurrentActivity_MakeCallWithoutDiagnostics_PreservedDuringSend()
+    {
+        // Arrange
+        Activity? activityDuringSend = null;
+        var httpClient = ClientTestHelpers.CreateTestClient(async request =>
+        {
+            activityDuringSend = Activity.Current;
+
+            var streamContent = await ClientTestHelpers.CreateResponseContent(new HelloReply()).DefaultTimeout();
+            return ResponseUtils.CreateResponse(HttpStatusCode.OK, streamContent, grpcStatusCode: StatusCode.OK);
+        });
+        var invoker = HttpClientCallInvokerFactory.Create(httpClient);
+
+        // Act
+        using var parentActivity = new Activity("Parent").Start();
+
+        var call = invoker.AsyncUnaryCall(new HelloRequest());
+        await call.ResponseAsync.DefaultTimeout();
+
+        // Assert
+        Assert.AreSame(parentActivity, activityDuringSend);
+        Assert.AreSame(parentActivity, Activity.Current);
+    }
+
     private static T GetValueFromAnonymousType<T>(object dataitem, string itemkey)
     {
         var type = dataitem.GetType();
