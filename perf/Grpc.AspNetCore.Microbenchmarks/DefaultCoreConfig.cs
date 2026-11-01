@@ -43,7 +43,7 @@ internal class DefaultCoreConfig : ManualConfig
         AddValidator(JitOptimizationsValidator.FailOnError);
 
         AddJob(Job.Default
-            .WithToolchain(CsProjCoreToolchain.From(new NetCoreAppSettings("net6.0", null, ".NET 6")))
+            .WithToolchain(CsProjCoreToolchain.From(new NetCoreAppSettings("net10.0", null, ".NET 10")))
             .WithGcMode(new GcMode { Server = true })
             .WithStrategy(RunStrategy.Throughput));
     }

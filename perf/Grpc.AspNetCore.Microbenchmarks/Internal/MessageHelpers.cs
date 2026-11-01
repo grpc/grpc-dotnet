@@ -25,6 +25,16 @@ namespace Grpc.AspNetCore.Microbenchmarks.Internal;
 
 internal static class MessageHelpers
 {
+    // Base64 of random bytes compresses to roughly 75% with gzip, similar to moderately compressible payloads.
+    // Repeated text compresses to almost nothing, which would hide the cost of buffering compressed output.
+    public static string CreateCompressibleContent(int length)
+    {
+        var bytes = new byte[length];
+        new Random(42).NextBytes(bytes);
+
+        return Convert.ToBase64String(bytes).Substring(0, length);
+    }
+
     public static void WriteMessage<T>(Stream stream, T message, HttpContextServerCallContext? callContext = null)
         where T : class, IMessage
     {
