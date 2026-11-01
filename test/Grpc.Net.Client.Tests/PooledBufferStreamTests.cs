@@ -16,6 +16,7 @@
 
 #endregion
 
+using System.Buffers;
 using System.IO.Compression;
 using Grpc.Shared;
 using NUnit.Framework;
@@ -137,19 +138,304 @@ public class PooledBufferStreamTests
     }
 
     [Test]
-    public void ReadAndSeekMembers_WriteOnlyStream_NotSupported()
+    public void Write_NegativeCount_Throws()
     {
         // Arrange
         var stream = new PooledBufferStream();
 
         // Act & Assert
-        Assert.IsTrue(stream.CanWrite);
-        Assert.IsFalse(stream.CanRead);
-        Assert.IsFalse(stream.CanSeek);
-        Assert.Throws<NotSupportedException>(() => Assert.AreEqual(0, stream.Read(new byte[1], 0, 1)));
-        Assert.Throws<NotSupportedException>(() => stream.Seek(0, SeekOrigin.Begin));
-        Assert.Throws<NotSupportedException>(() => stream.SetLength(0));
-        Assert.Throws<NotSupportedException>(() => stream.Position = 0);
+        Assert.Throws<ArgumentOutOfRangeException>(() => stream.Write(new byte[1], 0, -1));
+    }
+
+    [Test]
+    public void Read_NegativeCount_Throws()
+    {
+        // Arrange
+        var stream = new PooledBufferStream();
+
+        // Act & Assert
+        Assert.Throws<ArgumentOutOfRangeException>(() => Assert.AreEqual(0, stream.Read(new byte[1], 0, -1)));
+    }
+
+    [Test]
+    public void ReadByte_AfterWrite_ReturnsByteAndAdvances()
+    {
+        // Arrange
+        var stream = new PooledBufferStream();
+        stream.WriteByte(1);
+        stream.Position = 0;
+
+        // Act
+        var value = stream.ReadByte();
+
+        // Assert
+        Assert.AreEqual(1, value);
+        Assert.AreEqual(1, stream.Position);
+
+        stream.Release();
+    }
+
+    [Test]
+    public async Task ReadAsync_Data_ReadsData()
+    {
+        // Arrange
+        var stream = new PooledBufferStream();
+        stream.Write(new byte[] { 1, 2 }, 0, 2);
+        stream.Position = 0;
+        var buffer = new byte[2];
+
+        // Act
+        var read = await stream.ReadAsync(buffer, 0, buffer.Length);
+
+        // Assert
+        Assert.AreEqual(2, read);
+        CollectionAssert.AreEqual(new byte[] { 1, 2 }, buffer);
+
+        stream.Release();
+    }
+
+    [Test]
+    public void AsyncMethods_CancelledToken_ReturnCancelledTask()
+    {
+        // Arrange
+        var stream = new PooledBufferStream();
+        var cancellationToken = new CancellationToken(canceled: true);
+
+        // Act & Assert
+        Assert.IsTrue(stream.WriteAsync(new byte[1], 0, 1, cancellationToken).IsCanceled);
+        Assert.IsTrue(stream.ReadAsync(new byte[1], 0, 1, cancellationToken).IsCanceled);
+        Assert.IsTrue(stream.FlushAsync(cancellationToken).IsCanceled);
+        Assert.AreEqual(0, stream.Length);
+    }
+
+    [Test]
+    public void AsyncMethods_InvalidArguments_ReturnFaultedTask()
+    {
+        // Arrange
+        var stream = new PooledBufferStream();
+
+        // Act & Assert
+        Assert.IsInstanceOf<ArgumentOutOfRangeException>(stream.WriteAsync(new byte[1], 0, -1).Exception!.InnerException);
+        Assert.IsInstanceOf<ArgumentOutOfRangeException>(stream.ReadAsync(new byte[1], 0, -1).Exception!.InnerException);
+    }
+
+#if !NET462
+    [Test]
+    public void Read_Span_ReadsDataAndAdvances()
+    {
+        // Arrange
+        var stream = new PooledBufferStream();
+        stream.Write(new byte[] { 1, 2, 3 }, 0, 3);
+        stream.Position = 1;
+        var buffer = new byte[2];
+
+        // Act
+        var read = stream.Read(buffer.AsSpan());
+
+        // Assert
+        Assert.AreEqual(2, read);
+        Assert.AreEqual(3, stream.Position);
+        CollectionAssert.AreEqual(new byte[] { 2, 3 }, buffer);
+
+        stream.Release();
+    }
+
+    [Test]
+    public async Task ReadAsync_Memory_ReadsData()
+    {
+        // Arrange
+        var stream = new PooledBufferStream();
+        stream.Write(new byte[] { 1, 2 }, 0, 2);
+        stream.Position = 0;
+        var buffer = new byte[2];
+
+        // Act
+        var read = await stream.ReadAsync(buffer.AsMemory());
+
+        // Assert
+        Assert.AreEqual(2, read);
+        CollectionAssert.AreEqual(new byte[] { 1, 2 }, buffer);
+
+        stream.Release();
+    }
+
+    [Test]
+    public async Task WriteAsync_Memory_WritesData()
+    {
+        // Arrange
+        var stream = new PooledBufferStream();
+        var expected = CreateData(1000);
+
+        // Act
+        await stream.WriteAsync(expected.AsMemory());
+
+        // Assert
+        CollectionAssert.AreEqual(expected, stream.WrittenSpan.ToArray());
+
+        stream.Release();
+    }
+
+    [Test]
+    public void AsyncMemoryMethods_CancelledToken_ReturnCancelledTask()
+    {
+        // Arrange
+        var stream = new PooledBufferStream();
+        var cancellationToken = new CancellationToken(canceled: true);
+
+        // Act & Assert
+        Assert.IsTrue(stream.WriteAsync(new byte[1].AsMemory(), cancellationToken).IsCanceled);
+        Assert.IsTrue(stream.ReadAsync(new byte[1].AsMemory(), cancellationToken).IsCanceled);
+        Assert.AreEqual(0, stream.Length);
+    }
+#endif
+
+    [Test]
+    public void Write_ZeroBytes_NoData()
+    {
+        // Arrange
+        var stream = new PooledBufferStream();
+
+        // Act
+        stream.Write(Array.Empty<byte>(), 0, 0);
+
+        // Assert
+        Assert.AreEqual(0, stream.Length);
+    }
+
+    [Test]
+    public void Write_AfterSeekToStart_OverwritesAndKeepsLength()
+    {
+        // Arrange
+        var stream = new PooledBufferStream();
+        stream.Write(new byte[] { 1, 2, 3 }, 0, 3);
+
+        // Act
+        stream.Seek(0, SeekOrigin.Begin);
+        stream.WriteByte(9);
+
+        // Assert
+        Assert.AreEqual(1, stream.Position);
+        CollectionAssert.AreEqual(new byte[] { 9, 2, 3 }, stream.WrittenSpan.ToArray());
+
+        stream.Release();
+    }
+
+    [Test]
+    public void Write_AfterSeekPastEnd_ZeroesGap()
+    {
+        // Arrange
+        DirtyPooledBuffers();
+        var stream = new PooledBufferStream();
+        stream.WriteByte(1);
+
+        // Act
+        stream.Position = 4;
+        stream.WriteByte(2);
+
+        // Assert
+        CollectionAssert.AreEqual(new byte[] { 1, 0, 0, 0, 2 }, stream.WrittenSpan.ToArray());
+
+        stream.Release();
+    }
+
+    [Test]
+    public void Read_AfterWrite_ReturnsDataUntilEnd()
+    {
+        // Arrange
+        var stream = new PooledBufferStream();
+        stream.Write(new byte[] { 1, 2, 3 }, 0, 3);
+        stream.Position = 1;
+        var buffer = new byte[10];
+
+        // Act
+        var read = stream.Read(buffer, 0, buffer.Length);
+
+        // Assert
+        Assert.AreEqual(2, read);
+        CollectionAssert.AreEqual(new byte[] { 2, 3 }, buffer.Take(read).ToArray());
+        Assert.AreEqual(0, stream.Read(buffer, 0, buffer.Length));
+        Assert.AreEqual(-1, stream.ReadByte());
+
+        stream.Release();
+    }
+
+    [Test]
+    public void Read_PositionPastEnd_ReturnsZero()
+    {
+        // Arrange
+        var stream = new PooledBufferStream();
+        stream.Position = 10;
+
+        // Act & Assert
+        Assert.AreEqual(0, stream.Read(new byte[1], 0, 1));
+    }
+
+    [Test]
+    public void Seek_FromCurrentAndEnd_ReturnsPosition()
+    {
+        // Arrange
+        var stream = new PooledBufferStream();
+        stream.Write(new byte[] { 1, 2, 3 }, 0, 3);
+
+        // Act & Assert
+        Assert.AreEqual(1, stream.Seek(-2, SeekOrigin.End));
+        Assert.AreEqual(2, stream.Seek(1, SeekOrigin.Current));
+
+        stream.Release();
+    }
+
+    [Test]
+    public void Seek_BeforeStart_Throws()
+    {
+        // Arrange
+        var stream = new PooledBufferStream();
+
+        // Act & Assert
+        Assert.Throws<IOException>(() => stream.Seek(-1, SeekOrigin.Begin));
+    }
+
+    [Test]
+    public void Position_Negative_Throws()
+    {
+        // Arrange
+        var stream = new PooledBufferStream();
+
+        // Act & Assert
+        Assert.Throws<ArgumentOutOfRangeException>(() => stream.Position = -1);
+    }
+
+    [Test]
+    public void SetLength_Shorter_TruncatesAndMovesPosition()
+    {
+        // Arrange
+        var stream = new PooledBufferStream();
+        stream.Write(new byte[] { 1, 2, 3 }, 0, 3);
+
+        // Act
+        stream.SetLength(1);
+
+        // Assert
+        Assert.AreEqual(1, stream.Position);
+        CollectionAssert.AreEqual(new byte[] { 1 }, stream.WrittenSpan.ToArray());
+
+        stream.Release();
+    }
+
+    [Test]
+    public void SetLength_Longer_ZeroesNewBytes()
+    {
+        // Arrange
+        DirtyPooledBuffers();
+        var stream = new PooledBufferStream();
+        stream.WriteByte(1);
+
+        // Act
+        stream.SetLength(4);
+
+        // Assert
+        CollectionAssert.AreEqual(new byte[] { 1, 0, 0, 0 }, stream.WrittenSpan.ToArray());
+
+        stream.Release();
     }
 
     [Test]
@@ -174,6 +460,13 @@ public class PooledBufferStreamTests
         CollectionAssert.AreEqual(expected, decompressed.ToArray());
 
         stream.Release();
+    }
+
+    private static void DirtyPooledBuffers()
+    {
+        var buffer = ArrayPool<byte>.Shared.Rent(16);
+        buffer.AsSpan().Fill(byte.MaxValue);
+        ArrayPool<byte>.Shared.Return(buffer);
     }
 
     private static byte[] CreateData(int length)

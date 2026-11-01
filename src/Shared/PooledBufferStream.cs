@@ -21,8 +21,9 @@ using System.Buffers;
 namespace Grpc.Shared;
 
 /// <summary>
-/// A write-only stream backed by a growable buffer rented from <see cref="ArrayPool{T}"/>.
-/// Written data is available until <see cref="Release"/> is called.
+/// A stream backed by a growable buffer rented from <see cref="ArrayPool{T}"/>. It supports the same operations
+/// as a <see cref="MemoryStream"/> because compression providers are free to read and seek their output stream.
+/// Written data is available until <see cref="Release"/> is called. The instance can be written to again afterwards.
 /// </summary>
 internal sealed class PooledBufferStream : Stream
 {
@@ -31,21 +32,30 @@ internal sealed class PooledBufferStream : Stream
 
     private byte[]? _buffer;
     private int _position;
+    private int _length;
 
-    public ReadOnlySpan<byte> WrittenSpan => _buffer.AsSpan(0, _position);
+    public ReadOnlySpan<byte> WrittenSpan => _buffer.AsSpan(0, _length);
 
-    public override bool CanRead => false;
+    public override bool CanRead => true;
 
-    public override bool CanSeek => false;
+    public override bool CanSeek => true;
 
     public override bool CanWrite => true;
 
-    public override long Length => _position;
+    public override long Length => _length;
 
     public override long Position
     {
         get => _position;
-        set => throw new NotSupportedException();
+        set
+        {
+            if (value < 0 || value > MaxBufferSize)
+            {
+                throw new ArgumentOutOfRangeException(nameof(value));
+            }
+
+            _position = (int)value;
+        }
     }
 
     /// <summary>
@@ -58,41 +68,105 @@ internal sealed class PooledBufferStream : Stream
         {
             _buffer = null;
             _position = 0;
+            _length = 0;
             ArrayPool<byte>.Shared.Return(buffer);
+        }
+    }
+
+    public override int Read(byte[] buffer, int offset, int count)
+    {
+        return ReadCore(new Span<byte>(buffer, offset, count));
+    }
+
+    public override int ReadByte()
+    {
+        return _position < _length ? _buffer![_position++] : -1;
+    }
+
+    public override Task<int> ReadAsync(byte[] buffer, int offset, int count, CancellationToken cancellationToken)
+    {
+        if (cancellationToken.IsCancellationRequested)
+        {
+            return Task.FromCanceled<int>(cancellationToken);
+        }
+
+        try
+        {
+            return Task.FromResult(Read(buffer, offset, count));
+        }
+        catch (Exception ex)
+        {
+            return Task.FromException<int>(ex);
         }
     }
 
     public override void Write(byte[] buffer, int offset, int count)
     {
-        EnsureAvailable(count);
-        Buffer.BlockCopy(buffer, offset, _buffer!, _position, count);
-        _position += count;
+        WriteCore(new ReadOnlySpan<byte>(buffer, offset, count));
     }
 
     public override void WriteByte(byte value)
     {
-        EnsureAvailable(1);
-        _buffer![_position++] = value;
+        PrepareWrite(1);
+        _buffer![_position] = value;
+        AdvanceWrite(1);
     }
 
     public override Task WriteAsync(byte[] buffer, int offset, int count, CancellationToken cancellationToken)
     {
-        Write(buffer, offset, count);
-        return Task.CompletedTask;
+        if (cancellationToken.IsCancellationRequested)
+        {
+            return Task.FromCanceled(cancellationToken);
+        }
+
+        try
+        {
+            Write(buffer, offset, count);
+            return Task.CompletedTask;
+        }
+        catch (Exception ex)
+        {
+            return Task.FromException(ex);
+        }
     }
 
 #if !NETSTANDARD2_0 && !NET462
+    public override int Read(Span<byte> buffer)
+    {
+        return ReadCore(buffer);
+    }
+
+    public override ValueTask<int> ReadAsync(Memory<byte> buffer, CancellationToken cancellationToken = default)
+    {
+        if (cancellationToken.IsCancellationRequested)
+        {
+            return new ValueTask<int>(Task.FromCanceled<int>(cancellationToken));
+        }
+
+        return new ValueTask<int>(ReadCore(buffer.Span));
+    }
+
     public override void Write(ReadOnlySpan<byte> buffer)
     {
-        EnsureAvailable(buffer.Length);
-        buffer.CopyTo(_buffer.AsSpan(_position));
-        _position += buffer.Length;
+        WriteCore(buffer);
     }
 
     public override ValueTask WriteAsync(ReadOnlyMemory<byte> buffer, CancellationToken cancellationToken = default)
     {
-        Write(buffer.Span);
-        return default;
+        if (cancellationToken.IsCancellationRequested)
+        {
+            return new ValueTask(Task.FromCanceled(cancellationToken));
+        }
+
+        try
+        {
+            WriteCore(buffer.Span);
+            return default;
+        }
+        catch (Exception ex)
+        {
+            return new ValueTask(Task.FromException(ex));
+        }
     }
 #endif
 
@@ -100,11 +174,49 @@ internal sealed class PooledBufferStream : Stream
     {
     }
 
-    public override Task FlushAsync(CancellationToken cancellationToken) => Task.CompletedTask;
+    public override Task FlushAsync(CancellationToken cancellationToken)
+    {
+        return cancellationToken.IsCancellationRequested
+            ? Task.FromCanceled(cancellationToken)
+            : Task.CompletedTask;
+    }
 
-    public override int Read(byte[] buffer, int offset, int count) => throw new NotSupportedException();
-    public override long Seek(long offset, SeekOrigin origin) => throw new NotSupportedException();
-    public override void SetLength(long value) => throw new NotSupportedException();
+    public override long Seek(long offset, SeekOrigin origin)
+    {
+        var position = origin switch
+        {
+            SeekOrigin.Begin => offset,
+            SeekOrigin.Current => _position + offset,
+            SeekOrigin.End => _length + offset,
+            _ => throw new ArgumentOutOfRangeException(nameof(origin))
+        };
+
+        if (position < 0)
+        {
+            throw new IOException("An attempt was made to move the position before the beginning of the stream.");
+        }
+
+        Position = position;
+        return position;
+    }
+
+    public override void SetLength(long value)
+    {
+        if (value < 0 || value > MaxBufferSize)
+        {
+            throw new ArgumentOutOfRangeException(nameof(value));
+        }
+
+        var length = (int)value;
+        if (length > _length)
+        {
+            EnsureCapacity(length);
+            ClearGap(length);
+        }
+
+        _length = length;
+        _position = Math.Min(_position, _length);
+    }
 
     protected override void Dispose(bool disposing)
     {
@@ -112,17 +224,63 @@ internal sealed class PooledBufferStream : Stream
         // Written data must be available after the compression stream is disposed. Use Release to return the buffer.
     }
 
-    private void EnsureAvailable(int count)
+    private int ReadCore(Span<byte> buffer)
+    {
+        var read = Math.Min(buffer.Length, _length - _position);
+        if (read <= 0)
+        {
+            return 0;
+        }
+
+        _buffer.AsSpan(_position, read).CopyTo(buffer);
+        _position += read;
+        return read;
+    }
+
+    private void WriteCore(ReadOnlySpan<byte> buffer)
+    {
+        if (buffer.Length > 0)
+        {
+            PrepareWrite(buffer.Length);
+            buffer.CopyTo(_buffer.AsSpan(_position));
+            AdvanceWrite(buffer.Length);
+        }
+    }
+
+    private void PrepareWrite(int count)
     {
         var required = (long)_position + count;
+        if (required > MaxBufferSize)
+        {
+            throw new InvalidOperationException("Buffer can't be larger than the maximum array length.");
+        }
+
+        EnsureCapacity((int)required);
+
+        // The position can be past the end of the written data after seeking.
+        if (_position > _length)
+        {
+            ClearGap(_position);
+        }
+    }
+
+    private void AdvanceWrite(int count)
+    {
+        _position += count;
+        _length = Math.Max(_length, _position);
+    }
+
+    // Rented buffers contain old data so bytes that were never written must be zeroed.
+    private void ClearGap(int end)
+    {
+        _buffer.AsSpan(_length, end - _length).Clear();
+    }
+
+    private void EnsureCapacity(int required)
+    {
         var capacity = _buffer?.Length ?? 0;
         if (required > capacity)
         {
-            if (required > MaxBufferSize)
-            {
-                throw new InvalidOperationException("Buffer can't be larger than the maximum array length.");
-            }
-
             Resize((int)Math.Max(required, Math.Min(capacity * 2L, MaxBufferSize)));
         }
     }
@@ -134,7 +292,7 @@ internal sealed class PooledBufferStream : Stream
         var oldBuffer = _buffer;
         if (oldBuffer != null)
         {
-            Buffer.BlockCopy(oldBuffer, 0, newBuffer, 0, _position);
+            Buffer.BlockCopy(oldBuffer, 0, newBuffer, 0, _length);
             ArrayPool<byte>.Shared.Return(oldBuffer);
         }
 
