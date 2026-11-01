@@ -57,11 +57,43 @@ public class PooledBufferStreamTests
     }
 
     [Test]
-    public void Release_AfterWrite_DiscardsData()
+    public void WriteByte_MultipleBytes_WritesInOrder()
     {
         // Arrange
         var stream = new PooledBufferStream();
-        stream.Write(new byte[] { 1 }, 0, 1);
+
+        // Act
+        stream.WriteByte(1);
+        stream.WriteByte(2);
+
+        // Assert
+        CollectionAssert.AreEqual(new byte[] { 1, 2 }, stream.WrittenSpan.ToArray());
+
+        stream.Release();
+    }
+
+    [Test]
+    public async Task WriteAsync_Data_WritesData()
+    {
+        // Arrange
+        var stream = new PooledBufferStream();
+        var expected = CreateData(1000);
+
+        // Act
+        await stream.WriteAsync(expected, 0, expected.Length);
+
+        // Assert
+        CollectionAssert.AreEqual(expected, stream.WrittenSpan.ToArray());
+
+        stream.Release();
+    }
+
+    [Test]
+    public void Release_AfterWrite_DiscardsDataAndAllowsReuse()
+    {
+        // Arrange
+        var stream = new PooledBufferStream();
+        stream.WriteByte(1);
 
         // Act
         stream.Release();
@@ -69,6 +101,11 @@ public class PooledBufferStreamTests
         // Assert
         Assert.AreEqual(0, stream.Length);
         Assert.AreEqual(0, stream.WrittenSpan.Length);
+
+        stream.WriteByte(2);
+        CollectionAssert.AreEqual(new byte[] { 2 }, stream.WrittenSpan.ToArray());
+
+        stream.Release();
     }
 
     [Test]
@@ -76,7 +113,7 @@ public class PooledBufferStreamTests
     {
         // Arrange
         var stream = new PooledBufferStream();
-        stream.Write(new byte[] { 1 }, 0, 1);
+        stream.WriteByte(1);
 
         // Act & Assert
         stream.Release();
@@ -88,7 +125,7 @@ public class PooledBufferStreamTests
     {
         // Arrange
         var stream = new PooledBufferStream();
-        stream.Write(new byte[] { 1 }, 0, 1);
+        stream.WriteByte(1);
 
         // Act
         stream.Dispose();
@@ -100,7 +137,7 @@ public class PooledBufferStreamTests
     }
 
     [Test]
-    public void Stream_IsWriteOnly()
+    public void ReadAndSeekMembers_WriteOnlyStream_NotSupported()
     {
         // Arrange
         var stream = new PooledBufferStream();
