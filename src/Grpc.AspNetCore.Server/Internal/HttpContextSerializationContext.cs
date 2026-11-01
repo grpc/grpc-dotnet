@@ -221,22 +221,29 @@ internal sealed class HttpContextSerializationContext : SerializationContext
     {
         EnsureMessageSizeAllowed(data.Length);
 
-        if (_compressionProvider != null)
+        PooledBufferStream? output = null;
+        try
         {
-            data = CompressMessage(data);
-        }
+            if (_compressionProvider != null)
+            {
+                output = new PooledBufferStream();
+                data = CompressMessage(data, output);
+            }
 
-        WriteHeader(ResponseBufferWriter, data.Length, compress: _compressionProvider != null);
-        ResponseBufferWriter.Write(data);
+            WriteHeader(ResponseBufferWriter, data.Length, compress: _compressionProvider != null);
+            ResponseBufferWriter.Write(data);
+        }
+        finally
+        {
+            output?.Release();
+        }
     }
 
-    private ReadOnlySpan<byte> CompressMessage(ReadOnlySpan<byte> messageData)
+    private ReadOnlySpan<byte> CompressMessage(ReadOnlySpan<byte> messageData, PooledBufferStream output)
     {
         Debug.Assert(_compressionProvider != null, "Compression provider is not null to get here.");
 
         GrpcServerLog.CompressingMessage(_serverCallContext.Logger, _compressionProvider.EncodingName);
-
-        var output = new NonDisposableMemoryStream();
 
         // Compression stream must be disposed before its content is read.
         // GZipStream writes final Adler32 at the end of the stream on dispose.
@@ -245,6 +252,6 @@ internal sealed class HttpContextSerializationContext : SerializationContext
             compressionStream.Write(messageData);
         }
 
-        return output.GetBuffer().AsSpan(0, (int)output.Length);
+        return output.WrittenSpan;
     }
 }

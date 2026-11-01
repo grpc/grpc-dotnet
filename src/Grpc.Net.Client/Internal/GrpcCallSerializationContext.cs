@@ -269,27 +269,34 @@ internal sealed class GrpcCallSerializationContext : SerializationContext, IBuff
     {
         EnsureMessageSizeAllowed(data.Length);
 
-        if (_compressionProvider != null)
+        PooledBufferStream? output = null;
+        try
         {
-            data = CompressMessage(data);
+            if (_compressionProvider != null)
+            {
+                output = new PooledBufferStream();
+                data = CompressMessage(data, output);
+            }
+
+            _buffer = ArrayPool<byte>.Shared.Rent(GrpcProtocolConstants.HeaderSize + data.Length);
+
+            WriteHeader(_buffer, data.Length, compress: _compressionProvider != null);
+            _bufferPosition += GrpcProtocolConstants.HeaderSize;
+
+            data.CopyTo(_buffer.AsSpan(GrpcProtocolConstants.HeaderSize));
+            _bufferPosition += data.Length;
         }
-
-        _buffer = ArrayPool<byte>.Shared.Rent(GrpcProtocolConstants.HeaderSize + data.Length);
-
-        WriteHeader(_buffer, data.Length, compress: _compressionProvider != null);
-        _bufferPosition += GrpcProtocolConstants.HeaderSize;
-
-        data.CopyTo(_buffer.AsSpan(GrpcProtocolConstants.HeaderSize));
-        _bufferPosition += data.Length;
+        finally
+        {
+            output?.Release();
+        }
     }
 
-    private ReadOnlySpan<byte> CompressMessage(ReadOnlySpan<byte> messageData)
+    private ReadOnlySpan<byte> CompressMessage(ReadOnlySpan<byte> messageData, PooledBufferStream output)
     {
         CompatibilityHelpers.Assert(_compressionProvider != null, "Compression provider is not null to get here.");
 
         GrpcCallLog.CompressingMessage(_call.Logger, _compressionProvider.EncodingName);
-
-        var output = new NonDisposableMemoryStream();
 
         // Compression stream must be disposed before its content is read.
         // GZipStream writes final Adler32 at the end of the stream on dispose.
@@ -303,7 +310,7 @@ internal sealed class GrpcCallSerializationContext : SerializationContext, IBuff
 #endif
         }
 
-        return output.GetBuffer().AsSpan(0, (int)output.Length);
+        return output.WrittenSpan;
     }
 
     public void Advance(int count)

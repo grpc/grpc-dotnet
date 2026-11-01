@@ -18,7 +18,7 @@
     <None Include="README.md" Pack="true" PackagePath="\" />
 
     <Compile Include="..\Shared\CommonGrpcProtocolHelpers.cs" Link="Internal\CommonGrpcProtocolHelpers.cs" />
-    <Compile Include="..\Shared\NonDisposableMemoryStream.cs" Link="Internal\NonDisposableMemoryStream.cs" />
+    <Compile Include="..\Shared\PooledBufferStream.cs" Link="Internal\PooledBufferStream.cs" />
     <Compile Include="..\Shared\DefaultDeserializationContext.cs" Link="Internal\DefaultDeserializationContext.cs" />
     <Compile Include="..\Shared\Server\BindMethodFinder.cs" Link="Model\Internal\Server\BindMethodFinder.cs" />
     <Compile Include="..\Shared\Server\ClientStreamingServerMethodInvoker.cs" Link="Model\Internal\Server\ClientStreamingServerMethodInvoker.cs" />

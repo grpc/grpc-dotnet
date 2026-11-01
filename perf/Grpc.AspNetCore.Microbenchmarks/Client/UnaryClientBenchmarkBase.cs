@@ -39,12 +39,7 @@ public class UnaryClientBenchmarkBase
     [GlobalSetup]
     public void GlobalSetup()
     {
-        _content =
-            "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed at ligula nec orci placerat mollis. " +
-            "Interdum et malesuada fames ac ante ipsum primis in faucibus. Ut aliquet non nunc id lobortis. " +
-            "In tincidunt ac sapien sit amet consequat. Interdum et malesuada fames ac ante ipsum primis in faucibus. " +
-            "Duis vel tristique ipsum, eget hendrerit justo. Donec accumsan, purus quis cursus auctor, sapien nisi " +
-            "lacinia ligula, ut vehicula lorem augue vel est. Vestibulum finibus ornare vulputate.";
+        _content = CreateContent();
 
         var requestMessage = GetMessageData(new HelloReply { Message = _content });
 
@@ -65,6 +60,16 @@ public class UnaryClientBenchmarkBase
         });
 
         _client = new Greeter.GreeterClient(channel);
+    }
+
+    protected virtual string CreateContent()
+    {
+        return
+            "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed at ligula nec orci placerat mollis. " +
+            "Interdum et malesuada fames ac ante ipsum primis in faucibus. Ut aliquet non nunc id lobortis. " +
+            "In tincidunt ac sapien sit amet consequat. Interdum et malesuada fames ac ante ipsum primis in faucibus. " +
+            "Duis vel tristique ipsum, eget hendrerit justo. Donec accumsan, purus quis cursus auctor, sapien nisi " +
+            "lacinia ligula, ut vehicula lorem augue vel est. Vestibulum finibus ornare vulputate.";
     }
 
     protected virtual byte[] GetMessageData(HelloReply message)

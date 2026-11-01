@@ -57,15 +57,7 @@ public class UnaryServerCallHandlerBenchmarkBase
     [GlobalSetup]
     public void GlobalSetup()
     {
-        var message = new ChatMessage
-        {
-            Name =
-                "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed at ligula nec orci placerat mollis. " +
-                "Interdum et malesuada fames ac ante ipsum primis in faucibus. Ut aliquet non nunc id lobortis. " +
-                "In tincidunt ac sapien sit amet consequat. Interdum et malesuada fames ac ante ipsum primis in faucibus. " +
-                "Duis vel tristique ipsum, eget hendrerit justo. Donec accumsan, purus quis cursus auctor, sapien nisi " +
-                "lacinia ligula, ut vehicula lorem augue vel est. Vestibulum finibus ornare vulputate."
-        };
+        var message = new ChatMessage { Name = CreateContent() };
 
         var services = new ServiceCollection();
         services.TryAddSingleton<IGrpcInterceptorActivator<UnaryAwaitInterceptor>>(new TestGrpcInterceptorActivator<UnaryAwaitInterceptor>(new UnaryAwaitInterceptor()));
@@ -108,6 +100,16 @@ public class UnaryServerCallHandlerBenchmarkBase
         });
         _headers = _httpContext.Response.Headers;
         SetupHttpContext(_httpContext);
+    }
+
+    protected virtual string CreateContent()
+    {
+        return
+            "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed at ligula nec orci placerat mollis. " +
+            "Interdum et malesuada fames ac ante ipsum primis in faucibus. Ut aliquet non nunc id lobortis. " +
+            "In tincidunt ac sapien sit amet consequat. Interdum et malesuada fames ac ante ipsum primis in faucibus. " +
+            "Duis vel tristique ipsum, eget hendrerit justo. Donec accumsan, purus quis cursus auctor, sapien nisi " +
+            "lacinia ligula, ut vehicula lorem augue vel est. Vestibulum finibus ornare vulputate.";
     }
 
     protected virtual Marshaller<ChatMessage> CreateMarshaller()
