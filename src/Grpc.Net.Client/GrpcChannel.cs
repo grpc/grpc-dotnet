@@ -87,6 +87,9 @@ public sealed partial class GrpcChannel : ChannelBase, IDisposable
     // Load balancing
     internal ConnectionManager ConnectionManager { get; }
 
+    // The proxy that SocketsHttpHandler uses. Null when it doesn't use a proxy.
+    internal System.Net.IWebProxy? Proxy { get; }
+
     // Set in unit tests
     internal ISubchannelTransportFactory SubchannelTransportFactory;
 #endif
@@ -129,7 +132,7 @@ public sealed partial class GrpcChannel : ChannelBase, IDisposable
 
         var resolverFactory = GetResolverFactory(channelOptions);
         ResolveCredentials(channelOptions, out _isSecure, out _callCredentials);
-        (HttpHandlerType, ConnectTimeout, ConnectionIdleTimeout) = CalculateHandlerContext(Logger, address, _isSecure, channelOptions);
+        (HttpHandlerType, ConnectTimeout, ConnectionIdleTimeout, Proxy) = CalculateHandlerContext(channelOptions);
 
         SubchannelTransportFactory = channelOptions.ResolveService<ISubchannelTransportFactory>(new SubChannelTransportFactory(this));
 
@@ -158,7 +161,7 @@ public sealed partial class GrpcChannel : ChannelBase, IDisposable
             throw new ArgumentException($"Address '{address.OriginalString}' doesn't have a host. Address should include a scheme, host, and optional port. For example, 'https://localhost:5001'.");
         }
         ResolveCredentials(channelOptions, out _isSecure, out _callCredentials);
-        (HttpHandlerType, ConnectTimeout, ConnectionIdleTimeout) = CalculateHandlerContext(Logger, address, _isSecure, channelOptions);
+        (HttpHandlerType, ConnectTimeout, ConnectionIdleTimeout, _) = CalculateHandlerContext(channelOptions);
 #endif
 
         HttpInvoker = channelOptions.HttpClient ?? CreateInternalHttpInvoker(channelOptions.HttpHandler);
@@ -269,7 +272,7 @@ public sealed partial class GrpcChannel : ChannelBase, IDisposable
         return address.Scheme == Uri.UriSchemeHttps || address.Scheme == Uri.UriSchemeHttp;
     }
 
-    private static HttpHandlerContext CalculateHandlerContext(ILogger logger, Uri address, bool isSecure, GrpcChannelOptions channelOptions)
+    private static HttpHandlerContext CalculateHandlerContext(GrpcChannelOptions channelOptions)
     {
         if (channelOptions.HttpHandler == null)
         {
@@ -314,20 +317,13 @@ public sealed partial class GrpcChannel : ChannelBase, IDisposable
                 return new HttpHandlerContext(HttpHandlerType.Custom);
             }
 
-            // If a proxy is specified then requests could be sent via an SSL tunnel.
-            // A CONNECT request is made to the proxy to establish the transport stream and then
-            // gRPC calls are sent via stream. This feature isn't supported by load balancer.
-            // Proxy can be specified via:
-            // - SocketsHttpHandler.Proxy. Set via app code.
-            // - HttpClient.DefaultProxy. Set via environment variables, e.g. HTTPS_PROXY.
-            if (IsProxied(socketsHttpHandler, address, isSecure))
-            {
-                logger.LogInformation("Proxy configuration is detected. How the gRPC client creates connections can cause unexpected behavior when a proxy is configured. " +
-                    "To ensure the client correctly uses a proxy, configure GrpcChannelOptions.HttpHandler to use HttpClientHandler. " +
-                    "Note that HttpClientHandler isn't compatible with load balancing.");
-            }
+            // A proxy can be set with SocketsHttpHandler.Proxy, or with HttpClient.DefaultProxy (for example, from the
+            // HTTPS_PROXY environment variable). Subchannels use it to decide whether to connect a socket to an address.
+            // SocketsHttpHandler reads the proxy when it sends its first request, and the channel reads it here.
+            // The two can differ only if HttpClient.DefaultProxy changes between these times.
+            var proxy = ProxyHelpers.GetProxy(socketsHttpHandler);
 
-            return new HttpHandlerContext(HttpHandlerType.SocketsHttpHandler, socketsHttpHandler.ConnectTimeout, GetConnectionIdleTimeout(socketsHttpHandler));
+            return new HttpHandlerContext(HttpHandlerType.SocketsHttpHandler, socketsHttpHandler.ConnectTimeout, GetConnectionIdleTimeout(socketsHttpHandler), proxy);
 #else
             return new HttpHandlerContext(HttpHandlerType.SocketsHttpHandler);
 #endif
@@ -360,33 +356,6 @@ public sealed partial class GrpcChannel : ChannelBase, IDisposable
         }
 #endif
     }
-
-#if NET5_0_OR_GREATER
-    private static readonly Uri HttpLoadBalancerTemporaryUri = new Uri("http://loadbalancer.temporary.invalid");
-    private static readonly Uri HttpsLoadBalancerTemporaryUri = new Uri("https://loadbalancer.temporary.invalid");
-
-    private static bool IsProxied(SocketsHttpHandler socketsHttpHandler, Uri address, bool isSecure)
-    {
-        // Check standard address directly.
-        // When load balancing the channel doesn't know the final addresses yet so use temporary address.
-        Uri resolvedAddress;
-        if (IsHttpOrHttpsAddress(address))
-        {
-            resolvedAddress = address;
-        }
-        else if (isSecure)
-        {
-            resolvedAddress = HttpsLoadBalancerTemporaryUri;
-        }
-        else
-        {
-            resolvedAddress = HttpLoadBalancerTemporaryUri;
-        }
-
-        var proxy = socketsHttpHandler.Proxy ?? HttpClient.DefaultProxy;
-        return proxy.GetProxy(resolvedAddress) != null;
-    }
-#endif
 
 #if SUPPORT_LOAD_BALANCING
     private ResolverFactory GetResolverFactory(GrpcChannelOptions options)
@@ -893,7 +862,10 @@ public sealed partial class GrpcChannel : ChannelBase, IDisposable
                     _channel.ConnectTimeout,
                     _channel.ConnectionIdleTimeout ?? TimeSpan.FromMinutes(1),
                     _channel.LoggerFactory,
-                    socketConnect: null);
+                    socketConnect: null,
+                    // Runs on each connect attempt. A system proxy (for example, a PAC script) can be slow,
+                    // the same as when SocketsHttpHandler looks up the proxy for a request.
+                    isProxied: endPoint => ProxyHelpers.IsProxied(_channel.Proxy, endPoint, _channel.IsSecure));
             }
 
             return new PassiveSubchannelTransport(subchannel);
@@ -964,7 +936,7 @@ public sealed partial class GrpcChannel : ChannelBase, IDisposable
         public static partial void AddressPathUnused(ILogger logger, string address);
     }
 
-    private readonly record struct HttpHandlerContext(HttpHandlerType HttpHandlerType, TimeSpan? ConnectTimeout = null, TimeSpan? ConnectionIdleTimeout = null);
+    private readonly record struct HttpHandlerContext(HttpHandlerType HttpHandlerType, TimeSpan? ConnectTimeout = null, TimeSpan? ConnectionIdleTimeout = null, System.Net.IWebProxy? Proxy = null);
 }
 
 internal enum HttpHandlerType

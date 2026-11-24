@@ -19,6 +19,7 @@
 #if SUPPORT_LOAD_BALANCING
 using System.Diagnostics;
 using System.Net;
+using System.Net.Sockets;
 using Grpc.Shared;
 using Microsoft.Extensions.Logging;
 
@@ -81,7 +82,11 @@ internal sealed partial class BalancerHttpHandler : DelegatingHandler
 
         if (!context.InitialRequestMessage.TryGetOption<Subchannel>(SubchannelKey, out var subchannel))
         {
-            throw new InvalidOperationException($"Unable to get subchannel from {nameof(HttpRequestMessage)}.");
+            // The request isn't for a subchannel. This happens with an HTTP proxy: SocketsHttpHandler sends
+            // the CONNECT request for the tunnel as a new request. Connect to the proxy the same way
+            // SocketsHttpHandler does when it doesn't have a ConnectCallback.
+            Log.ConnectingWithoutSubchannel(_logger, context.DnsEndPoint);
+            return await ConnectSocketAsync(context.DnsEndPoint, cancellationToken).ConfigureAwait(false);
         }
         if (!context.InitialRequestMessage.TryGetOption<BalancerAddress>(CurrentAddressKey, out var currentAddress))
         {
@@ -90,6 +95,21 @@ internal sealed partial class BalancerHttpHandler : DelegatingHandler
 
         Debug.Assert(context.DnsEndPoint.Equals(currentAddress.EndPoint), "Context endpoint should equal address endpoint.");
         return await subchannel.Transport.GetStreamAsync(currentAddress.EndPoint, cancellationToken).ConfigureAwait(false);
+    }
+
+    private static async ValueTask<Stream> ConnectSocketAsync(DnsEndPoint endPoint, CancellationToken cancellationToken)
+    {
+        var socket = new Socket(SocketType.Stream, ProtocolType.Tcp) { NoDelay = true };
+        try
+        {
+            await socket.ConnectAsync(endPoint, cancellationToken).ConfigureAwait(false);
+            return new NetworkStream(socket, ownsSocket: true);
+        }
+        catch
+        {
+            socket.Dispose();
+            throw;
+        }
     }
 #endif
 
@@ -180,6 +200,17 @@ internal sealed partial class BalancerHttpHandler : DelegatingHandler
             if (logger.IsEnabled(LogLevel.Trace))
             {
                 StartingConnectCallback(logger, $"{endpoint.Host}:{endpoint.Port}");
+            }
+        }
+
+        [LoggerMessage(Level = LogLevel.Debug, EventId = 3, EventName = "ConnectingWithoutSubchannel", Message = "Connecting to {Endpoint} for a request without a subchannel. For example, a CONNECT request to an HTTP proxy.")]
+        private static partial void ConnectingWithoutSubchannel(ILogger logger, string endpoint);
+
+        public static void ConnectingWithoutSubchannel(ILogger logger, DnsEndPoint endpoint)
+        {
+            if (logger.IsEnabled(LogLevel.Debug))
+            {
+                ConnectingWithoutSubchannel(logger, $"{endpoint.Host}:{endpoint.Port}");
             }
         }
     }
