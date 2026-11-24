@@ -151,7 +151,6 @@ public class ConnectionTests : FunctionalTestBase
     }
 
     [Test]
-    [Ignore("Test disabled while figuring out the best solution for https://github.com/grpc/grpc-dotnet/issues/2075")]
     public async Task ConfiguredProxy_SslProxyTunnel()
     {
         using var proxyServer = LoopbackProxyServer.Create(new LoopbackProxyServer.Options());

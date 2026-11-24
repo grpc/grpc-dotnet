@@ -38,6 +38,9 @@ namespace Grpc.Net.Client.Balancer.Internal;
 ///    This transport is unable to check whether TLS and HTTP is succcessfully negotiated.
 /// 2. Transport supports multiple addresses. When connecting it will iterate through the addresses,
 ///    attempting to connect to each one.
+/// 3. When SocketsHttpHandler sends requests to an address through a proxy, a socket to the address
+///    isn't useful. The transport doesn't connect a socket and reports the address as ready.
+///    SocketsHttpHandler then connects to the proxy when a request is sent.
 /// </summary>
 internal sealed class SocketConnectivitySubchannelTransport : ISubchannelTransport, IDisposable
 {
@@ -50,6 +53,7 @@ internal sealed class SocketConnectivitySubchannelTransport : ISubchannelTranspo
     private readonly TimeSpan _socketPingInterval;
     private readonly TimeSpan _socketIdleTimeout;
     private readonly Func<Socket, DnsEndPoint, CancellationToken, ValueTask> _socketConnect;
+    private readonly Func<DnsEndPoint, bool>? _isProxied;
     private readonly List<ActiveStream> _activeStreams;
     private readonly Timer _socketConnectedTimer;
 
@@ -60,6 +64,7 @@ internal sealed class SocketConnectivitySubchannelTransport : ISubchannelTranspo
     private DateTime? _initialSocketCreatedTime;
     private bool _disposed;
     private DnsEndPoint? _currentEndPoint;
+    private bool _currentEndPointProxied;
 
     public SocketConnectivitySubchannelTransport(
         Subchannel subchannel,
@@ -67,7 +72,8 @@ internal sealed class SocketConnectivitySubchannelTransport : ISubchannelTranspo
         TimeSpan? connectTimeout,
         TimeSpan socketIdleTimeout,
         ILoggerFactory loggerFactory,
-        Func<Socket, DnsEndPoint, CancellationToken, ValueTask>? socketConnect)
+        Func<Socket, DnsEndPoint, CancellationToken, ValueTask>? socketConnect,
+        Func<DnsEndPoint, bool>? isProxied = null)
     {
         _logger = loggerFactory.CreateLogger(typeof(SocketConnectivitySubchannelTransport));
         _subchannel = subchannel;
@@ -75,6 +81,7 @@ internal sealed class SocketConnectivitySubchannelTransport : ISubchannelTranspo
         ConnectTimeout = connectTimeout;
         _socketIdleTimeout = socketIdleTimeout;
         _socketConnect = socketConnect ?? OnConnect;
+        _isProxied = isProxied;
         _activeStreams = new List<ActiveStream>();
         _socketConnectedTimer = NonCapturingTimer.Create(OnCheckSocketConnection, state: null, Timeout.InfiniteTimeSpan, Timeout.InfiniteTimeSpan);
     }
@@ -95,6 +102,10 @@ internal sealed class SocketConnectivitySubchannelTransport : ISubchannelTranspo
                 if (_activeStreams.Count > 0)
                 {
                     return TransportStatus.ActiveStream;
+                }
+                if (_currentEndPointProxied)
+                {
+                    return TransportStatus.Passive;
                 }
                 return TransportStatus.NotConnected;
             }
@@ -142,6 +153,7 @@ internal sealed class SocketConnectivitySubchannelTransport : ISubchannelTranspo
         _initialSocketCreatedTime = null;
         _lastEndPointIndex = 0;
         _currentEndPoint = null;
+        _currentEndPointProxied = false;
     }
 
     public async ValueTask<ConnectResult> TryConnectAsync(ConnectContext context, int attempt)
@@ -158,6 +170,23 @@ internal sealed class SocketConnectivitySubchannelTransport : ISubchannelTranspo
         {
             var currentIndex = (i + _lastEndPointIndex) % addresses.Count;
             var currentEndPoint = addresses[currentIndex].EndPoint;
+
+            if (_isProxied != null && _isProxied(currentEndPoint))
+            {
+                // Requests to this address go through a proxy. A socket to the address isn't used,
+                // and the address may not be reachable without the proxy.
+                SocketConnectivitySubchannelTransportLog.SkippingSocketForProxy(_logger, _subchannel.Id, currentEndPoint);
+
+                lock (Lock)
+                {
+                    _currentEndPoint = currentEndPoint;
+                    _currentEndPointProxied = true;
+                    _lastEndPointIndex = currentIndex;
+                }
+
+                _subchannel.UpdateConnectivityState(ConnectivityState.Ready, "Address is reached through a proxy.");
+                return ConnectResult.Success;
+            }
 
             Socket socket;
 
@@ -596,5 +625,8 @@ internal static partial class SocketConnectivitySubchannelTransportLog
 
     [LoggerMessage(Level = LogLevel.Debug, EventId = 17, EventName = "ClosingSocketFromIdleTimeoutOnCreateStream", Message = "Subchannel id '{SubchannelId}' socket {EndPoint} is being closed because it exceeds the idle timeout of {SocketIdleTimeout}.")]
     public static partial void ClosingSocketFromIdleTimeoutOnCreateStream(ILogger logger, string subchannelId, DnsEndPoint endPoint, TimeSpan socketIdleTimeout);
+
+    [LoggerMessage(Level = LogLevel.Debug, EventId = 18, EventName = "SkippingSocketForProxy", Message = "Subchannel id '{SubchannelId}' doesn't connect a socket to {EndPoint} because requests to it go through a proxy.")]
+    public static partial void SkippingSocketForProxy(ILogger logger, string subchannelId, DnsEndPoint endPoint);
 }
 #endif

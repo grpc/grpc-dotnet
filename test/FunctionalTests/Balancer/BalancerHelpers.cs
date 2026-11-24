@@ -144,13 +144,14 @@ internal static class BalancerHelpers
         Func<Socket, DnsEndPoint, CancellationToken, ValueTask>? socketConnect = null,
         TimeSpan? connectTimeout = null,
         TimeSpan? connectionIdleTimeout = null,
-        TimeSpan? socketPingInterval = null)
+        TimeSpan? socketPingInterval = null,
+        Func<DnsEndPoint, bool>? isProxied = null)
     {
         var resolver = new TestResolver();
         var e = endpoints.Select(i => new BalancerAddress(i.Host, i.Port)).ToList();
         resolver.UpdateAddresses(e);
 
-        return CreateChannel(loggerFactory, loadBalancingConfig, resolver, httpMessageHandler, connect, retryPolicy, socketConnect, connectTimeout, connectionIdleTimeout, socketPingInterval);
+        return CreateChannel(loggerFactory, loadBalancingConfig, resolver, httpMessageHandler, connect, retryPolicy, socketConnect, connectTimeout, connectionIdleTimeout, socketPingInterval, isProxied);
     }
 
     public static async Task<GrpcChannel> CreateChannel(
@@ -163,12 +164,13 @@ internal static class BalancerHelpers
         Func<Socket, DnsEndPoint, CancellationToken, ValueTask>? socketConnect = null,
         TimeSpan? connectTimeout = null,
         TimeSpan? connectionIdleTimeout = null,
-        TimeSpan? socketPingInterval = null)
+        TimeSpan? socketPingInterval = null,
+        Func<DnsEndPoint, bool>? isProxied = null)
     {
         var services = new ServiceCollection();
         services.AddSingleton<ResolverFactory>(new TestResolverFactory(resolver));
         services.AddSingleton<IRandomGenerator>(new TestRandomGenerator());
-        services.AddSingleton<ISubchannelTransportFactory>(new TestSubchannelTransportFactory(socketPingInterval ?? TimeSpan.FromSeconds(0.5), connectTimeout, connectionIdleTimeout ?? TimeSpan.FromMinutes(1), socketConnect));
+        services.AddSingleton<ISubchannelTransportFactory>(new TestSubchannelTransportFactory(socketPingInterval ?? TimeSpan.FromSeconds(0.5), connectTimeout, connectionIdleTimeout ?? TimeSpan.FromMinutes(1), socketConnect, isProxied));
         services.AddSingleton<LoadBalancerFactory>(new LeastUsedBalancerFactory());
 
         var serviceConfig = new ServiceConfig();
@@ -227,13 +229,15 @@ internal static class BalancerHelpers
         private readonly TimeSpan? _connectTimeout;
         private readonly TimeSpan _connectionIdleTimeout;
         private readonly Func<Socket, DnsEndPoint, CancellationToken, ValueTask>? _socketConnect;
+        private readonly Func<DnsEndPoint, bool>? _isProxied;
 
-        public TestSubchannelTransportFactory(TimeSpan socketPingInterval, TimeSpan? connectTimeout, TimeSpan connectionIdleTimeout, Func<Socket, DnsEndPoint, CancellationToken, ValueTask>? socketConnect)
+        public TestSubchannelTransportFactory(TimeSpan socketPingInterval, TimeSpan? connectTimeout, TimeSpan connectionIdleTimeout, Func<Socket, DnsEndPoint, CancellationToken, ValueTask>? socketConnect, Func<DnsEndPoint, bool>? isProxied = null)
         {
             _socketPingInterval = socketPingInterval;
             _connectTimeout = connectTimeout;
             _connectionIdleTimeout = connectionIdleTimeout;
             _socketConnect = socketConnect;
+            _isProxied = isProxied;
         }
 
         public ISubchannelTransport Create(Subchannel subchannel)
@@ -244,7 +248,8 @@ internal static class BalancerHelpers
                 _connectTimeout,
                 _connectionIdleTimeout,
                 subchannel._manager.LoggerFactory,
-                _socketConnect);
+                _socketConnect,
+                _isProxied);
         }
     }
 }
