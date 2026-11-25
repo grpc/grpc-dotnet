@@ -365,6 +365,7 @@ public sealed class Subchannel : IDisposable
             }
         }
 
+        Status? timeoutStatus = null;
         try
         {
             var backoffPolicy = _manager.BackoffPolicyFactory.Create();
@@ -386,8 +387,7 @@ public sealed class Subchannel : IDisposable
                     case ConnectResult.Success:
                         return;
                     case ConnectResult.Timeout:
-                        // Reset connectivity state back to idle so that new calls try to reconnect.
-                        UpdateConnectivityState(ConnectivityState.Idle, new Status(StatusCode.Unavailable, "Timeout connecting to subchannel."));
+                        timeoutStatus = new Status(StatusCode.Unavailable, "Timeout connecting to subchannel.");
                         return;
                     case ConnectResult.Failure:
                     default:
@@ -457,6 +457,14 @@ public sealed class Subchannel : IDisposable
                 {
                     _connectSemaphore.Release();
                 }
+            }
+
+            // Reset connectivity state back to idle so that new calls try to reconnect.
+            // Done after the connect context is disposed. Otherwise a connection requested
+            // for Idle sees this connect as still in progress and doesn't connect.
+            if (timeoutStatus != null)
+            {
+                UpdateConnectivityState(ConnectivityState.Idle, timeoutStatus.Value);
             }
         }
     }
