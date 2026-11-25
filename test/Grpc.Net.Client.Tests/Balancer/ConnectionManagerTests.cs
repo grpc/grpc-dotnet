@@ -865,6 +865,83 @@ public class ConnectionManagerTests
         Assert.AreEqual(ConnectivityState.Ready, subchannels[0].State);
     }
 
+    [Test]
+    public async Task ConnectTimeout_ReconnectRequestedBeforeConnectCompletes_SubchannelRecoverable()
+    {
+        // Regression test for https://github.com/grpc/grpc-dotnet/issues/2794
+        // When TryConnectAsync returns Timeout, the subchannel transitions to Idle and the
+        // balancer requests a new connection right away. That request must start a new
+        // connect, even when it runs before the timed-out connect has completed.
+
+        // Arrange
+        var services = new ServiceCollection();
+        var testSink = new TestSink();
+        services.AddLogging(b => b.AddProvider(new TestLoggerProvider(testSink)));
+        services.AddNUnitLogger();
+
+        await using var serviceProvider = services.BuildServiceProvider();
+        var loggerFactory = serviceProvider.GetRequiredService<ILoggerFactory>();
+
+        var resolver = new TestResolver(loggerFactory);
+        resolver.UpdateAddresses(new List<BalancerAddress>
+        {
+            new BalancerAddress("localhost", 80)
+        });
+
+        var connectAttempt = 0;
+        var holdingTimedOutConnect = 0;
+        var reconnectHandledTcs = new TaskCompletionSource<object?>(TaskCreationOptions.RunContinuationsAsynchronously);
+
+        testSink.MessageLogged += (w) =>
+        {
+            // The new connect either gave up because a connect is in progress, or waits for it.
+            if (Volatile.Read(ref holdingTimedOutConnect) == 1 &&
+                w.EventId.Name is "ConnectionRequestedInNonIdleState" or "QueuingConnect")
+            {
+                reconnectHandledTcs.TrySetResult(null);
+            }
+        };
+
+        var transportFactory = TestSubchannelTransportFactory.Create(async (subchannel, attempt, cancellationToken) =>
+        {
+            var currentAttempt = Interlocked.Increment(ref connectAttempt);
+            if (currentAttempt == 1)
+            {
+                // Registered after the balancer, so it runs after the balancer has requested a
+                // new connection for Idle. Holds the timed-out connect until that request is handled.
+                subchannel.OnStateChanged(s =>
+                {
+                    if (s.State == ConnectivityState.Idle && Interlocked.Exchange(ref holdingTimedOutConnect, 1) == 0)
+                    {
+                        reconnectHandledTcs.Task.Wait(TimeSpan.FromSeconds(5));
+                    }
+                });
+
+                // First attempt: the connect timeout fires, like a connect to an endpoint that drops SYNs.
+                await Task.Delay(Timeout.InfiniteTimeSpan, cancellationToken).ContinueWith(_ => { }, TaskScheduler.Default);
+                return new TryConnectResult(ConnectivityState.TransientFailure, ConnectResult.Timeout);
+            }
+
+            // Subsequent attempts succeed.
+            reconnectHandledTcs.TrySetResult(null);
+            return new TryConnectResult(ConnectivityState.Ready, ConnectResult.Success);
+        });
+        transportFactory.ConnectTimeout = TimeSpan.FromMilliseconds(200);
+
+        var clientChannel = CreateConnectionManager(loggerFactory, resolver, transportFactory);
+        clientChannel.ConfigureBalancer(c => new RoundRobinBalancer(c, loggerFactory));
+
+        // Act
+        _ = clientChannel.ConnectAsync(waitForReady: false, CancellationToken.None).ConfigureAwait(false);
+
+        // Assert
+        await TestHelpers.AssertIsTrueRetryAsync(
+            () => clientChannel.GetSubchannels().Count == 1 && clientChannel.GetSubchannels()[0].State == ConnectivityState.Ready,
+            "Wait for subchannel to reach Ready state.").DefaultTimeout();
+
+        Assert.AreEqual(2, connectAttempt);
+    }
+
     private class DropLoadBalancerFactory : LoadBalancerFactory
     {
         private readonly Func<IChannelControlHelper, DropLoadBalancer> _loadBalancerFunc;
