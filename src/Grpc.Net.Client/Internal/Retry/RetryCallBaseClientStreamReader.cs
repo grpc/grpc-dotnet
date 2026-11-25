@@ -41,7 +41,20 @@ internal sealed class RetryCallBaseClientStreamReader<TRequest, TResponse> : IAs
 
     public async Task<bool> MoveNext(CancellationToken cancellationToken)
     {
-        var call = await _retryCallBase.CommitedCallTask.ConfigureAwait(false);
+        IGrpcCall<TRequest, TResponse> call;
+        if (_retryCallBase.CommitedCallTask.IsCompletedSuccessfully())
+        {
+            call = _retryCallBase.CommitedCallTask.Result;
+        }
+        else
+        {
+            using var registration = (cancellationToken.CanBeCanceled && cancellationToken != _retryCallBase.Options.CancellationToken)
+                ? _retryCallBase.RegisterRetryCancellationToken(cancellationToken)
+                : default;
+
+            call = await _retryCallBase.CommitedCallTask.ConfigureAwait(false);
+        }
+
         return await call.ClientStreamReader!.MoveNext(cancellationToken).ConfigureAwait(false);
     }
 

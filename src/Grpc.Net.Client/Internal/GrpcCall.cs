@@ -404,7 +404,7 @@ internal sealed partial class GrpcCall<TRequest, TResponse> : GrpcCall, IGrpcCal
             this);
     }
 
-    private void CancelCallFromCancellationToken(CancellationToken cancellationToken)
+    internal void CancelCallFromCancellationToken(CancellationToken cancellationToken)
     {
         using (StartScope())
         {

@@ -338,6 +338,31 @@ public class DeadlineTests
     }
 
     [Test]
+    public async Task AsyncServerStreamingCall_Retry_DeadlineBeforeHeaders_ThrowOperationCanceledOnCancellation_ThrowsOperationCanceled()
+    {
+        // Arrange
+        var tcs = new TaskCompletionSource<HttpResponseMessage>(TaskCreationOptions.RunContinuationsAsynchronously);
+        var httpClient = ClientTestHelpers.CreateTestClient(request => tcs.Task);
+        var testSystemClock = new TestSystemClock(DateTime.UtcNow);
+        var serviceConfig = ServiceConfigHelpers.CreateRetryServiceConfig();
+        var invoker = HttpClientCallInvokerFactory.Create(
+            httpClient,
+            systemClock: testSystemClock,
+            serviceConfig: serviceConfig,
+            configure: o => o.ThrowOperationCanceledOnCancellation = true);
+        var deadline = testSystemClock.UtcNow.AddSeconds(0.1);
+
+        // Act
+        var call = invoker.AsyncServerStreamingCall(new HelloRequest(), new CallOptions(deadline: deadline));
+        var moveNextTask = call.ResponseStream.MoveNext(CancellationToken.None);
+        testSystemClock.UtcNow = deadline;
+
+        // Assert
+        await ExceptionAssert.ThrowsAsync<OperationCanceledException>(() => moveNextTask).DefaultTimeout();
+        Assert.AreEqual(StatusCode.DeadlineExceeded, call.GetStatus().StatusCode);
+    }
+
+    [Test]
     public async Task AsyncClientStreamingCall_DeadlineBeforeWrite_ResponseThrowsDeadlineExceededStatus()
     {
         // Arrange
