@@ -535,5 +535,25 @@ internal sealed partial class HedgingCall<TRequest, TResponse> : RetryCallBase<T
     {
         _hedgingDelayCts?.Cancel();
         _writeClientMessageTcs?.TrySetResult(false);
+
+        if (AdditionalCancellationToken.IsCancellationRequested)
+        {
+            IGrpcCall<TRequest, TResponse>[]? activeCalls = null;
+            lock (Lock)
+            {
+                if (_activeCalls.Count > 0)
+                {
+                    activeCalls = _activeCalls.ToArray();
+                }
+            }
+
+            if (activeCalls != null)
+            {
+                for (var i = 0; i < activeCalls.Length; i++)
+                {
+                    (activeCalls[i] as GrpcCall<TRequest, TResponse>)?.CancelCallFromCancellationToken(AdditionalCancellationToken);
+                }
+            }
+        }
     }
 }

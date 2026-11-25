@@ -303,6 +303,19 @@ internal sealed class RetryCall<TRequest, TResponse> : RetryCallBase<TRequest, T
         activeCall?.Dispose();
     }
 
+    protected override void OnCancellation()
+    {
+        if (AdditionalCancellationToken.IsCancellationRequested)
+        {
+            GrpcCall<TRequest, TResponse>? activeCall = null;
+            lock (Lock)
+            {
+                activeCall = _activeCall;
+            }
+            activeCall?.CancelCallFromCancellationToken(AdditionalCancellationToken);
+        }
+    }
+
     protected override void StartCore(Action<GrpcCall<TRequest, TResponse>> startCallFunc)
     {
         _ = StartRetry(startCallFunc);

@@ -33,8 +33,8 @@ internal sealed class StatusGrpcCall<TRequest, TResponse> : IGrpcCall<TRequest, 
     private IClientStreamWriter<TRequest>? _clientStreamWriter;
     private IAsyncStreamReader<TResponse>? _clientStreamReader;
 
-    public IClientStreamWriter<TRequest>? ClientStreamWriter => _clientStreamWriter ??= new StatusClientStreamWriter(_status);
-    public IAsyncStreamReader<TResponse>? ClientStreamReader => _clientStreamReader ??= new StatusStreamReader(_status);
+    public IClientStreamWriter<TRequest>? ClientStreamWriter => _clientStreamWriter ??= new StatusClientStreamWriter(this);
+    public IAsyncStreamReader<TResponse>? ClientStreamReader => _clientStreamReader ??= new StatusStreamReader(this);
     public bool Disposed => true;
     public bool ResponseFinished => true;
     public int MessagesRead { get; }
@@ -64,11 +64,25 @@ internal sealed class StatusGrpcCall<TRequest, TResponse> : IGrpcCall<TRequest, 
         return CreateErrorTask<Metadata>();
     }
 
-    private Task<T> CreateErrorTask<T>()
+    private Task<T> CreateErrorTask<T>(CancellationToken cancellationToken = default)
     {
-        if (_channel.ThrowOperationCanceledOnCancellation && _status.DebugException is OperationCanceledException ex)
+        if (_channel.ThrowOperationCanceledOnCancellation)
         {
-            return Task.FromException<T>(ex);
+            if (_status.DebugException is OperationCanceledException ex)
+            {
+                if (cancellationToken.IsCancellationRequested && cancellationToken != ex.CancellationToken)
+                {
+                    ex = new OperationCanceledException(cancellationToken);
+                }
+                return Task.FromException<T>(ex);
+            }
+            if (_status.StatusCode == StatusCode.DeadlineExceeded)
+            {
+                return Task.FromException<T>(
+                    cancellationToken.IsCancellationRequested
+                        ? new OperationCanceledException(cancellationToken)
+                        : new OperationCanceledException());
+            }
         }
         return Task.FromException<T>(new RpcException(_status));
     }
@@ -105,7 +119,7 @@ internal sealed class StatusGrpcCall<TRequest, TResponse> : IGrpcCall<TRequest, 
 
     public Task WriteClientStreamAsync<TState>(Func<GrpcCall<TRequest, TResponse>, Stream, CallOptions, TState, Task> writeFunc, TState state, CancellationToken cancellationToken)
     {
-        return Task.FromException(new RpcException(_status));
+        return CreateErrorTask<object?>(cancellationToken);
     }
 
     public bool TryRegisterCancellation(CancellationToken cancellationToken, [NotNullWhen(true)] out CancellationTokenRegistration? cancellationTokenRegistration)
@@ -136,40 +150,40 @@ internal sealed class StatusGrpcCall<TRequest, TResponse> : IGrpcCall<TRequest, 
 
     private sealed class StatusClientStreamWriter : IClientStreamWriter<TRequest>
     {
-        private readonly Status _status;
+        private readonly StatusGrpcCall<TRequest, TResponse> _call;
 
         public WriteOptions? WriteOptions { get; set; }
 
-        public StatusClientStreamWriter(Status status)
+        public StatusClientStreamWriter(StatusGrpcCall<TRequest, TResponse> call)
         {
-            _status = status;
+            _call = call;
         }
 
         public Task CompleteAsync()
         {
-            return Task.FromException(new RpcException(_status));
+            return _call.CreateErrorTask<object?>();
         }
 
         public Task WriteAsync(TRequest message)
         {
-            return Task.FromException(new RpcException(_status));
+            return _call.CreateErrorTask<object?>();
         }
     }
 
     private sealed class StatusStreamReader : IAsyncStreamReader<TResponse>
     {
-        private readonly Status _status;
+        private readonly StatusGrpcCall<TRequest, TResponse> _call;
 
         public TResponse Current { get; set; } = default!;
 
-        public StatusStreamReader(Status status)
+        public StatusStreamReader(StatusGrpcCall<TRequest, TResponse> call)
         {
-            _status = status;
+            _call = call;
         }
 
         public Task<bool> MoveNext(CancellationToken cancellationToken)
         {
-            return Task.FromException<bool>(new RpcException(_status));
+            return _call.CreateErrorTask<bool>(cancellationToken);
         }
     }
 }

@@ -45,9 +45,10 @@ internal abstract partial class RetryCallBase<TRequest, TResponse> : IGrpcCall<T
     protected object Lock { get; } = new object();
     protected ILogger Logger { get; }
     protected Method<TRequest, TResponse> Method { get; }
-    protected CallOptions Options { get; }
+    internal CallOptions Options { get; }
     protected int MaxRetryAttempts { get; }
     protected CancellationTokenSource CancellationTokenSource { get; }
+    protected CancellationToken AdditionalCancellationToken { get; private set; }
     protected TaskCompletionSource<IGrpcCall<TRequest, TResponse>?>? NewActiveCallTcs { get; set; }
 
     public GrpcChannel Channel { get; }
@@ -262,14 +263,16 @@ internal abstract partial class RetryCallBase<TRequest, TResponse> : IGrpcCall<T
 
     public abstract Task ClientStreamWriteAsync(TRequest message, CancellationToken cancellationToken);
 
-    protected CancellationTokenRegistration RegisterRetryCancellationToken(CancellationToken cancellationToken)
+    internal CancellationTokenRegistration RegisterRetryCancellationToken(CancellationToken cancellationToken)
     {
-        return cancellationToken.Register(
-            static state =>
+        return CompatibilityHelpers.RegisterWithCancellationTokenCallback(
+            cancellationToken,
+            static (state, ct) =>
             {
                 var call = (RetryCallBase<TRequest, TResponse>)state!;
 
                 Log.CanceledRetry(call.Logger);
+                call.AdditionalCancellationToken = ct;
                 call.CancellationTokenSource.Cancel();
             },
             this);
@@ -558,6 +561,10 @@ internal abstract partial class RetryCallBase<TRequest, TResponse> : IGrpcCall<T
                     if (Options.CancellationToken.IsCancellationRequested && Options.CancellationToken != operationCanceledException.CancellationToken)
                     {
                         ex = new OperationCanceledException(Options.CancellationToken);
+                    }
+                    else if (AdditionalCancellationToken.IsCancellationRequested && AdditionalCancellationToken != operationCanceledException.CancellationToken)
+                    {
+                        ex = new OperationCanceledException(AdditionalCancellationToken);
                     }
                     status = GrpcProtocolConstants.CreateClientCanceledStatus(ex);
                 }
